@@ -63,10 +63,7 @@
       "referente": "valentina",
       "commerciale": "beppe",
       "scadenza_contratto": "2026-12-31",
-      "rinnovo_previsto": "2026-11-01",
-      "tipo_contratto": "progetto",
-      "lead_obiettivo": null,
-      "lead_raccolte": null
+      "rinnovo_previsto": "2026-11-01"
     },
     {
       "id": "carbotermo",
@@ -76,10 +73,7 @@
       "referente": "valentina",
       "commerciale": "beppe",
       "scadenza_contratto": "2026-12-31",
-      "rinnovo_previsto": null,
-      "tipo_contratto": "progetto",
-      "lead_obiettivo": null,
-      "lead_raccolte": null
+      "rinnovo_previsto": null
     },
     {
       "id": "shoptime",
@@ -89,10 +83,7 @@
       "referente": "ivana",
       "commerciale": "beppe",
       "scadenza_contratto": "2026-12-31",
-      "rinnovo_previsto": null,
-      "tipo_contratto": "progetto",
-      "lead_obiettivo": null,
-      "lead_raccolte": null
+      "rinnovo_previsto": null
     },
     {
       "id": "wit_cloud",
@@ -102,10 +93,7 @@
       "referente": "giulia",
       "commerciale": "beppe",
       "scadenza_contratto": "2026-12-31",
-      "rinnovo_previsto": null,
-      "tipo_contratto": "progetto",
-      "lead_obiettivo": null,
-      "lead_raccolte": null
+      "rinnovo_previsto": null
     },
     {
       "id": "alimeco",
@@ -115,10 +103,7 @@
       "referente": "valentina",
       "commerciale": "beppe",
       "scadenza_contratto": "2026-12-31",
-      "rinnovo_previsto": "2026-10-01",
-      "tipo_contratto": "progetto",
-      "lead_obiettivo": null,
-      "lead_raccolte": null
+      "rinnovo_previsto": "2026-10-01"
     },
     {
       "id": "ferrari",
@@ -128,10 +113,7 @@
       "referente": "valentina",
       "commerciale": "mario",
       "scadenza_contratto": "2026-12-31",
-      "rinnovo_previsto": "2026-11-15",
-      "tipo_contratto": "progetto",
-      "lead_obiettivo": null,
-      "lead_raccolte": null
+      "rinnovo_previsto": "2026-11-15"
     },
     {
       "id": "natural_clima",
@@ -141,10 +123,7 @@
       "referente": "valentina",
       "commerciale": "mario",
       "scadenza_contratto": "2026-09-30",
-      "rinnovo_previsto": "2026-08-15",
-      "tipo_contratto": "progetto",
-      "lead_obiettivo": null,
-      "lead_raccolte": null
+      "rinnovo_previsto": "2026-08-15"
     },
     {
       "id": "on_energy",
@@ -154,10 +133,7 @@
       "referente": "valentina",
       "commerciale": "mario",
       "scadenza_contratto": "2026-12-31",
-      "rinnovo_previsto": null,
-      "tipo_contratto": "progetto",
-      "lead_obiettivo": null,
-      "lead_raccolte": null
+      "rinnovo_previsto": null
     },
     {
       "id": "leonart",
@@ -167,10 +143,7 @@
       "referente": "giulia",
       "commerciale": "roberto",
       "scadenza_contratto": "2026-12-31",
-      "rinnovo_previsto": "2026-11-01",
-      "tipo_contratto": "progetto",
-      "lead_obiettivo": null,
-      "lead_raccolte": null
+      "rinnovo_previsto": "2026-11-01"
     },
     {
       "id": "fotorent",
@@ -180,10 +153,7 @@
       "referente": "valentina",
       "commerciale": "mario",
       "scadenza_contratto": "2026-06-30",
-      "rinnovo_previsto": "2026-06-30",
-      "tipo_contratto": "progetto",
-      "lead_obiettivo": null,
-      "lead_raccolte": null
+      "rinnovo_previsto": "2026-06-30"
     },
     {
       "id": "silvauto",
@@ -193,10 +163,7 @@
       "referente": "valentina",
       "commerciale": "roberto",
       "scadenza_contratto": "2026-12-31",
-      "rinnovo_previsto": "2026-11-01",
-      "tipo_contratto": "progetto",
-      "lead_obiettivo": null,
-      "lead_raccolte": null
+      "rinnovo_previsto": "2026-11-01"
     },
     {
       "id": "brizzolari",
@@ -206,10 +173,7 @@
       "referente": "valentina",
       "commerciale": "beppe",
       "scadenza_contratto": "2026-12-31",
-      "rinnovo_previsto": "2026-10-15",
-      "tipo_contratto": "progetto",
-      "lead_obiettivo": null,
-      "lead_raccolte": null
+      "rinnovo_previsto": "2026-10-15"
     },
     {
       "id": "mainardi",
@@ -219,10 +183,7 @@
       "referente": "valentina",
       "commerciale": "beppe",
       "scadenza_contratto": "2026-12-31",
-      "rinnovo_previsto": "2026-11-01",
-      "tipo_contratto": "progetto",
-      "lead_obiettivo": null,
-      "lead_raccolte": null
+      "rinnovo_previsto": "2026-11-01"
     },
     {
       "id": "diemme",
@@ -232,10 +193,7 @@
       "referente": "giulia",
       "commerciale": "roberto",
       "scadenza_contratto": "2026-12-31",
-      "rinnovo_previsto": "2026-10-01",
-      "tipo_contratto": "progetto",
-      "lead_obiettivo": null,
-      "lead_raccolte": null
+      "rinnovo_previsto": "2026-10-01"
     },
     {
       "id": "gb_group",
@@ -245,10 +203,7 @@
       "referente": "giulia",
       "commerciale": "beppe",
       "scadenza_contratto": "2026-12-31",
-      "rinnovo_previsto": "2026-10-15",
-      "tipo_contratto": "progetto",
-      "lead_obiettivo": null,
-      "lead_raccolte": null
+      "rinnovo_previsto": "2026-10-15"
     },
     {
       "id": "oltre_impact",
@@ -258,10 +213,7 @@
       "referente": "valentina",
       "commerciale": "mario",
       "scadenza_contratto": "2026-12-31",
-      "rinnovo_previsto": "2026-11-01",
-      "tipo_contratto": "progetto",
-      "lead_obiettivo": null,
-      "lead_raccolte": null
+      "rinnovo_previsto": "2026-11-01"
     },
     {
       "id": "giardinia",
@@ -271,10 +223,7 @@
       "referente": "valentina",
       "commerciale": "beppe",
       "scadenza_contratto": "2026-09-30",
-      "rinnovo_previsto": "2026-07-15",
-      "tipo_contratto": "progetto",
-      "lead_obiettivo": null,
-      "lead_raccolte": null
+      "rinnovo_previsto": "2026-07-15"
     },
     {
       "id": "gruppodigit",
@@ -284,10 +233,7 @@
       "referente": "valentina",
       "commerciale": "beppe",
       "scadenza_contratto": "2026-12-31",
-      "rinnovo_previsto": "2026-11-01",
-      "tipo_contratto": "progetto",
-      "lead_obiettivo": null,
-      "lead_raccolte": null
+      "rinnovo_previsto": "2026-11-01"
     },
     {
       "id": "telpro",
@@ -297,10 +243,7 @@
       "referente": "valentina",
       "commerciale": "roberto",
       "scadenza_contratto": "2026-06-30",
-      "rinnovo_previsto": "2026-06-30",
-      "tipo_contratto": "progetto",
-      "lead_obiettivo": null,
-      "lead_raccolte": null
+      "rinnovo_previsto": "2026-06-30"
     },
     {
       "id": "accuracy",
@@ -310,10 +253,7 @@
       "referente": "gloria",
       "commerciale": "beppe",
       "scadenza_contratto": "2026-08-31",
-      "rinnovo_previsto": null,
-      "tipo_contratto": "progetto",
-      "lead_obiettivo": null,
-      "lead_raccolte": null
+      "rinnovo_previsto": null
     },
     {
       "id": "cl_scritti",
@@ -323,10 +263,7 @@
       "referente": "gloria",
       "commerciale": "beppe",
       "scadenza_contratto": "2026-12-31",
-      "rinnovo_previsto": null,
-      "tipo_contratto": "progetto",
-      "lead_obiettivo": null,
-      "lead_raccolte": null
+      "rinnovo_previsto": null
     },
     {
       "id": "cdo_como",
@@ -336,10 +273,7 @@
       "referente": "valentina",
       "commerciale": "roberto",
       "scadenza_contratto": "2026-12-31",
-      "rinnovo_previsto": null,
-      "tipo_contratto": "progetto",
-      "lead_obiettivo": null,
-      "lead_raccolte": null
+      "rinnovo_previsto": null
     },
     {
       "id": "topfilm",
@@ -349,10 +283,7 @@
       "referente": "giulia",
       "commerciale": "roberto",
       "scadenza_contratto": "2026-12-31",
-      "rinnovo_previsto": null,
-      "tipo_contratto": "progetto",
-      "lead_obiettivo": null,
-      "lead_raccolte": null
+      "rinnovo_previsto": null
     },
     {
       "id": "collezioni_arte",
@@ -362,10 +293,7 @@
       "referente": "giulia",
       "commerciale": "mario",
       "scadenza_contratto": "2026-12-31",
-      "rinnovo_previsto": null,
-      "tipo_contratto": "progetto",
-      "lead_obiettivo": null,
-      "lead_raccolte": null
+      "rinnovo_previsto": null
     },
     {
       "id": "new_srl",
@@ -375,10 +303,7 @@
       "referente": "gloria",
       "commerciale": "roberto",
       "scadenza_contratto": "2026-12-31",
-      "rinnovo_previsto": null,
-      "tipo_contratto": "progetto",
-      "lead_obiettivo": null,
-      "lead_raccolte": null
+      "rinnovo_previsto": null
     }
   ],
   "mesi": [
