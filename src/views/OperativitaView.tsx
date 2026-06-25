@@ -207,11 +207,47 @@ function Swimlane({ tasks, seed, onClienteClick }: {
 
   const operativi = seed.team.filter(p => p.tipo === 'operativo')
 
+  const personaById = useMemo(() => {
+    const m: Record<string, Persona> = {}
+    seed.team.forEach(p => { m[p.id] = p })
+    return m
+  }, [seed.team])
+
   const clienteNome = useMemo(() => {
     const m: Record<string, string> = {}
     seed.clienti.forEach(c => { m[c.id] = c.nome })
     return m
   }, [seed.clienti])
+
+  const capacitaByPersona = useMemo(() => {
+    const m: Record<string, number[]> = {}
+    seed.capacita.forEach(r => { m[r.persona] = r.valori })
+    return m
+  }, [seed.capacita])
+
+  function getOreAllocate(personaId: string, colStart: Date, colEnd: Date): number {
+    let ore = 0
+    tasks.filter(t => t.stato !== 'completato' && t.assegnatari.includes(personaId)).forEach(t => {
+      const tStart = parseDate(t.data_inizio)
+      const tEnd = parseDate(t.data_fine)
+      if (!tStart || !tEnd || t.ore_stimate <= 0) return
+      if (tStart <= colEnd && tEnd >= colStart) {
+        const durataTask = Math.max(1, Math.round((tEnd.getTime() - tStart.getTime()) / (1000 * 60 * 60 * 24)))
+        const overlapStart = tStart < colStart ? colStart : tStart
+        const overlapEnd = tEnd > colEnd ? colEnd : tEnd
+        const overlap = Math.max(1, Math.round((overlapEnd.getTime() - overlapStart.getTime()) / (1000 * 60 * 60 * 24)) + 1)
+        ore += Math.round((t.ore_stimate * overlap) / durataTask)
+      }
+    })
+    return ore
+  }
+
+  function getOreDisponibili(personaId: string, colStart: Date): number {
+    const meseIdx = colStart.getMonth() - 5
+    if (meseIdx < 0 || meseIdx > 6) return 0
+    const cap = capacitaByPersona[personaId]?.[meseIdx] ?? 0
+    return Math.round(cap / 4.3)
+  }
 
   const colonne = useMemo(() => {
     if (zoom === 'mese') {
@@ -270,6 +306,13 @@ function Swimlane({ tasks, seed, onClienteClick }: {
             {z === 'settimana' ? 'Per settimana' : 'Per mese'}
           </button>
         ))}
+        {zoom === 'settimana' && (
+          <span className="text-xs text-gray-400 flex items-center gap-1 ml-2">
+            <span className="font-semibold text-gray-600">Xh</span> allocate &nbsp;·&nbsp;
+            <span className="font-semibold" style={{ color: '#1D9E75' }}>+Xh</span> libere &nbsp;/&nbsp;
+            <span className="font-semibold" style={{ color: '#B91C1C' }}>−Xh</span> surplus
+          </span>
+        )}
       </div>
 
       <div className="bg-white rounded-xl border border-gray-200 overflow-x-auto">
@@ -280,7 +323,7 @@ function Swimlane({ tasks, seed, onClienteClick }: {
                 style={{ minWidth: 110 }}>Risorsa</th>
               {colonne.map((col, ci) => (
                 <th key={ci} className="text-center px-2 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide"
-                  style={{ minWidth: 130 }}>{col.label}</th>
+                  style={{ minWidth: 140 }}>{col.label}</th>
               ))}
             </tr>
           </thead>
@@ -296,16 +339,33 @@ function Swimlane({ tasks, seed, onClienteClick }: {
                     </div>
                   </div>
                 </td>
-                {colonne.map((_, ci) => {
+                {colonne.map((col, ci) => {
                   const blocks = grid[p.id]?.[ci] ?? []
                   const cellKey = `${p.id}-${ci}`
                   const isExpanded = expanded[cellKey]
                   const visible = isExpanded ? blocks : blocks.slice(0, MAX_VISIBLE)
                   const hidden = blocks.length - MAX_VISIBLE
+                  const oreAllocate = zoom === 'settimana' ? getOreAllocate(p.id, col.start, col.end) : 0
+                  const oreDisponibili = zoom === 'settimana' ? getOreDisponibili(p.id, col.start) : 0
+                  const oreLbiere = Math.max(0, oreDisponibili - oreAllocate)
+                  const isOverloaded = zoom === 'settimana' && oreAllocate > oreDisponibili
 
                   return (
-                    <td key={ci} className="px-1.5 py-2 align-top">
+                    <td key={ci} className="px-1.5 py-2 align-top"
+                      style={{ background: isOverloaded ? '#FFF8F8' : undefined }}>
                       <div className="flex flex-col gap-1">
+                        {zoom === 'settimana' && oreDisponibili > 0 && (
+                          <div className="flex items-center justify-between px-1 pb-1 mb-0.5"
+                            style={{ borderBottom: '1px solid #F0F0F0' }}>
+                            <span className="text-xs font-semibold text-gray-600">
+                              {oreAllocate}h
+                            </span>
+                            <span className="text-xs font-semibold"
+                              style={{ color: isOverloaded ? '#B91C1C' : '#1D9E75' }}>
+                              {isOverloaded ? `−${oreAllocate - oreDisponibili}h` : `+${oreLbiere}h`}
+                            </span>
+                          </div>
+                        )}
                         {visible.map((b, bi) => (
                           <button key={`${b.clienteId}-${b.area}-${bi}`}
                             onClick={() => onClienteClick(b.clienteId)}
