@@ -1,0 +1,2153 @@
+{
+  "team": [
+    {
+      "id": "valentina",
+      "nome": "Valentina Cugini",
+      "ruolo": "PM / KAM",
+      "tipo": "operativo",
+      "ore_settimana": 40,
+      "colore": "#4F86C6"
+    },
+    {
+      "id": "gloria",
+      "nome": "Gloria Ubaldini",
+      "ruolo": "Dev & Grafica",
+      "tipo": "operativo",
+      "ore_settimana": 40,
+      "colore": "#7DC67D"
+    },
+    {
+      "id": "giulia",
+      "nome": "Giulia Masnata",
+      "ruolo": "ADV",
+      "tipo": "operativo",
+      "ore_settimana": 40,
+      "colore": "#E07B54"
+    },
+    {
+      "id": "ivana",
+      "nome": "Ivana Gimigliano",
+      "ruolo": "Content",
+      "tipo": "operativo",
+      "ore_settimana": 20,
+      "colore": "#A67DC6"
+    },
+    {
+      "id": "beppe",
+      "nome": "Giuseppe Brambilla",
+      "ruolo": "CEO / Commerciale",
+      "tipo": "commerciale",
+      "colore": "#333333"
+    },
+    {
+      "id": "mario",
+      "nome": "Mario Patriarca",
+      "ruolo": "Commerciale",
+      "tipo": "commerciale",
+      "colore": "#333333"
+    },
+    {
+      "id": "roberto",
+      "nome": "Roberto Ricci",
+      "ruolo": "Commerciale",
+      "tipo": "commerciale",
+      "colore": "#333333"
+    }
+  ],
+  "clienti": [
+    {
+      "id": "mech_i_tronic",
+      "nome": "Mech-i-Tronic",
+      "stato": "attivo",
+      "tipo": "progetto_complesso",
+      "referente": "valentina",
+      "commerciale": "beppe",
+      "scadenza_contratto": "2026-12-31",
+      "rinnovo_previsto": "2026-11-01"
+    },
+    {
+      "id": "carbotermo",
+      "nome": "Carbotermo",
+      "stato": "attivo",
+      "tipo": "nuovo",
+      "referente": "valentina",
+      "commerciale": "beppe",
+      "scadenza_contratto": "2026-12-31",
+      "rinnovo_previsto": null
+    },
+    {
+      "id": "shoptime",
+      "nome": "Shoptime Vimercate",
+      "stato": "attivo",
+      "tipo": "nuovo",
+      "referente": "ivana",
+      "commerciale": "beppe",
+      "scadenza_contratto": "2026-12-31",
+      "rinnovo_previsto": null
+    },
+    {
+      "id": "wit_cloud",
+      "nome": "W.I.T. in Cloud",
+      "stato": "attivo",
+      "tipo": "nuovo",
+      "referente": "giulia",
+      "commerciale": "beppe",
+      "scadenza_contratto": "2026-12-31",
+      "rinnovo_previsto": null
+    },
+    {
+      "id": "alimeco",
+      "nome": "Alimeco",
+      "stato": "attivo",
+      "tipo": "progetto_complesso",
+      "referente": "valentina",
+      "commerciale": "beppe",
+      "scadenza_contratto": "2026-12-31",
+      "rinnovo_previsto": "2026-10-01"
+    },
+    {
+      "id": "ferrari",
+      "nome": "Ferrari Contract",
+      "stato": "attivo",
+      "tipo": "progetto_complesso",
+      "referente": "valentina",
+      "commerciale": "mario",
+      "scadenza_contratto": "2026-12-31",
+      "rinnovo_previsto": "2026-11-15"
+    },
+    {
+      "id": "natural_clima",
+      "nome": "Natural Clima",
+      "stato": "attivo",
+      "tipo": "progetto_complesso",
+      "referente": "valentina",
+      "commerciale": "mario",
+      "scadenza_contratto": "2026-09-30",
+      "rinnovo_previsto": "2026-08-15"
+    },
+    {
+      "id": "on_energy",
+      "nome": "On Energy",
+      "stato": "in_attesa",
+      "tipo": "progetto_complesso",
+      "referente": "valentina",
+      "commerciale": "mario",
+      "scadenza_contratto": "2026-12-31",
+      "rinnovo_previsto": null
+    },
+    {
+      "id": "leonart",
+      "nome": "Leonart–Treccani",
+      "stato": "attivo",
+      "tipo": "progetto_complesso",
+      "referente": "giulia",
+      "commerciale": "roberto",
+      "scadenza_contratto": "2026-12-31",
+      "rinnovo_previsto": "2026-11-01"
+    },
+    {
+      "id": "fotorent",
+      "nome": "Fotorent",
+      "stato": "attivo",
+      "tipo": "progetto_complesso",
+      "referente": "valentina",
+      "commerciale": "mario",
+      "scadenza_contratto": "2026-06-30",
+      "rinnovo_previsto": "2026-06-30"
+    },
+    {
+      "id": "silvauto",
+      "nome": "Silvauto",
+      "stato": "attivo",
+      "tipo": "gestione_continuativa",
+      "referente": "valentina",
+      "commerciale": "roberto",
+      "scadenza_contratto": "2026-12-31",
+      "rinnovo_previsto": "2026-11-01"
+    },
+    {
+      "id": "brizzolari",
+      "nome": "Nastri Brizzolari",
+      "stato": "attivo",
+      "tipo": "gestione_continuativa",
+      "referente": "valentina",
+      "commerciale": "beppe",
+      "scadenza_contratto": "2026-12-31",
+      "rinnovo_previsto": "2026-10-15"
+    },
+    {
+      "id": "mainardi",
+      "nome": "Mainardi Sistemi",
+      "stato": "attivo",
+      "tipo": "gestione_continuativa",
+      "referente": "valentina",
+      "commerciale": "beppe",
+      "scadenza_contratto": "2026-12-31",
+      "rinnovo_previsto": "2026-11-01"
+    },
+    {
+      "id": "diemme",
+      "nome": "Diemme",
+      "stato": "attivo",
+      "tipo": "gestione_continuativa",
+      "referente": "giulia",
+      "commerciale": "roberto",
+      "scadenza_contratto": "2026-12-31",
+      "rinnovo_previsto": "2026-10-01"
+    },
+    {
+      "id": "gb_group",
+      "nome": "G&B Group",
+      "stato": "attivo",
+      "tipo": "gestione_continuativa",
+      "referente": "giulia",
+      "commerciale": "beppe",
+      "scadenza_contratto": "2026-12-31",
+      "rinnovo_previsto": "2026-10-15"
+    },
+    {
+      "id": "oltre_impact",
+      "nome": "Oltre Impact",
+      "stato": "attivo",
+      "tipo": "gestione_continuativa",
+      "referente": "valentina",
+      "commerciale": "mario",
+      "scadenza_contratto": "2026-12-31",
+      "rinnovo_previsto": "2026-11-01"
+    },
+    {
+      "id": "giardinia",
+      "nome": "Giardinia",
+      "stato": "attivo",
+      "tipo": "gestione_continuativa",
+      "referente": "valentina",
+      "commerciale": "beppe",
+      "scadenza_contratto": "2026-09-30",
+      "rinnovo_previsto": "2026-07-15"
+    },
+    {
+      "id": "gruppodigit",
+      "nome": "Gruppodigit",
+      "stato": "attivo",
+      "tipo": "gestione_continuativa",
+      "referente": "valentina",
+      "commerciale": "beppe",
+      "scadenza_contratto": "2026-12-31",
+      "rinnovo_previsto": "2026-11-01"
+    },
+    {
+      "id": "telpro",
+      "nome": "Telpro",
+      "stato": "attivo",
+      "tipo": "gestione_continuativa",
+      "referente": "valentina",
+      "commerciale": "roberto",
+      "scadenza_contratto": "2026-06-30",
+      "rinnovo_previsto": "2026-06-30"
+    },
+    {
+      "id": "accuracy",
+      "nome": "Accuracy",
+      "stato": "attivo",
+      "tipo": "gestione_continuativa",
+      "referente": "gloria",
+      "commerciale": "beppe",
+      "scadenza_contratto": "2026-08-31",
+      "rinnovo_previsto": null
+    },
+    {
+      "id": "cl_scritti",
+      "nome": "CL Scritti",
+      "stato": "attivo",
+      "tipo": "gestione_continuativa",
+      "referente": "gloria",
+      "commerciale": "beppe",
+      "scadenza_contratto": "2026-12-31",
+      "rinnovo_previsto": null
+    },
+    {
+      "id": "cdo_como",
+      "nome": "CDO Como",
+      "stato": "attivo",
+      "tipo": "gestione_continuativa",
+      "referente": "valentina",
+      "commerciale": "roberto",
+      "scadenza_contratto": "2026-12-31",
+      "rinnovo_previsto": null
+    },
+    {
+      "id": "topfilm",
+      "nome": "Top Film",
+      "stato": "attivo",
+      "tipo": "gestione_continuativa",
+      "referente": "giulia",
+      "commerciale": "roberto",
+      "scadenza_contratto": "2026-12-31",
+      "rinnovo_previsto": null
+    },
+    {
+      "id": "collezioni_arte",
+      "nome": "Collezioni d'Arte",
+      "stato": "attivo",
+      "tipo": "gestione_continuativa",
+      "referente": "giulia",
+      "commerciale": "mario",
+      "scadenza_contratto": "2026-12-31",
+      "rinnovo_previsto": null
+    },
+    {
+      "id": "new_srl",
+      "nome": "NEW",
+      "stato": "attivo",
+      "tipo": "gestione_continuativa",
+      "referente": "gloria",
+      "commerciale": "roberto",
+      "scadenza_contratto": "2026-12-31",
+      "rinnovo_previsto": null
+    }
+  ],
+  "mesi": [
+    "giu",
+    "lug",
+    "ago",
+    "set",
+    "ott",
+    "nov",
+    "dic"
+  ],
+  "mesi_label": [
+    "Giu",
+    "Lug",
+    "Ago",
+    "Set",
+    "Ott",
+    "Nov",
+    "Dic"
+  ],
+  "anno": 2026,
+  "capacita": [
+    {
+      "persona": "valentina",
+      "valori": [
+        108,
+        76,
+        38,
+        116,
+        116,
+        108,
+        108
+      ]
+    },
+    {
+      "persona": "gloria",
+      "valori": [
+        143,
+        151,
+        38,
+        151,
+        151,
+        143,
+        143
+      ]
+    },
+    {
+      "persona": "giulia",
+      "valori": [
+        128,
+        72,
+        78,
+        136,
+        136,
+        128,
+        128
+      ]
+    },
+    {
+      "persona": "ivana",
+      "valori": [
+        64,
+        68,
+        14,
+        68,
+        68,
+        64,
+        64
+      ]
+    }
+  ],
+  "ore_pianificate": [
+    {
+      "persona": "valentina",
+      "valori": [
+        95,
+        85,
+        41,
+        59,
+        54,
+        54,
+        54
+      ]
+    },
+    {
+      "persona": "gloria",
+      "valori": [
+        132,
+        119,
+        113,
+        157,
+        170,
+        132,
+        122
+      ]
+    },
+    {
+      "persona": "giulia",
+      "valori": [
+        124,
+        110,
+        102,
+        125,
+        137,
+        138,
+        142
+      ]
+    },
+    {
+      "persona": "ivana",
+      "valori": [
+        62,
+        54,
+        50,
+        64,
+        62,
+        54,
+        44
+      ]
+    }
+  ],
+  "ore_consuntivate": [
+    {
+      "persona": "valentina",
+      "valori": [
+        71,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "persona": "gloria",
+      "valori": [
+        118,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "persona": "giulia",
+      "valori": [
+        122,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "persona": "ivana",
+      "valori": [
+        56,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ]
+    }
+  ],
+  "allocazioni": [
+    {
+      "cliente": "mech_i_tronic",
+      "persona": "valentina",
+      "area": "Strategia",
+      "valori": [
+        15,
+        15,
+        15,
+        15,
+        15,
+        15,
+        15
+      ]
+    },
+    {
+      "cliente": "mech_i_tronic",
+      "persona": "gloria",
+      "area": "Dev",
+      "valori": [
+        30,
+        31,
+        31,
+        35,
+        35,
+        35,
+        20
+      ]
+    },
+    {
+      "cliente": "mech_i_tronic",
+      "persona": "giulia",
+      "area": "ADV",
+      "valori": [
+        20,
+        10,
+        8,
+        8,
+        8,
+        8,
+        12
+      ]
+    },
+    {
+      "cliente": "carbotermo",
+      "persona": "valentina",
+      "area": "Strategia",
+      "valori": [
+        15,
+        15,
+        4,
+        10,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "cliente": "carbotermo",
+      "persona": "gloria",
+      "area": "Dev",
+      "valori": [
+        10,
+        0,
+        10,
+        20,
+        25,
+        5,
+        0
+      ]
+    },
+    {
+      "cliente": "shoptime",
+      "persona": "ivana",
+      "area": "Content",
+      "valori": [
+        18,
+        10,
+        10,
+        20,
+        10,
+        10,
+        10
+      ]
+    },
+    {
+      "cliente": "wit_cloud",
+      "persona": "giulia",
+      "area": "ADV",
+      "valori": [
+        12,
+        12,
+        12,
+        0,
+        12,
+        12,
+        12
+      ]
+    },
+    {
+      "cliente": "wit_cloud",
+      "persona": "gloria",
+      "area": "Dev",
+      "valori": [
+        0,
+        0,
+        8,
+        8,
+        8,
+        0,
+        0
+      ]
+    },
+    {
+      "cliente": "alimeco",
+      "persona": "ivana",
+      "area": "Content",
+      "valori": [
+        8,
+        8,
+        8,
+        8,
+        8,
+        8,
+        8
+      ]
+    },
+    {
+      "cliente": "alimeco",
+      "persona": "gloria",
+      "area": "Dev",
+      "valori": [
+        2,
+        2,
+        2,
+        2,
+        2,
+        2,
+        2
+      ]
+    },
+    {
+      "cliente": "alimeco",
+      "persona": "giulia",
+      "area": "ADV",
+      "valori": [
+        0,
+        0,
+        0,
+        8,
+        8,
+        8,
+        8
+      ]
+    },
+    {
+      "cliente": "ferrari",
+      "persona": "gloria",
+      "area": "Dev",
+      "valori": [
+        4,
+        4,
+        4,
+        4,
+        4,
+        4,
+        4
+      ]
+    },
+    {
+      "cliente": "ferrari",
+      "persona": "giulia",
+      "area": "ADV",
+      "valori": [
+        9,
+        9,
+        9,
+        9,
+        9,
+        9,
+        9
+      ]
+    },
+    {
+      "cliente": "natural_clima",
+      "persona": "giulia",
+      "area": "ADV",
+      "valori": [
+        10,
+        10,
+        10,
+        10,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "cliente": "natural_clima",
+      "persona": "ivana",
+      "area": "Content",
+      "valori": [
+        4,
+        4,
+        4,
+        4,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "cliente": "natural_clima",
+      "persona": "gloria",
+      "area": "Dev",
+      "valori": [
+        8,
+        8,
+        8,
+        8,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "cliente": "on_energy",
+      "persona": "ivana",
+      "area": "Content",
+      "valori": [
+        6,
+        6,
+        6,
+        6,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "cliente": "on_energy",
+      "persona": "giulia",
+      "area": "ADV",
+      "valori": [
+        8,
+        8,
+        8,
+        8,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "cliente": "on_energy",
+      "persona": "valentina",
+      "area": "Strategia",
+      "valori": [
+        8,
+        8,
+        8,
+        8,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "cliente": "leonart",
+      "persona": "giulia",
+      "area": "ADV",
+      "valori": [
+        6,
+        6,
+        6,
+        6,
+        6,
+        6,
+        6
+      ]
+    },
+    {
+      "cliente": "leonart",
+      "persona": "gloria",
+      "area": "Dev",
+      "valori": [
+        8,
+        8,
+        8,
+        8,
+        8,
+        8,
+        8
+      ]
+    },
+    {
+      "cliente": "fotorent",
+      "persona": "giulia",
+      "area": "ADV",
+      "valori": [
+        1,
+        1,
+        1,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "cliente": "fotorent",
+      "persona": "gloria",
+      "area": "Dev",
+      "valori": [
+        3,
+        3,
+        3,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "cliente": "fotorent",
+      "persona": "valentina",
+      "area": "Strategia",
+      "valori": [
+        12,
+        6,
+        3,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "cliente": "fotorent",
+      "persona": "ivana",
+      "area": "Content",
+      "valori": [
+        8,
+        8,
+        4,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "cliente": "silvauto",
+      "persona": "giulia",
+      "area": "ADV",
+      "valori": [
+        8,
+        8,
+        8,
+        8,
+        8,
+        8,
+        8
+      ]
+    },
+    {
+      "cliente": "silvauto",
+      "persona": "ivana",
+      "area": "Content",
+      "valori": [
+        4,
+        4,
+        4,
+        4,
+        4,
+        4,
+        4
+      ]
+    },
+    {
+      "cliente": "brizzolari",
+      "persona": "giulia",
+      "area": "ADV",
+      "valori": [
+        8,
+        8,
+        8,
+        8,
+        8,
+        8,
+        8
+      ]
+    },
+    {
+      "cliente": "brizzolari",
+      "persona": "gloria",
+      "area": "Dev",
+      "valori": [
+        6,
+        6,
+        6,
+        6,
+        6,
+        6,
+        6
+      ]
+    },
+    {
+      "cliente": "mainardi",
+      "persona": "giulia",
+      "area": "ADV",
+      "valori": [
+        4,
+        4,
+        4,
+        4,
+        4,
+        4,
+        4
+      ]
+    },
+    {
+      "cliente": "mainardi",
+      "persona": "gloria",
+      "area": "Dev",
+      "valori": [
+        3,
+        3,
+        3,
+        3,
+        3,
+        3,
+        3
+      ]
+    },
+    {
+      "cliente": "diemme",
+      "persona": "gloria",
+      "area": "Dev",
+      "valori": [
+        15,
+        15,
+        15,
+        15,
+        15,
+        0,
+        0
+      ]
+    },
+    {
+      "cliente": "diemme",
+      "persona": "ivana",
+      "area": "Content",
+      "valori": [
+        8,
+        8,
+        8,
+        8,
+        8,
+        0,
+        0
+      ]
+    },
+    {
+      "cliente": "diemme",
+      "persona": "giulia",
+      "area": "ADV",
+      "valori": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        0,
+        0
+      ]
+    },
+    {
+      "cliente": "gb_group",
+      "persona": "giulia",
+      "area": "ADV",
+      "valori": [
+        6,
+        6,
+        6,
+        6,
+        6,
+        0,
+        0
+      ]
+    },
+    {
+      "cliente": "gb_group",
+      "persona": "gloria",
+      "area": "Dev",
+      "valori": [
+        5,
+        5,
+        5,
+        5,
+        5,
+        0,
+        0
+      ]
+    },
+    {
+      "cliente": "oltre_impact",
+      "persona": "gloria",
+      "area": "Dev",
+      "valori": [
+        6,
+        6,
+        4,
+        4,
+        4,
+        4,
+        4
+      ]
+    },
+    {
+      "cliente": "oltre_impact",
+      "persona": "valentina",
+      "area": "Gestione",
+      "valori": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ]
+    },
+    {
+      "cliente": "giardinia",
+      "persona": "giulia",
+      "area": "ADV",
+      "valori": [
+        6,
+        6,
+        0,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "cliente": "giardinia",
+      "persona": "ivana",
+      "area": "Content",
+      "valori": [
+        6,
+        6,
+        6,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "cliente": "giardinia",
+      "persona": "valentina",
+      "area": "Strategia",
+      "valori": [
+        10,
+        4,
+        0,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "cliente": "giardinia",
+      "persona": "gloria",
+      "area": "Dev",
+      "valori": [
+        2,
+        2,
+        2,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "cliente": "gruppodigit",
+      "persona": "giulia",
+      "area": "ADV",
+      "valori": [
+        8,
+        8,
+        8,
+        8,
+        8,
+        8,
+        8
+      ]
+    },
+    {
+      "cliente": "gruppodigit",
+      "persona": "valentina",
+      "area": "Strategia",
+      "valori": [
+        6,
+        6,
+        0,
+        6,
+        6,
+        6,
+        6
+      ]
+    },
+    {
+      "cliente": "gruppodigit",
+      "persona": "gloria",
+      "area": "Dev",
+      "valori": [
+        8,
+        8,
+        0,
+        8,
+        8,
+        8,
+        8
+      ]
+    },
+    {
+      "cliente": "telpro",
+      "persona": "giulia",
+      "area": "ADV",
+      "valori": [
+        4,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "cliente": "telpro",
+      "persona": "gloria",
+      "area": "Dev",
+      "valori": [
+        4,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "cliente": "accuracy",
+      "persona": "gloria",
+      "area": "Dev",
+      "valori": [
+        4,
+        4,
+        0,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "cliente": "cl_scritti",
+      "persona": "gloria",
+      "area": "Dev",
+      "valori": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ]
+    },
+    {
+      "cliente": "cdo_como",
+      "persona": "valentina",
+      "area": "Gestione",
+      "valori": [
+        2,
+        2,
+        0,
+        2,
+        2,
+        2,
+        2
+      ]
+    },
+    {
+      "cliente": "topfilm",
+      "persona": "giulia",
+      "area": "ADV",
+      "valori": [
+        5,
+        5,
+        5,
+        5,
+        5,
+        5,
+        5
+      ]
+    },
+    {
+      "cliente": "collezioni_arte",
+      "persona": "giulia",
+      "area": "ADV",
+      "valori": [
+        6,
+        6,
+        6,
+        6,
+        6,
+        6,
+        6
+      ]
+    },
+    {
+      "cliente": "collezioni_arte",
+      "persona": "gloria",
+      "area": "Dev",
+      "valori": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ]
+    },
+    {
+      "cliente": "new_srl",
+      "persona": "gloria",
+      "area": "Dev",
+      "valori": [
+        2,
+        2,
+        2,
+        2,
+        2,
+        2,
+        2
+      ]
+    },
+    {
+      "cliente": "new_srl",
+      "persona": "giulia",
+      "area": "ADV",
+      "valori": [
+        2,
+        2,
+        2,
+        2,
+        2,
+        2,
+        2
+      ]
+    }
+  ],
+  "scadenze": [
+    {
+      "id": "s01",
+      "tipo": "rinnovo",
+      "cliente": "fotorent",
+      "titolo": "Rinnovo contratto Fotorent",
+      "data": "2026-06-30",
+      "referente": "valentina",
+      "stato": "aperto",
+      "urgenza": "critica",
+      "note": "Scadenza imminente — definire rinnovo entro fine mese"
+    },
+    {
+      "id": "s02",
+      "tipo": "rinnovo",
+      "cliente": "telpro",
+      "titolo": "Rinnovo contratto Telpro",
+      "data": "2026-06-30",
+      "referente": "valentina",
+      "stato": "aperto",
+      "urgenza": "critica",
+      "note": "Scadenza imminente"
+    },
+    {
+      "id": "s03",
+      "tipo": "riunione_cliente",
+      "cliente": "giardinia",
+      "titolo": "Incontro Giardinia — rinnovo + strategia H2",
+      "data": "2026-07-08",
+      "referente": "valentina",
+      "stato": "aperto",
+      "urgenza": "alta",
+      "note": "Presentare dati campagne + proposta continuità luglio–dicembre"
+    },
+    {
+      "id": "s04",
+      "tipo": "riunione_cliente",
+      "cliente": "fotorent",
+      "titolo": "Incontro Fotorent — piano riorganizzazione",
+      "data": "2026-07-15",
+      "referente": "valentina",
+      "stato": "aperto",
+      "urgenza": "alta",
+      "note": "Presentare piano concreto + struttura organizzativa + strategia orologi"
+    },
+    {
+      "id": "s05",
+      "tipo": "interno",
+      "cliente": null,
+      "titolo": "Progress — Pianificazione H2 e mappatura scadenze a fine anno",
+      "data": "2026-07-22",
+      "referente": "valentina",
+      "stato": "aperto",
+      "urgenza": "normale",
+      "note": "Mappare tutti i rilasci e rinnovi da luglio a dicembre. Evitare sovrapposizioni."
+    },
+    {
+      "id": "s06",
+      "tipo": "rinnovo",
+      "cliente": "giardinia",
+      "titolo": "Rinnovo contratto Giardinia",
+      "data": "2026-07-15",
+      "referente": "valentina",
+      "stato": "aperto",
+      "urgenza": "alta",
+      "note": null
+    },
+    {
+      "id": "s07",
+      "tipo": "rinnovo",
+      "cliente": "natural_clima",
+      "titolo": "Rinnovo contratto Natural Clima",
+      "data": "2026-08-15",
+      "referente": "valentina",
+      "stato": "aperto",
+      "urgenza": "normale",
+      "note": null
+    },
+    {
+      "id": "s08",
+      "tipo": "rilascio",
+      "cliente": "carbotermo",
+      "titolo": "Go-live sito Carbotermo",
+      "data": "2026-10-31",
+      "referente": "gloria",
+      "stato": "aperto",
+      "urgenza": "alta",
+      "note": "Milestone critica — dev in corso da luglio"
+    },
+    {
+      "id": "s09",
+      "tipo": "rinnovo",
+      "cliente": "diemme",
+      "titolo": "Rinnovo Diemme",
+      "data": "2026-10-01",
+      "referente": "roberto",
+      "stato": "aperto",
+      "urgenza": "normale",
+      "note": null
+    },
+    {
+      "id": "s10",
+      "tipo": "rinnovo",
+      "cliente": "alimeco",
+      "titolo": "Rinnovo Alimeco",
+      "data": "2026-10-01",
+      "referente": "valentina",
+      "stato": "aperto",
+      "urgenza": "normale",
+      "note": null
+    },
+    {
+      "id": "s11",
+      "tipo": "rinnovo",
+      "cliente": "gb_group",
+      "titolo": "Rinnovo G&B Group",
+      "data": "2026-10-15",
+      "referente": "beppe",
+      "stato": "aperto",
+      "urgenza": "normale",
+      "note": null
+    },
+    {
+      "id": "s12",
+      "tipo": "rinnovo",
+      "cliente": "brizzolari",
+      "titolo": "Rinnovo Nastri Brizzolari",
+      "data": "2026-10-15",
+      "referente": "valentina",
+      "stato": "aperto",
+      "urgenza": "normale",
+      "note": null
+    },
+    {
+      "id": "s13",
+      "tipo": "rinnovo",
+      "cliente": "mainardi",
+      "titolo": "Rinnovo Mainardi Sistemi",
+      "data": "2026-11-01",
+      "referente": "beppe",
+      "stato": "aperto",
+      "urgenza": "normale",
+      "note": null
+    },
+    {
+      "id": "s14",
+      "tipo": "rinnovo",
+      "cliente": "oltre_impact",
+      "titolo": "Rinnovo Oltre Impact",
+      "data": "2026-11-01",
+      "referente": "mario",
+      "stato": "aperto",
+      "urgenza": "normale",
+      "note": null
+    },
+    {
+      "id": "s15",
+      "tipo": "rinnovo",
+      "cliente": "silvauto",
+      "titolo": "Rinnovo Silvauto",
+      "data": "2026-11-01",
+      "referente": "roberto",
+      "stato": "aperto",
+      "urgenza": "normale",
+      "note": null
+    },
+    {
+      "id": "s16",
+      "tipo": "rinnovo",
+      "cliente": "mech_i_tronic",
+      "titolo": "Rinnovo Mech-i-Tronic",
+      "data": "2026-11-01",
+      "referente": "beppe",
+      "stato": "aperto",
+      "urgenza": "normale",
+      "note": null
+    },
+    {
+      "id": "s17",
+      "tipo": "rinnovo",
+      "cliente": "gruppodigit",
+      "titolo": "Rinnovo Gruppodigit",
+      "data": "2026-11-01",
+      "referente": "beppe",
+      "stato": "aperto",
+      "urgenza": "normale",
+      "note": null
+    },
+    {
+      "id": "s18",
+      "tipo": "rinnovo",
+      "cliente": "ferrari",
+      "titolo": "Rinnovo Ferrari Contract",
+      "data": "2026-11-15",
+      "referente": "mario",
+      "stato": "aperto",
+      "urgenza": "normale",
+      "note": null
+    },
+    {
+      "id": "s19",
+      "tipo": "rinnovo",
+      "cliente": "leonart",
+      "titolo": "Rinnovo Leonart–Treccani",
+      "data": "2026-11-01",
+      "referente": "roberto",
+      "stato": "aperto",
+      "urgenza": "normale",
+      "note": null
+    },
+    {
+      "id": "s20",
+      "tipo": "rilascio",
+      "cliente": "mech_i_tronic",
+      "titolo": "Go-live sito mechitronic.com",
+      "data": "2026-12-15",
+      "referente": "gloria",
+      "stato": "aperto",
+      "urgenza": "normale",
+      "note": "QA + go-live dicembre"
+    }
+  ],
+  "tasks": [
+    {
+      "id": "t001",
+      "cliente": "mech_i_tronic",
+      "area": "Dev",
+      "milestone": "Sito mechitronic.com",
+      "titolo": "Sviluppo homepage",
+      "assegnatari": [
+        "gloria"
+      ],
+      "ore_stimate": 16,
+      "data_inizio": "2026-07-01",
+      "data_fine": "2026-07-15",
+      "priorita": "alta",
+      "stato": "in_corso",
+      "ricorrente": false,
+      "note": "Nuovo sito corporate Megatronic Group"
+    },
+    {
+      "id": "t002",
+      "cliente": "mech_i_tronic",
+      "area": "Dev",
+      "milestone": "Sito mechitronic.com",
+      "titolo": "Sviluppo pagine prodotto",
+      "assegnatari": [
+        "gloria"
+      ],
+      "ore_stimate": 20,
+      "data_inizio": "2026-07-16",
+      "data_fine": "2026-08-15",
+      "priorita": "alta",
+      "stato": "da_fare",
+      "ricorrente": false,
+      "note": null
+    },
+    {
+      "id": "t003",
+      "cliente": "mech_i_tronic",
+      "area": "ADV",
+      "milestone": "Campagne Nikitronic",
+      "titolo": "Setup campagne Google Search",
+      "assegnatari": [
+        "giulia"
+      ],
+      "ore_stimate": 8,
+      "data_inizio": "2026-07-01",
+      "data_fine": "2026-07-10",
+      "priorita": "alta",
+      "stato": "in_corso",
+      "ricorrente": false,
+      "note": "Macchine industriali — ricerche specifiche"
+    },
+    {
+      "id": "t004",
+      "cliente": "mech_i_tronic",
+      "area": "ADV",
+      "milestone": "Campagne Nikitronic",
+      "titolo": "Monitoraggio e ottimizzazione ADV",
+      "assegnatari": [
+        "giulia"
+      ],
+      "ore_stimate": 4,
+      "data_inizio": "2026-07-01",
+      "data_fine": "2026-12-31",
+      "priorita": "media",
+      "stato": "in_corso",
+      "ricorrente": true,
+      "frequenza": "mensile",
+      "note": null
+    },
+    {
+      "id": "t005",
+      "cliente": "mech_i_tronic",
+      "area": "Strategia",
+      "milestone": "Go-live dicembre",
+      "titolo": "QA finale e go-live sito",
+      "assegnatari": [
+        "gloria",
+        "valentina"
+      ],
+      "ore_stimate": 12,
+      "data_inizio": "2026-12-01",
+      "data_fine": "2026-12-15",
+      "priorita": "alta",
+      "stato": "da_fare",
+      "ricorrente": false,
+      "note": "Deadline fissa — non spostabile"
+    },
+    {
+      "id": "t006",
+      "cliente": "carbotermo",
+      "area": "Dev",
+      "milestone": "Sito Carbotermo",
+      "titolo": "Progettazione UX/UI",
+      "assegnatari": [
+        "gloria"
+      ],
+      "ore_stimate": 12,
+      "data_inizio": "2026-07-01",
+      "data_fine": "2026-07-20",
+      "priorita": "alta",
+      "stato": "in_corso",
+      "ricorrente": false,
+      "note": null
+    },
+    {
+      "id": "t007",
+      "cliente": "carbotermo",
+      "area": "Dev",
+      "milestone": "Sito Carbotermo",
+      "titolo": "Sviluppo front-end",
+      "assegnatari": [
+        "gloria"
+      ],
+      "ore_stimate": 30,
+      "data_inizio": "2026-08-01",
+      "data_fine": "2026-09-30",
+      "priorita": "alta",
+      "stato": "da_fare",
+      "ricorrente": false,
+      "note": null
+    },
+    {
+      "id": "t008",
+      "cliente": "carbotermo",
+      "area": "Dev",
+      "milestone": "Sito Carbotermo",
+      "titolo": "Go-live e test",
+      "assegnatari": [
+        "gloria",
+        "valentina"
+      ],
+      "ore_stimate": 8,
+      "data_inizio": "2026-10-20",
+      "data_fine": "2026-10-31",
+      "priorita": "alta",
+      "stato": "da_fare",
+      "ricorrente": false,
+      "note": "Deadline cliente: 31 ottobre"
+    },
+    {
+      "id": "t009",
+      "cliente": "carbotermo",
+      "area": "Strategia",
+      "milestone": "Onboarding",
+      "titolo": "Incontro allineamento strategia",
+      "assegnatari": [
+        "valentina"
+      ],
+      "ore_stimate": 4,
+      "data_inizio": "2026-07-21",
+      "data_fine": "2026-07-21",
+      "priorita": "media",
+      "stato": "da_fare",
+      "ricorrente": false,
+      "note": "In presenza — Gloria presente se possibile"
+    },
+    {
+      "id": "t010",
+      "cliente": "fotorent",
+      "area": "Strategia",
+      "milestone": "Piano riorganizzazione",
+      "titolo": "Presentazione piano concreto H2",
+      "assegnatari": [
+        "valentina",
+        "giulia"
+      ],
+      "ore_stimate": 8,
+      "data_inizio": "2026-07-10",
+      "data_fine": "2026-07-15",
+      "priorita": "alta",
+      "stato": "in_corso",
+      "ricorrente": false,
+      "note": "Incontro 15 luglio — numeri + strategia orologi"
+    },
+    {
+      "id": "t011",
+      "cliente": "fotorent",
+      "area": "Content",
+      "milestone": "Piano riorganizzazione",
+      "titolo": "Organigramma aziendale",
+      "assegnatari": [
+        "giulia"
+      ],
+      "ore_stimate": 4,
+      "data_inizio": "2026-07-01",
+      "data_fine": "2026-07-14",
+      "priorita": "alta",
+      "stato": "in_corso",
+      "ricorrente": false,
+      "note": null
+    },
+    {
+      "id": "t012",
+      "cliente": "fotorent",
+      "area": "ADV",
+      "milestone": "Strategia orologi",
+      "titolo": "Research produttori orologi — targeting",
+      "assegnatari": [
+        "giulia"
+      ],
+      "ore_stimate": 6,
+      "data_inizio": "2026-07-16",
+      "data_fine": "2026-07-31",
+      "priorita": "alta",
+      "stato": "da_fare",
+      "ricorrente": false,
+      "note": null
+    },
+    {
+      "id": "t013",
+      "cliente": "giardinia",
+      "area": "ADV",
+      "milestone": "Report H1",
+      "titolo": "Presentazione report campagne H1",
+      "assegnatari": [
+        "giulia",
+        "valentina"
+      ],
+      "ore_stimate": 6,
+      "data_inizio": "2026-07-01",
+      "data_fine": "2026-07-08",
+      "priorita": "alta",
+      "stato": "in_corso",
+      "ricorrente": false,
+      "note": "Incontro 8 luglio — dati campagne + proposta H2"
+    },
+    {
+      "id": "t014",
+      "cliente": "giardinia",
+      "area": "Content",
+      "milestone": "Piano H2",
+      "titolo": "Piano comunicazione luglio-dicembre",
+      "assegnatari": [
+        "ivana",
+        "valentina"
+      ],
+      "ore_stimate": 8,
+      "data_inizio": "2026-07-09",
+      "data_fine": "2026-07-31",
+      "priorita": "media",
+      "stato": "da_fare",
+      "ricorrente": false,
+      "note": "Include spinta natalizia"
+    },
+    {
+      "id": "t015",
+      "cliente": "gruppodigit",
+      "area": "Dev",
+      "milestone": "Landing pages",
+      "titolo": "Landing page prodotto 1",
+      "assegnatari": [
+        "gloria"
+      ],
+      "ore_stimate": 10,
+      "data_inizio": "2026-06-20",
+      "data_fine": "2026-06-30",
+      "priorita": "alta",
+      "stato": "in_corso",
+      "ricorrente": false,
+      "note": "80% completato — manca sezione video"
+    },
+    {
+      "id": "t016",
+      "cliente": "gruppodigit",
+      "area": "Dev",
+      "milestone": "Landing pages",
+      "titolo": "Landing page prodotto 2",
+      "assegnatari": [
+        "gloria"
+      ],
+      "ore_stimate": 8,
+      "data_inizio": "2026-07-01",
+      "data_fine": "2026-07-15",
+      "priorita": "alta",
+      "stato": "da_fare",
+      "ricorrente": false,
+      "note": "Stessa struttura LP1 — duplica e adatta"
+    },
+    {
+      "id": "t017",
+      "cliente": "gruppodigit",
+      "area": "ADV",
+      "milestone": "Campagne Q3",
+      "titolo": "Setup campagne Meta Q3",
+      "assegnatari": [
+        "giulia"
+      ],
+      "ore_stimate": 6,
+      "data_inizio": "2026-07-01",
+      "data_fine": "2026-07-10",
+      "priorita": "media",
+      "stato": "da_fare",
+      "ricorrente": false,
+      "note": null
+    },
+    {
+      "id": "t018",
+      "cliente": "gruppodigit",
+      "area": "ADV",
+      "milestone": "Campagne Q3",
+      "titolo": "Report mensile campagne",
+      "assegnatari": [
+        "giulia"
+      ],
+      "ore_stimate": 2,
+      "data_inizio": "2026-07-01",
+      "data_fine": "2026-12-31",
+      "priorita": "media",
+      "stato": "in_corso",
+      "ricorrente": true,
+      "frequenza": "mensile",
+      "note": null
+    },
+    {
+      "id": "t019",
+      "cliente": "alimeco",
+      "area": "Content",
+      "milestone": "SEO on-page",
+      "titolo": "Testi SEO pagina Bakery",
+      "assegnatari": [
+        "ivana"
+      ],
+      "ore_stimate": 4,
+      "data_inizio": "2026-07-01",
+      "data_fine": "2026-07-15",
+      "priorita": "alta",
+      "stato": "da_fare",
+      "ricorrente": false,
+      "note": "Priorità URL fase 2"
+    },
+    {
+      "id": "t020",
+      "cliente": "alimeco",
+      "area": "Content",
+      "milestone": "SEO on-page",
+      "titolo": "Testi SEO pagina Pasta",
+      "assegnatari": [
+        "ivana"
+      ],
+      "ore_stimate": 4,
+      "data_inizio": "2026-07-16",
+      "data_fine": "2026-07-31",
+      "priorita": "alta",
+      "stato": "da_fare",
+      "ricorrente": false,
+      "note": null
+    },
+    {
+      "id": "t021",
+      "cliente": "alimeco",
+      "area": "Content",
+      "milestone": "LinkedIn",
+      "titolo": "Post LinkedIn mensile",
+      "assegnatari": [
+        "ivana"
+      ],
+      "ore_stimate": 3,
+      "data_inizio": "2026-07-01",
+      "data_fine": "2026-12-31",
+      "priorita": "media",
+      "stato": "in_corso",
+      "ricorrente": true,
+      "frequenza": "mensile",
+      "note": null
+    },
+    {
+      "id": "t022",
+      "cliente": "brizzolari",
+      "area": "Content",
+      "milestone": "Newsletter",
+      "titolo": "Newsletter luglio — prodotto estate",
+      "assegnatari": [
+        "ivana",
+        "gloria"
+      ],
+      "ore_stimate": 5,
+      "data_inizio": "2026-06-25",
+      "data_fine": "2026-06-30",
+      "priorita": "alta",
+      "stato": "in_corso",
+      "ricorrente": false,
+      "note": "Da mandare entro fine giugno — posticipabile max 3 lug"
+    },
+    {
+      "id": "t023",
+      "cliente": "brizzolari",
+      "area": "ADV",
+      "milestone": "Campagne",
+      "titolo": "Monitoraggio campagne Meta",
+      "assegnatari": [
+        "giulia"
+      ],
+      "ore_stimate": 2,
+      "data_inizio": "2026-07-01",
+      "data_fine": "2026-12-31",
+      "priorita": "bassa",
+      "stato": "in_corso",
+      "ricorrente": true,
+      "frequenza": "mensile",
+      "note": null
+    },
+    {
+      "id": "t024",
+      "cliente": "ferrari",
+      "area": "ADV",
+      "milestone": "Google Ads",
+      "titolo": "Ottimizzazione campagne Google",
+      "assegnatari": [
+        "giulia"
+      ],
+      "ore_stimate": 4,
+      "data_inizio": "2026-07-01",
+      "data_fine": "2026-12-31",
+      "priorita": "media",
+      "stato": "in_corso",
+      "ricorrente": true,
+      "frequenza": "mensile",
+      "note": null
+    },
+    {
+      "id": "t025",
+      "cliente": "ferrari",
+      "area": "Dev",
+      "milestone": "Landing Contract Industrie",
+      "titolo": "Aggiornamento sezione scaffalature",
+      "assegnatari": [
+        "gloria"
+      ],
+      "ore_stimate": 6,
+      "data_inizio": "2026-07-01",
+      "data_fine": "2026-07-20",
+      "priorita": "media",
+      "stato": "da_fare",
+      "ricorrente": false,
+      "note": "Aggiungere scaffalature come 4° blocco"
+    },
+    {
+      "id": "t026",
+      "cliente": "diemme",
+      "area": "Dev",
+      "milestone": "Selection Design book",
+      "titolo": "Impaginazione Selection Design",
+      "assegnatari": [
+        "gloria"
+      ],
+      "ore_stimate": 20,
+      "data_inizio": "2026-07-01",
+      "data_fine": "2026-08-31",
+      "priorita": "alta",
+      "stato": "in_corso",
+      "ricorrente": false,
+      "note": null
+    },
+    {
+      "id": "t027",
+      "cliente": "diemme",
+      "area": "Content",
+      "milestone": "Piano comunicazione",
+      "titolo": "Piano editoriale Q3",
+      "assegnatari": [
+        "ivana"
+      ],
+      "ore_stimate": 6,
+      "data_inizio": "2026-07-01",
+      "data_fine": "2026-07-15",
+      "priorita": "media",
+      "stato": "da_fare",
+      "ricorrente": false,
+      "note": null
+    },
+    {
+      "id": "t028",
+      "cliente": "oltre_impact",
+      "area": "Dev",
+      "milestone": "Sito",
+      "titolo": "Aggiornamento contenuti sito",
+      "assegnatari": [
+        "gloria"
+      ],
+      "ore_stimate": 6,
+      "data_inizio": "2026-07-01",
+      "data_fine": "2026-07-31",
+      "priorita": "bassa",
+      "stato": "in_attesa_materiali",
+      "ricorrente": false,
+      "note": "In attesa materiali da Maddalena"
+    },
+    {
+      "id": "t029",
+      "cliente": "shoptime",
+      "area": "Content",
+      "milestone": "Avvio",
+      "titolo": "Setup newsletter — prima campagna",
+      "assegnatari": [
+        "ivana"
+      ],
+      "ore_stimate": 8,
+      "data_inizio": "2026-07-01",
+      "data_fine": "2026-07-20",
+      "priorita": "alta",
+      "stato": "in_corso",
+      "ricorrente": false,
+      "note": "Nuovo cliente — rivenditore prodotti eccellenza Vimercate"
+    },
+    {
+      "id": "t030",
+      "cliente": "silvauto",
+      "area": "ADV",
+      "milestone": "Campagne",
+      "titolo": "Gestione campagne Meta/Google",
+      "assegnatari": [
+        "giulia"
+      ],
+      "ore_stimate": 4,
+      "data_inizio": "2026-07-01",
+      "data_fine": "2026-12-31",
+      "priorita": "media",
+      "stato": "in_corso",
+      "ricorrente": true,
+      "frequenza": "mensile",
+      "note": null
+    },
+    {
+      "id": "t031",
+      "cliente": "topfilm",
+      "area": "ADV",
+      "milestone": "Campagne vernici",
+      "titolo": "Annuncio vernici — attivato",
+      "assegnatari": [
+        "giulia"
+      ],
+      "ore_stimate": 3,
+      "data_inizio": "2026-06-23",
+      "data_fine": "2026-07-15",
+      "priorita": "alta",
+      "stato": "in_corso",
+      "ricorrente": false,
+      "note": "Annuncio attivato il 23/06 — monitorare conversioni"
+    },
+    {
+      "id": "t032",
+      "cliente": "on_energy",
+      "area": "Strategia",
+      "milestone": "Avvio progetto",
+      "titolo": "In attesa conferma nome aziendale",
+      "assegnatari": [
+        "valentina"
+      ],
+      "ore_stimate": 0,
+      "data_inizio": "2026-07-01",
+      "data_fine": "2026-08-31",
+      "priorita": "alta",
+      "stato": "bloccato",
+      "ricorrente": false,
+      "note": "Tutto bloccato fino a decisione sul naming"
+    }
+  ],
+  "contatti": [
+    {
+      "cliente": "mech_i_tronic",
+      "nome": "Massimo Rossi",
+      "ruolo": "Responsabile marketing",
+      "email": "m.rossi@mechitronic.it",
+      "telefono": null
+    },
+    {
+      "cliente": "carbotermo",
+      "nome": "Referente Carbotermo",
+      "ruolo": "CEO",
+      "email": null,
+      "telefono": null
+    },
+    {
+      "cliente": "fotorent",
+      "nome": "Massimo (titolare)",
+      "ruolo": "Titolare",
+      "email": null,
+      "telefono": null
+    },
+    {
+      "cliente": "giardinia",
+      "nome": "Paola",
+      "ruolo": "Referente",
+      "email": null,
+      "telefono": null
+    },
+    {
+      "cliente": "gruppodigit",
+      "nome": "Referente Gruppodigit",
+      "ruolo": "Responsabile",
+      "email": null,
+      "telefono": null
+    },
+    {
+      "cliente": "alimeco",
+      "nome": "Referente Alimeco",
+      "ruolo": "Quality office",
+      "email": null,
+      "telefono": null
+    },
+    {
+      "cliente": "brizzolari",
+      "nome": "Andrea",
+      "ruolo": "Referente",
+      "email": null,
+      "telefono": null
+    },
+    {
+      "cliente": "ferrari",
+      "nome": "Referente Ferrari Contract",
+      "ruolo": "Marketing",
+      "email": null,
+      "telefono": null
+    },
+    {
+      "cliente": "on_energy",
+      "nome": "Referente On Energy",
+      "ruolo": "CEO",
+      "email": null,
+      "telefono": null
+    },
+    {
+      "cliente": "shoptime",
+      "nome": "Referente Shoptime",
+      "ruolo": "Titolare",
+      "email": null,
+      "telefono": null
+    },
+    {
+      "cliente": "topfilm",
+      "nome": "Referente Top Film",
+      "ruolo": "Commerciale",
+      "email": null,
+      "telefono": null
+    }
+  ],
+  "note_rinnovo": [
+    {
+      "cliente": "fotorent",
+      "note": "Cliente in crisi di liquidità. Rinnovo condizionato all'esito dell'incontro del 15 luglio. Focus su piano concreto con numeri e strategia orologi.",
+      "anno_precedente_valore": 8000,
+      "anno_corrente_proposta": null
+    },
+    {
+      "cliente": "giardinia",
+      "note": "Rinnovo collegato all'incontro dell'8 luglio. Prevedere piano comunicazione H2 con eventuale spinta natalizia.",
+      "anno_precedente_valore": null,
+      "anno_corrente_proposta": null
+    },
+    {
+      "cliente": "natural_clima",
+      "note": "Rinnovo agosto. Verificare soddisfazione e nuove esigenze prima di proporre.",
+      "anno_precedente_valore": null,
+      "anno_corrente_proposta": null
+    },
+    {
+      "cliente": "alimeco",
+      "note": "SEO fase 2 approvata e in corso. Rinnovo ottobre — prevedere continuità SEO + LinkedIn.",
+      "anno_precedente_valore": null,
+      "anno_corrente_proposta": null
+    },
+    {
+      "cliente": "brizzolari",
+      "note": "Cliente storico. Rinnovo ottobre. Verificare soddisfazione newsletter e campagne.",
+      "anno_precedente_valore": null,
+      "anno_corrente_proposta": null
+    },
+    {
+      "cliente": "ferrari",
+      "note": "Rinnovo novembre — storicamente complesso. Anticipare incontro a settembre. Valutare AI & BI adoption.",
+      "anno_precedente_valore": null,
+      "anno_corrente_proposta": null
+    },
+    {
+      "cliente": "mech_i_tronic",
+      "note": "Rinnovo novembre. BB2026 in corso — sito, campagne, sussidiarie. Anticipare proposta a ottobre.",
+      "anno_precedente_valore": null,
+      "anno_corrente_proposta": null
+    }
+  ]
+}
