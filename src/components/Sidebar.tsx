@@ -6,6 +6,7 @@ const NAV_ITEMS: { id: View; label: string; icon: string }[] = [
   { id: 'operativita',  label: 'Operatività',    icon: '◈' },
   { id: 'carico',       label: 'Carico Team',    icon: '◫' },
   { id: 'scadenze',     label: 'Scadenze',       icon: '◷' },
+  { id: 'forecast',     label: 'Forecast',       icon: '◎' },
 ]
 
 interface SidebarProps {
@@ -42,7 +43,13 @@ export default function Sidebar({ currentView, onViewChange, currentUser, team, 
             }}>
             <span className="text-base w-5 text-center">{item.icon}</span>
             {item.label}
-            {activeView === item.id && (
+            {item.id === 'forecast' && (
+              <span className="ml-auto text-xs px-1.5 py-0.5 rounded"
+                style={{ background: 'rgba(125,245,223,0.15)', color: '#7DF5DF', fontSize: 9 }}>
+                soon
+              </span>
+            )}
+            {activeView === item.id && item.id !== 'forecast' && (
               <span className="ml-auto w-1.5 h-1.5 rounded-full" style={{ backgroundColor: '#7DF5DF' }} />
             )}
           </button>
@@ -55,9 +62,7 @@ export default function Sidebar({ currentView, onViewChange, currentUser, team, 
           <select value={currentUser.id} onChange={e => onUserChange(e.target.value)}
             className="w-full appearance-none text-sm rounded-lg px-3 py-2.5 pr-8 cursor-pointer"
             style={{ backgroundColor: '#252545', color: 'rgba(255,255,255,0.85)', border: '1px solid rgba(255,255,255,0.1)', outline: 'none' }}>
-            {team.map(p => (
-              <option key={p.id} value={p.id}>{p.nome}</option>
-            ))}
+            {team.map(p => <option key={p.id} value={p.id}>{p.nome}</option>)}
           </select>
           <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs pointer-events-none"
             style={{ color: 'rgba(255,255,255,0.4)' }}>▾</span>

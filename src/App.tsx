@@ -7,6 +7,7 @@ import CaricoView from './views/CaricoView'
 import ScadenzeView from './views/ScadenzeView'
 import OperativitaView from './views/OperativitaView'
 import SchedaCliente from './views/SchedaCliente'
+import ForecastView from './views/ForecastView'
 
 const seed = seedData as unknown as Seed
 
@@ -34,31 +35,19 @@ export default function App() {
     <div className="flex min-h-screen" style={{ backgroundColor: '#F8F9FA' }}>
       <Sidebar
         currentView={currentView}
-        onViewChange={(v) => {
-          setCurrentView(v)
-          if (v !== 'cliente') setSelectedCliente(null)
-        }}
+        onViewChange={(v) => { setCurrentView(v); if (v !== 'cliente') setSelectedCliente(null) }}
         currentUser={currentUser}
         team={seed.team}
         onUserChange={setCurrentUserId}
       />
       <main className="flex-1 overflow-auto" style={{ marginLeft: 240 }}>
         <div className="max-w-6xl mx-auto px-8 py-8">
-          {currentView === 'home' && (
-            <HomeView seed={seed} currentUser={currentUser} onClienteClick={handleClienteClick} />
-          )}
-          {currentView === 'carico' && (
-            <CaricoView seed={seed} />
-          )}
-          {currentView === 'scadenze' && (
-            <ScadenzeView seed={seed} />
-          )}
-          {currentView === 'operativita' && (
-            <OperativitaView seed={seed} onClienteClick={handleClienteClick} />
-          )}
-          {currentView === 'cliente' && selectedCliente && (
-            <SchedaCliente clienteId={selectedCliente} seed={seed} onBack={handleBack} />
-          )}
+          {currentView === 'home' && <HomeView seed={seed} currentUser={currentUser} onClienteClick={handleClienteClick} />}
+          {currentView === 'carico' && <CaricoView seed={seed} />}
+          {currentView === 'scadenze' && <ScadenzeView seed={seed} />}
+          {currentView === 'operativita' && <OperativitaView seed={seed} onClienteClick={handleClienteClick} />}
+          {currentView === 'cliente' && selectedCliente && <SchedaCliente clienteId={selectedCliente} seed={seed} onBack={handleBack} />}
+          {currentView === 'forecast' && <ForecastView />}
         </div>
       </main>
     </div>
