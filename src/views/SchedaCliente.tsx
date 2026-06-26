@@ -6,6 +6,7 @@ import { BadgeTipo, BadgeAlert, BadgeScadenzaTipo } from '../components/UI'
 import { useTaskContext } from '../context/TaskContext'
 import { useClienteContext } from '../context/ClienteContext'
 import TaskModal from '../components/TaskModal'
+import ImportTaskModal from '../components/ImportTaskModal'
 
 interface Props {
   clienteId: string
@@ -40,6 +41,8 @@ export default function SchedaCliente({ clienteId, seed, onBack }: Props) {
   const [activeTaskModal, setActiveTaskModal] = useState<Task | null>(null)
   const [notaEdit, setNotaEdit] = useState<string | null>(null)
   const [anagraficaEdit, setAnagraficaEdit] = useState(false)
+  const [showImport, setShowImport] = useState(false)
+  const [taskImportati, setTaskImportati] = useState<any[]>([])
 
   const { getTask, updateTask } = useTaskContext()
   const { getCliente, getContatti, updateNoteRinnovo, getNoteRinnovo } = useClienteContext()
@@ -66,7 +69,7 @@ export default function SchedaCliente({ clienteId, seed, onBack }: Props) {
   }, [progetti, progettoSelezionato])
 
   // Task filtrati per progetto
-  const tasksCliente = seed.tasks.filter(t => t.cliente === clienteId)
+  const tasksCliente = [...seed.tasks.filter(t => t.cliente === clienteId), ...taskImportati.filter(t => t.cliente === clienteId)]
   const tasks = progettoAttivo
     ? tasksCliente.filter(t => t.progetto_id === progettoAttivo.id)
     : tasksCliente
@@ -139,6 +142,20 @@ export default function SchedaCliente({ clienteId, seed, onBack }: Props) {
 
   return (
     <div>
+      {/* ImportTaskModal */}
+      {showImport && (
+        <ImportTaskModal
+          progetti={progetti}
+          personaById={personaById}
+          clienteId={clienteId}
+          onClose={() => setShowImport(false)}
+          onImport={(nuoviTask) => {
+            setTaskImportati(prev => [...prev, ...nuoviTask.map((t, i) => ({ ...t, id: `imp_${Date.now()}_${i}` }))])
+            setShowImport(false)
+          }}
+        />
+      )}
+
       {/* TaskModal */}
       {activeTaskModal && (
         <TaskModal
@@ -405,8 +422,9 @@ export default function SchedaCliente({ clienteId, seed, onBack }: Props) {
       {/* ATTIVITÀ */}
       {activeTab === 'attivita' && (
         <div>
-          <div className="flex gap-2 mb-4">
-            {(['aperti', 'tutti'] as const).map(f => (
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex gap-2">
+              {(['aperti', 'tutti'] as const).map(f => (
               <button key={f} onClick={() => setFiltroStato(f)}
                 className="text-sm px-3 py-1.5 rounded-lg border transition-colors"
                 style={{
@@ -417,6 +435,12 @@ export default function SchedaCliente({ clienteId, seed, onBack }: Props) {
                 {f === 'aperti' ? 'Aperti' : 'Tutti'}
               </button>
             ))}
+            </div>
+            <button onClick={() => setShowImport(true)}
+              className="text-sm px-3 py-1.5 rounded-lg font-medium flex items-center gap-1.5 transition-colors"
+              style={{ background: '#1A1A2E', color: '#7DF5DF' }}>
+              ↑ Importa da Excel
+            </button>
           </div>
           {tasksFiltrati.length === 0 ? (
             <p className="text-sm text-gray-400 py-8 text-center">Nessun task</p>
