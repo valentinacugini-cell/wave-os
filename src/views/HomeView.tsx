@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from 'react'
-import { Persona, Seed } from '../types'
+import { Persona, Seed, Cliente } from '../types'
+import NuovoClienteModal from '../components/NuovoClienteModal'
 import { getAlertLevel, getProssimaScadenza, formatDate, daysUntil } from '../utils'
 import { SectionHeader, Tabs, EmptyState } from '../components/UI'
 
@@ -18,6 +19,8 @@ export default function HomeView({ seed, currentUser, onClienteClick }: HomeProp
   const [searchQuery, setSearchQuery] = useState('')
   const [sortCol, setSortCol] = useState<SortCol>('rinnovo')
   const [sortDir, setSortDir] = useState<SortDir>('asc')
+  const [showNuovoCliente, setShowNuovoCliente] = useState(false)
+  const [nuoviClienti, setNuoviClienti] = useState<Cliente[]>([])
 
   const personaById = useMemo(() => {
     const map: Record<string, Persona> = {}
@@ -26,7 +29,7 @@ export default function HomeView({ seed, currentUser, onClienteClick }: HomeProp
   }, [seed.team])
 
   const clientiWithMeta = useMemo(() => {
-    return seed.clienti.map(c => {
+    return [...seed.clienti, ...nuoviClienti].map(c => {
       const alertLevel = getAlertLevel(c)
       const prossimaScadenza = getProssimaScadenza(c)
       const giorni = daysUntil(prossimaScadenza)
@@ -82,11 +85,11 @@ export default function HomeView({ seed, currentUser, onClienteClick }: HomeProp
 
   function getRinnovoBadge(c: typeof filteredClienti[0]) {
     if (c.stato === 'in_attesa') return <span className="text-xs text-gray-400">In attesa</span>
-    if (c.giorni === null) return <span className="text-xs text-gray-300">-</span>
+    if (c.giorni === null) return <span className="text-xs text-gray-300">—</span>
     if (c.giorni < 0) return <span className="text-xs text-gray-400">Scaduto</span>
-    if (c.giorni <= 30) return <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-semibold" style={{ background: '#FFEBEE', color: '#C62828' }}>Imminente · {c.giorni}gg</span>
-    if (c.giorni <= 60) return <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-semibold" style={{ background: '#FFF3E0', color: '#E65100' }}>Da lavorare · {c.giorni}gg</span>
-    if (c.giorni <= 90) return <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium" style={{ background: '#FFFDE7', color: '#F57F17' }}>{c.giorni}gg</span>
+    if (c.giorni <= 30) return <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-semibold" style={{ background: '#FFEBEE', color: '#C62828' }}>🔴 Imminente · {c.giorni}gg</span>
+    if (c.giorni <= 60) return <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-semibold" style={{ background: '#FFF3E0', color: '#E65100' }}>🟠 Da lavorare · {c.giorni}gg</span>
+    if (c.giorni <= 90) return <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium" style={{ background: '#FFFDE7', color: '#F57F17' }}>🟡 {c.giorni}gg</span>
     return <span className="text-xs" style={{ color: '#43A047' }}>OK</span>
   }
 
@@ -98,7 +101,7 @@ export default function HomeView({ seed, currentUser, onClienteClick }: HomeProp
         <span className="flex items-center gap-1">
           {label}
           <span style={{ color: active ? '#3DD4BE' : '#D1D5DB', fontSize: 9 }}>
-            {active ? (sortDir === 'asc' ? 'A' : 'V') : '-'}
+            {active ? (sortDir === 'asc' ? '▲' : '▼') : '⇅'}
           </span>
         </span>
       </th>
@@ -107,11 +110,23 @@ export default function HomeView({ seed, currentUser, onClienteClick }: HomeProp
 
   return (
     <div>
+      {showNuovoCliente && (
+        <NuovoClienteModal
+          seed={seed}
+          onClose={() => setShowNuovoCliente(false)}
+          onSave={(c) => setNuoviClienti(prev => [...prev, c])}
+        />
+      )}
       <div className="flex items-start justify-between mb-6">
-        <SectionHeader title="Clienti attivi" count={seed.clienti.length} />
+        <SectionHeader title="Clienti attivi" count={seed.clienti.length + nuoviClienti.length} />
         <div className="flex items-center gap-2 mt-0.5">
-          {critici > 0 && <span className="text-xs px-3 py-1.5 rounded-lg font-medium" style={{ background: '#FFEBEE', color: '#C62828' }}>{critici} imminenti</span>}
-          {attenzione > 0 && <span className="text-xs px-3 py-1.5 rounded-lg font-medium" style={{ background: '#FFF3E0', color: '#E65100' }}>{attenzione} da lavorare</span>}
+          <button onClick={() => setShowNuovoCliente(true)}
+            className="text-sm px-3 py-2 rounded-lg font-medium transition-colors flex items-center gap-1.5"
+            style={{ background: '#1A1A2E', color: '#7DF5DF' }}>
+            + Nuovo cliente
+          </button>
+          {critici > 0 && <span className="text-xs px-3 py-1.5 rounded-lg font-medium" style={{ background: '#FFEBEE', color: '#C62828' }}>🔴 {critici} imminenti</span>}
+          {attenzione > 0 && <span className="text-xs px-3 py-1.5 rounded-lg font-medium" style={{ background: '#FFF3E0', color: '#E65100' }}>🟠 {attenzione} da lavorare</span>}
         </div>
       </div>
 
@@ -150,11 +165,11 @@ export default function HomeView({ seed, currentUser, onClienteClick }: HomeProp
                       <button onClick={() => onClienteClick(c.id)} className="font-medium text-sm text-gray-900 hover:text-teal-600 hover:underline text-left">{c.nome}</button>
                     </td>
                     <td className="px-4 py-3 text-sm">
-                      {referente ? <div className="flex items-center gap-2"><span className="w-6 h-6 rounded-full flex items-center justify-center text-white text-xs font-bold" style={{ background: referente.colore }}>{referente.nome.charAt(0)}</span><span className="text-gray-700">{referente.nome.split(' ')[0]}</span></div> : '-'}
+                      {referente ? <div className="flex items-center gap-2"><span className="w-6 h-6 rounded-full flex items-center justify-center text-white text-xs font-bold" style={{ background: referente.colore }}>{referente.nome.charAt(0)}</span><span className="text-gray-700">{referente.nome.split(' ')[0]}</span></div> : '—'}
                     </td>
-                    <td className="px-4 py-3 text-sm text-gray-500">{commerciale?.nome ?? '-'}</td>
+                    <td className="px-4 py-3 text-sm text-gray-500">{commerciale?.nome ?? '—'}</td>
                     <td className="px-4 py-3">{contrattoLabel}</td>
-                    <td className="px-4 py-3 text-sm"><span className={isCritica ? 'font-semibold text-red-700' : 'text-gray-700'}>{c.prossimaScadenza ? formatDate(c.prossimaScadenza) : '-'}</span></td>
+                    <td className="px-4 py-3 text-sm"><span className={isCritica ? 'font-semibold text-red-700' : 'text-gray-700'}>{c.prossimaScadenza ? formatDate(c.prossimaScadenza) : '—'}</span></td>
                     <td className="px-4 py-3">{getRinnovoBadge(c)}</td>
                   </tr>
                 )
