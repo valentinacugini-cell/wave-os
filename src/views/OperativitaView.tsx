@@ -273,6 +273,12 @@ function Swimlane({ tasks, seed, onOpenTask }: {
     return m
   }, [seed.clienti])
 
+  const progettoNome = useMemo(() => {
+    const m: Record<string, string> = {}
+    ;(seed.progetti ?? []).forEach(p => { m[p.id] = p.nome })
+    return m
+  }, [seed.progetti])
+
   const capacitaByPersona = useMemo(() => {
     const m: Record<string, number[]> = {}
     seed.capacita.forEach(r => { m[r.persona] = r.valori })
@@ -322,7 +328,7 @@ function Swimlane({ tasks, seed, onOpenTask }: {
 
   // Aggrega per cliente+area con lista task associati
   const grid = useMemo(() => {
-    type Block = { clienteId: string; area: string; priorita: TaskPriorita; tasks: Task[] }
+    type Block = { clienteId: string; area: string; progettoId: string | null; priorita: TaskPriorita; tasks: Task[] }
     const result: Record<string, Record<number, Block[]>> = {}
     operativi.forEach(p => {
       result[p.id] = {}
@@ -344,7 +350,7 @@ function Swimlane({ tasks, seed, onOpenTask }: {
               const po: Record<TaskPriorita, number> = { alta: 0, media: 1, bassa: 2 }
               if (po[t.priorita] < po[existing.priorita]) existing.priorita = t.priorita
             } else {
-              result[pid][ci].push({ clienteId: t.cliente, area: t.area, priorita: t.priorita, tasks: [rawT] })
+              result[pid][ci].push({ clienteId: t.cliente, area: t.area, progettoId: t.progetto_id ?? null, priorita: t.priorita, tasks: [rawT] })
             }
           }
         })
@@ -430,8 +436,9 @@ function Swimlane({ tasks, seed, onOpenTask }: {
                                 <div className="font-semibold truncate" style={{ maxWidth: 115, fontSize: 11 }}>
                                   {clienteNome[b.clienteId] ?? b.clienteId}
                                 </div>
-                                <div className="truncate text-gray-500" style={{ maxWidth: 115, fontSize: 10 }}>
-                                  {b.area}{b.tasks.length > 1 ? ` (${b.tasks.length})` : ''}
+                                <div className="truncate text-gray-400" style={{ maxWidth: 115, fontSize: 10 }}>
+                                  {b.progettoId ? (progettoNome[b.progettoId] ?? b.area) : b.area}
+                                  {b.tasks.length > 1 ? ` (${b.tasks.length})` : ''}
                                 </div>
                               </button>
                               {showTooltip && (
