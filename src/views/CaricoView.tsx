@@ -257,9 +257,10 @@ export default function CaricoView({ seed }: CaricoProps) {
 
   const consuntivateByPersona = useMemo(() => {
     const m: Record<string, number[]> = {}
-    seed.ore_consuntivate.forEach(r => { m[r.persona] = r.valori })
+    const oc = (seed as any).ore_consuntivate
+    if (Array.isArray(oc)) oc.forEach((r: any) => { m[r.persona] = r.valori })
     return m
-  }, [seed.ore_consuntivate])
+  }, [(seed as any).ore_consuntivate])
 
   const personaById = useMemo(() => {
     const m: Record<string, Persona> = {}
