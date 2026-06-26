@@ -2,6 +2,7 @@ import React, { useState, useMemo } from 'react'
 import seedData from './data/seed.json'
 import { Seed, Persona, View } from './types'
 import { TaskProvider } from './context/TaskContext'
+import { ClienteProvider } from './context/ClienteContext'
 import Sidebar from './components/Sidebar'
 import HomeView from './views/HomeView'
 import CaricoView from './views/CaricoView'
@@ -33,7 +34,8 @@ export default function App() {
   }
 
   return (
-    <TaskProvider>
+    <ClienteProvider>
+      <TaskProvider>
       <div className="flex min-h-screen" style={{ backgroundColor: '#F8F9FA' }}>
         <Sidebar
           currentView={currentView}
@@ -54,5 +56,6 @@ export default function App() {
         </main>
       </div>
     </TaskProvider>
+    </ClienteProvider>
   )
 }
