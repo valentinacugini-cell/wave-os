@@ -119,15 +119,29 @@ export async function loadSeed() {
     ore_pianificate: ore_pianificate ?? [],
   }
 
-  // Patch difensiva: garantisce che ogni cliente abbia gli array necessari
-  safeSeed.clienti = safeSeed.clienti.map((c: any) => ({
+  // Patch difensiva completa
+  safeSeed.clienti = (safeSeed.clienti ?? []).map((c: any) => ({
     ...c,
-    ore_effettive_mesi_2026: c.ore_effettive_mesi_2026 ?? new Array(12).fill(0),
+    ore_effettive_mesi_2026: Array.isArray(c.ore_effettive_mesi_2026) ? c.ore_effettive_mesi_2026 : new Array(12).fill(0),
   }))
-  safeSeed.team = safeSeed.team.map((p: any) => ({
+  safeSeed.team = (safeSeed.team ?? []).map((p: any) => ({
     ...p,
-    capacita_mensile: p.capacita_mensile ?? [],
+    capacita_mensile: Array.isArray(p.capacita_mensile) ? p.capacita_mensile : [],
   }))
+  safeSeed.tasks = (safeSeed.tasks ?? []).map((t: any) => ({
+    ...t,
+    assegnatari: Array.isArray(t.assegnatari) ? t.assegnatari : [],
+    priorita: t.priorita ?? 'media',
+    stato: t.stato ?? 'da_fare',
+    ore_stimate: t.ore_stimate ?? 0,
+  }))
+  ;(safeSeed as any).scadenze = Array.isArray(safeSeed.scadenze) ? safeSeed.scadenze : []
+  ;(safeSeed as any).progetti = Array.isArray(safeSeed.progetti) ? safeSeed.progetti : []
+  ;(safeSeed as any).contatti = Array.isArray(safeSeed.contatti) ? safeSeed.contatti : []
+  ;(safeSeed as any).allocazioni = []
+  ;(safeSeed as any).ore_consuntivate = []
+  ;(safeSeed as any).capacita = Array.isArray(safeSeed.capacita) ? safeSeed.capacita : []
+  ;(safeSeed as any).ore_pianificate = Array.isArray(safeSeed.ore_pianificate) ? safeSeed.ore_pianificate : []
 
   return safeSeed
 }
