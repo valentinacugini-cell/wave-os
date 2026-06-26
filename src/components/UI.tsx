@@ -9,7 +9,7 @@ const tipoConfig: Record<ClienteTipo, { label: string; bg: string; text: string 
 }
 
 export function BadgeTipo({ tipo }: { tipo: ClienteTipo }) {
-  const cfg = tipoConfig[tipo]
+  const cfg = tipoConfig[tipo] ?? { label: tipo ?? '—', bg: '#F3F4F6', text: '#6B7280' }
   return (
     <span
       className="inline-block px-2 py-0.5 rounded text-xs font-medium"
@@ -28,7 +28,7 @@ export function BadgeStato({ stato }: { stato: ClienteStato }) {
     pausa: { label: 'Pausa', bg: '#F3F4F6', text: '#6B7280' },
     concluso: { label: 'Concluso', bg: '#FEF2F2', text: '#B91C1C' },
   }
-  const c = cfg[stato]
+  const c = cfg[stato] ?? { label: stato ?? '—', bg: '#F3F4F6', text: '#6B7280' }
   return (
     <span className="inline-block px-2 py-0.5 rounded text-xs font-medium"
       style={{ backgroundColor: c.bg, color: c.text }}>
@@ -71,7 +71,7 @@ const scadenzaTipoConfig: Record<ScadenzaTipo, { label: string; bg: string; text
 }
 
 export function BadgeScadenzaTipo({ tipo }: { tipo: ScadenzaTipo }) {
-  const cfg = scadenzaTipoConfig[tipo]
+  const cfg = scadenzaTipoConfig[tipo] ?? { label: tipo ?? '—', bg: '#F3F4F6', text: '#4B5563', dot: '#9CA3AF' }
   return (
     <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-xs font-medium"
       style={{ backgroundColor: cfg.bg, color: cfg.text }}>
