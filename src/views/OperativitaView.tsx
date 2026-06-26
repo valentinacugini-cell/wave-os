@@ -433,11 +433,11 @@ function Swimlane({ tasks, seed, onOpenTask }: {
                           const blockKey = `${p.id}-${ci}-${bi}`
                           const showTooltip = activeTooltip === blockKey
                           return (
-                            <div key={`${b.clienteId}-${b.area}-${bi}`} className="relative">
+                            <div key={`${b.clienteId}-${b.area}-${bi}`} className="relative"
+                              onMouseEnter={() => setActiveTooltip(blockKey)}
+                              onMouseLeave={() => setActiveTooltip(null)}>
                               <button
-                                onClick={() => onOpenTask(b.tasks[0])}
-                                onMouseEnter={() => setActiveTooltip(blockKey)}
-                                onMouseLeave={() => setActiveTooltip(null)}
+                                onClick={() => b.tasks.length === 1 ? onOpenTask(b.tasks[0]) : undefined}
                                 className="text-left w-full rounded px-2 py-1 text-xs leading-snug hover:opacity-90 transition-opacity"
                                 style={{ background: prioColor + '18', borderLeft: `3px solid ${prioColor}`, color: '#1A1A1A' }}>
                                 <div className="font-semibold truncate" style={{ maxWidth: 115, fontSize: 11 }}>
