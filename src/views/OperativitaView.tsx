@@ -488,103 +488,302 @@ function Swimlane({ tasks, seed, onOpenTask }: {
 // ── Vista Anno ─────────────────────────────────────────────────────────────
 
 function VistaAnno({ seed }: { seed: Seed }) {
-  const operativi = seed.team.filter(p => p.tipo === 'operativo')
-  const mesi = seed.mesi_label
+  const [annoSelezionato, setAnnoSelezionato] = useState(TODAY.getFullYear())
+  const [filterTipo, setFilterTipo] = useState<'tutte' | 'rinnovo' | 'rilascio' | 'riunione_cliente'>('tutte')
 
-  const capacitaMap = useMemo(() => {
+  const oggi = TODAY
+  const annoMin = oggi.getFullYear()
+  const annoMax = oggi.getFullYear() + 5
+
+  const operativi = seed.team.filter(p => p.tipo === 'operativo')
+
+  const personaById = useMemo(() => {
+    const m: Record<string, Persona> = {}
+    seed.team.forEach(p => { m[p.id] = p })
+    return m
+  }, [seed.team])
+
+  const progettoById = useMemo(() => {
+    const m: Record<string, string> = {}
+    ;(seed.progetti ?? []).forEach(p => { m[p.id] = p.nome })
+    return m
+  }, [seed.progetti])
+
+  // 12 mesi dell'anno selezionato
+  const mesi = useMemo(() => {
+    const labels = ['Gen','Feb','Mar','Apr','Mag','Giu','Lug','Ago','Set','Ott','Nov','Dic']
+    return labels.map((label, i) => ({
+      label,
+      start: new Date(annoSelezionato, i, 1),
+      end: new Date(annoSelezionato, i + 1, 0),
+      index: i,
+    }))
+  }, [annoSelezionato])
+
+  const rangeStart = mesi[0].start
+  const rangeEnd = mesi[11].end
+  const totalDays = Math.round((rangeEnd.getTime() - rangeStart.getTime()) / (1000 * 60 * 60 * 24))
+
+  function pct(date: Date): number {
+    const days = Math.round((date.getTime() - rangeStart.getTime()) / (1000 * 60 * 60 * 24))
+    return Math.max(0, Math.min(100, (days / totalDays) * 100))
+  }
+
+  const oggiPct = annoSelezionato === oggi.getFullYear() ? pct(oggi) : -1
+
+  // Scadenze filtrate
+  const scadenzeAnno = useMemo(() => {
+    let s = seed.scadenze.filter(s => {
+      const d = new Date(s.data)
+      return d.getFullYear() === annoSelezionato && s.stato === 'aperto'
+    })
+    if (filterTipo !== 'tutte') s = s.filter(s => s.tipo === filterTipo)
+    return s
+  }, [seed.scadenze, annoSelezionato, filterTipo])
+
+  const scadenzePerCliente = useMemo(() => {
+    const m: Record<string, typeof scadenzeAnno> = {}
+    scadenzeAnno.forEach(s => {
+      if (s.cliente) {
+        if (!m[s.cliente]) m[s.cliente] = []
+        m[s.cliente].push(s)
+      }
+    })
+    return m
+  }, [scadenzeAnno])
+
+  // Clienti attivi nell'anno
+  const clientiAnno = seed.clienti.filter(c => {
+    if (c.stato === 'concluso') return false
+    const scad = c.scadenza_contratto ? new Date(c.scadenza_contratto) : null
+    if (scad && scad.getFullYear() >= annoSelezionato) return true
+    if (!scad && c.stato === 'attivo') return true
+    return (scadenzePerCliente[c.id] ?? []).length > 0
+  })
+
+  // Carico operativi per mese (indice = mese 0-11)
+  const capacitaByPersona = useMemo(() => {
     const m: Record<string, number[]> = {}
     seed.capacita.forEach(r => { m[r.persona] = r.valori })
     return m
   }, [seed.capacita])
 
-  const pianificateMap = useMemo(() => {
+  const pianificateByPersona = useMemo(() => {
     const m: Record<string, number[]> = {}
     seed.ore_pianificate.forEach(r => { m[r.persona] = r.valori })
     return m
   }, [seed.ore_pianificate])
 
-  const milestonePerMese = useMemo(() => {
-    const m: Record<number, typeof seed.scadenze> = {}
-    seed.scadenze.forEach(s => {
-      const d = parseDate(s.data)
-      if (!d) return
-      const idx = d.getMonth() - 5
-      if (idx < 0 || idx > 6) return
-      if (!m[idx]) m[idx] = []
-      m[idx].push(s)
-    })
-    return m
-  }, [seed.scadenze])
-
-  const tipoColor: Record<string, string> = {
-    rinnovo: '#E07B54', rilascio: '#4F86C6', riunione_cliente: '#1D9E75', interno: '#888780',
+  const TIPO_COLOR: Record<string, string> = {
+    rinnovo: '#E07B54', rilascio: '#4F86C6',
+    riunione_cliente: '#1D9E75', interno: '#888780', checkpoint: '#A67DC6',
   }
 
+  // Offset mesi per anno selezionato (seed ha giu-dic = indici 0-6)
+  // Per anno 2026: gen=N/A, feb=N/A ... giu=0, lug=1 ...
+  // Per anni futuri: tutti N/A (no data)
+  function getMeseIdx(meseAnno: number): number {
+    if (annoSelezionato === 2026) return meseAnno - 5 // giu=5→0, dic=11→6
+    return -1 // nessun dato per anni diversi
+  }
+
+  const tipoTabs = [
+    { id: 'tutte', label: 'Tutte' },
+    { id: 'rinnovo', label: 'Rinnovi' },
+    { id: 'rilascio', label: 'Rilasci' },
+    { id: 'riunione_cliente', label: 'Riunioni' },
+  ]
+
+  const COL_WIDTH = 180
+
   return (
-    <div className="bg-white rounded-xl border border-gray-200 overflow-x-auto">
-      <table className="w-full min-w-max">
-        <thead>
-          <tr style={{ borderBottom: '1px solid #E0E0E0', background: '#F8F9FA' }}>
-            <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide sticky left-0 bg-gray-50" style={{ minWidth: 110 }}>Risorsa</th>
-            {mesi.map((m, i) => <th key={i} className="text-center px-3 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide" style={{ minWidth: 110 }}>{m}</th>)}
-          </tr>
-        </thead>
-        <tbody>
-          <tr style={{ borderBottom: '2px solid #E0E0E0' }}>
-            <td className="px-4 py-2 sticky left-0 bg-white text-xs font-semibold text-gray-500 uppercase tracking-wide">Milestone</td>
-            {mesi.map((_, mi) => {
-              const items = milestonePerMese[mi] ?? []
-              return (
-                <td key={mi} className="px-2 py-2 align-top">
-                  <div className="flex flex-col gap-0.5">
-                    {items.map(s => (
-                      <div key={s.id} className="text-xs px-1.5 py-0.5 rounded truncate"
-                        style={{ background: tipoColor[s.tipo] + '18', color: tipoColor[s.tipo], borderLeft: `2px solid ${tipoColor[s.tipo]}`, maxWidth: 100 }}
-                        title={s.titolo}>
-                        {s.titolo.length > 16 ? s.titolo.slice(0, 16) + '…' : s.titolo}
-                      </div>
-                    ))}
-                  </div>
-                </td>
-              )
-            })}
-          </tr>
-          {operativi.map(p => (
-            <tr key={p.id} style={{ borderBottom: '1px solid #F0F0F0' }}>
-              <td className="px-4 py-3 sticky left-0 bg-white" style={{ borderRight: '1px solid #F0F0F0' }}>
-                <div className="flex items-center gap-2">
-                  <Avatar persona={p} size={24} />
-                  <span className="text-xs font-semibold text-gray-900">{p.nome.split(' ')[0]}</span>
-                </div>
-              </td>
-              {mesi.map((_, mi) => {
-                const cap = capacitaMap[p.id]?.[mi] ?? 0
-                const plan = pianificateMap[p.id]?.[mi] ?? 0
-                const isOver = plan > cap
-                const pct = cap > 0 ? Math.min(Math.round((plan / cap) * 100), 100) : 0
-                return (
-                  <td key={mi} className="px-3 py-3">
-                    <div className="flex flex-col gap-1">
-                      <div className="h-4 rounded overflow-hidden" style={{ background: '#F0F0F0' }}>
-                        <div className="h-full rounded" style={{ width: `${pct}%`, background: isOver ? '#E24B4A' : p.colore, opacity: 0.85 }} />
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-xs font-medium" style={{ color: isOver ? '#E24B4A' : '#666' }}>{plan}h</span>
-                        <span className="text-xs text-gray-400">{cap}h</span>
+    <div>
+      {/* Header anno + filtri */}
+      <div className="flex items-center justify-between mb-5">
+        <div className="flex items-center gap-3">
+          <button onClick={() => setAnnoSelezionato(a => Math.max(a - 1, annoMin))}
+            disabled={annoSelezionato <= annoMin}
+            className="w-8 h-8 rounded-lg border border-gray-200 flex items-center justify-center text-gray-500 hover:bg-gray-100 disabled:opacity-30 transition-colors">
+            ‹
+          </button>
+          <div className="text-center min-w-20">
+            <p className="text-lg font-bold text-gray-900">{annoSelezionato}</p>
+            <p className="text-xs text-gray-400">{clientiAnno.length} clienti</p>
+          </div>
+          <button onClick={() => setAnnoSelezionato(a => Math.min(a + 1, annoMax))}
+            disabled={annoSelezionato >= annoMax}
+            className="w-8 h-8 rounded-lg border border-gray-200 flex items-center justify-center text-gray-500 hover:bg-gray-100 disabled:opacity-30 transition-colors">
+            ›
+          </button>
+        </div>
+        <div className="flex gap-1">
+          {tipoTabs.map(t => (
+            <button key={t.id} onClick={() => setFilterTipo(t.id as any)}
+              className="text-xs px-2.5 py-1 rounded-lg border transition-colors font-medium"
+              style={{
+                background: filterTipo === t.id ? '#1A1A2E' : 'white',
+                color: filterTipo === t.id ? '#7DF5DF' : '#666',
+                borderColor: filterTipo === t.id ? '#1A1A2E' : '#E0E0E0',
+              }}>
+              {t.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* SEZIONE 1 — Clienti Gantt */}
+      <div className="bg-white rounded-xl border border-gray-200 overflow-hidden mb-4">
+        {/* Label sezione */}
+        <div className="px-4 py-2 border-b border-gray-100 flex items-center gap-2"
+          style={{ background: '#F8F9FA' }}>
+          <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Clienti e scadenze</span>
+          <div className="ml-auto flex items-center gap-3">
+            {[['rinnovo','Rinnovo'],['rilascio','Rilascio'],['riunione_cliente','Riunione']].map(([tipo, label]) => (
+              <span key={tipo} className="flex items-center gap-1 text-xs text-gray-400">
+                <span className="w-2 h-2 rounded-full" style={{ background: TIPO_COLOR[tipo] }} />
+                {label}
+              </span>
+            ))}
+            {oggiPct >= 0 && (
+              <span className="flex items-center gap-1 text-xs text-gray-400">
+                <span className="w-3 border-t-2 border-dashed inline-block" style={{ borderColor: '#1D9E75' }} />
+                Oggi
+              </span>
+            )}
+          </div>
+        </div>
+
+        {/* Header mesi */}
+        <div className="flex border-b border-gray-100" style={{ paddingLeft: COL_WIDTH }}>
+          {mesi.map((m, i) => (
+            <div key={i} className="flex-1 text-center text-xs font-semibold text-gray-400 uppercase tracking-wide py-2"
+              style={{ borderLeft: i > 0 ? '1px solid #F0F0F0' : 'none' }}>
+              {m.label}
+            </div>
+          ))}
+        </div>
+
+        {/* Righe clienti */}
+        {clientiAnno.length === 0 ? (
+          <div className="py-8 text-center text-sm text-gray-400">Nessun cliente nel {annoSelezionato}</div>
+        ) : clientiAnno.map((cliente, ci) => {
+          const referente = personaById[cliente.referente]
+          const scadenze = scadenzePerCliente[cliente.id] ?? []
+          const contrEnd = cliente.scadenza_contratto ? new Date(cliente.scadenza_contratto) : rangeEnd
+          const barRight = pct(contrEnd)
+          const barColor = referente?.colore ?? '#7DF5DF'
+
+          return (
+            <div key={cliente.id}
+              className="flex items-center border-b border-gray-100 last:border-0"
+              style={{ minHeight: 40, background: ci % 2 === 0 ? 'white' : '#FAFAFA' }}>
+              <div className="flex items-center gap-2 px-3 flex-shrink-0"
+                style={{ width: COL_WIDTH, borderRight: '1px solid #F0F0F0' }}>
+                {referente && (
+                  <span className="w-4 h-4 rounded-full flex items-center justify-center text-white font-bold flex-shrink-0"
+                    style={{ background: referente.colore, fontSize: 8 }}>
+                    {referente.nome.charAt(0)}
+                  </span>
+                )}
+                <span className="text-xs font-medium text-gray-900 truncate">{cliente.nome}</span>
+              </div>
+              <div className="flex-1 relative" style={{ height: 40 }}>
+                {mesi.map((_, i) => i > 0 && (
+                  <div key={i} className="absolute top-0 bottom-0"
+                    style={{ left: `${(i / 12) * 100}%`, borderLeft: '1px solid #F0F0F0' }} />
+                ))}
+                {oggiPct >= 0 && (
+                  <div className="absolute top-0 bottom-0 z-10"
+                    style={{ left: `${oggiPct}%`, borderLeft: '2px dashed #1D9E75', opacity: 0.4 }} />
+                )}
+                <div className="absolute rounded"
+                  style={{ left: 0, width: `${Math.min(barRight, 100)}%`, top: '50%', transform: 'translateY(-50%)', height: 12, background: barColor + '20', border: `1.5px solid ${barColor}40` }} />
+                {scadenze.map(s => {
+                  const d = new Date(s.data)
+                  if (d < rangeStart || d > rangeEnd) return null
+                  const left = pct(d)
+                  const color = TIPO_COLOR[s.tipo] ?? '#888780'
+                  return (
+                    <div key={s.id} className="absolute z-20 group cursor-pointer"
+                      style={{ left: `${left}%`, top: '50%', transform: 'translate(-50%, -50%)' }}>
+                      <div className="w-2.5 h-2.5 rotate-45 group-hover:scale-125 transition-transform"
+                        style={{ background: color, border: '1px solid white', boxShadow: `0 0 0 1px ${color}` }} />
+                      <div className="absolute z-30 bg-gray-900 text-white text-xs rounded-lg px-2 py-1.5 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap"
+                        style={{ bottom: '140%', left: '50%', transform: 'translateX(-50%)' }}>
+                        <p className="font-semibold">{s.titolo}</p>
+                        {s.progetto_id && progettoById[s.progetto_id] && (
+                          <p className="text-white/60 text-xs">{progettoById[s.progetto_id]}</p>
+                        )}
                       </div>
                     </div>
-                  </td>
+                  )
+                })}
+              </div>
+            </div>
+          )
+        })}
+      </div>
+
+      {/* SEZIONE 2 — Carico operativi */}
+      <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+        <div className="px-4 py-2 border-b border-gray-100" style={{ background: '#F8F9FA' }}>
+          <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Carico risorse</span>
+        </div>
+
+        {/* Header mesi */}
+        <div className="flex border-b border-gray-100" style={{ paddingLeft: COL_WIDTH }}>
+          {mesi.map((m, i) => (
+            <div key={i} className="flex-1 text-center text-xs font-semibold text-gray-400 uppercase tracking-wide py-2"
+              style={{ borderLeft: i > 0 ? '1px solid #F0F0F0' : 'none' }}>
+              {m.label}
+            </div>
+          ))}
+        </div>
+
+        {operativi.map(p => (
+          <div key={p.id} className="flex items-center border-b border-gray-100 last:border-0"
+            style={{ minHeight: 48 }}>
+            <div className="flex items-center gap-2 px-3 flex-shrink-0"
+              style={{ width: COL_WIDTH, borderRight: '1px solid #F0F0F0' }}>
+              <Avatar persona={p} size={22} />
+              <span className="text-xs font-semibold text-gray-900">{p.nome.split(' ')[0]}</span>
+            </div>
+            <div className="flex-1 flex">
+              {mesi.map((m, i) => {
+                const seedIdx = getMeseIdx(m.index)
+                const cap = seedIdx >= 0 ? (capacitaByPersona[p.id]?.[seedIdx] ?? 0) : 0
+                const plan = seedIdx >= 0 ? (pianificateByPersona[p.id]?.[seedIdx] ?? 0) : 0
+                const isOver = plan > cap && cap > 0
+                const pct2 = cap > 0 ? Math.min(Math.round((plan / cap) * 100), 100) : 0
+
+                return (
+                  <div key={i} className="flex-1 px-1.5 py-2"
+                    style={{ borderLeft: i > 0 ? '1px solid #F0F0F0' : 'none', background: isOver ? '#FFF8F8' : undefined }}>
+                    {cap > 0 ? (
+                      <div className="flex flex-col gap-0.5">
+                        <div className="h-3 rounded overflow-hidden" style={{ background: '#F0F0F0' }}>
+                          <div className="h-full rounded"
+                            style={{ width: `${pct2}%`, background: isOver ? '#E24B4A' : p.colore, opacity: 0.85 }} />
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-xs font-medium"
+                            style={{ color: isOver ? '#E24B4A' : '#666', fontSize: 9 }}>{plan}h</span>
+                          <span className="text-xs text-gray-400" style={{ fontSize: 9 }}>{cap}h</span>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="h-3 rounded" style={{ background: '#F5F5F5' }} />
+                    )}
+                  </div>
                 )
               })}
-            </tr>
-          ))}
-        </tbody>
-      </table>
+            </div>
+          </div>
+        ))}
+      </div>
     </div>
   )
 }
-
-// ── Root ───────────────────────────────────────────────────────────────────
 
 export default function OperativitaView({ seed, onClienteClick }: OperativitaProps) {
   const [subView, setSubView] = useState<SubView>('settimana')
