@@ -1,5 +1,5 @@
 const SUPABASE_URL = 'https://ckkdrtzyowhbddpoziha.supabase.co'
-const SUPABASE_KEY = 'sb_publishable_jgKfgAt1KUG962uLIw-rLA_g8ZVyu2q'
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNra2RydHp5b3doYmRkcG96aWhhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI0NzU2MzcsImV4cCI6MjA5ODA1MTYzN30.0BSBbjKmrdGtmtr2N2RCIQUZDxGkHObcWYguoarFC2I'
 
 async function sb(table: string, params = '') {
   const res = await fetch(`${SUPABASE_URL}/rest/v1/${table}?${params}`, {
