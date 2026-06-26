@@ -790,7 +790,7 @@ export default function OperativitaView({ seed, onClienteClick }: OperativitaPro
   const [filtroPersona, setFiltroPersona] = useState('tutti')
   const [filtroCliente, setFiltroCliente] = useState('tutti')
   const [activeTask, setActiveTask] = useState<Task | null>(null)
-  const { updateTask, getTask } = useTaskContext()
+  const { updateTask, getTask, isEliminato } = useTaskContext()
 
   const operativi = seed.team.filter(p => p.tipo === 'operativo')
 
@@ -817,11 +817,11 @@ export default function OperativitaView({ seed, onClienteClick }: OperativitaPro
   }, [seed.progetti])
 
   const tasksFiltrati = useMemo(() => {
-    let t = seed.tasks
+    let t = seed.tasks.filter(task => !isEliminato(task.id))
     if (filtroPersona !== 'tutti') t = t.filter(task => task.assegnatari.includes(filtroPersona))
     if (filtroCliente !== 'tutti') t = t.filter(task => task.cliente === filtroCliente)
     return t
-  }, [seed.tasks, filtroPersona, filtroCliente])
+  }, [seed.tasks, filtroPersona, filtroCliente, isEliminato])
 
   const tabs = [
     { id: 'settimana', label: 'Lista settimanale' },
