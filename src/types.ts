@@ -54,6 +54,7 @@ export interface Scadenza {
   stato: ScadenzaStato
   urgenza: ScadenzaUrgenza
   note?: string | null
+  progetto_id?: string | null
 }
 
 export type TaskStato = 'da_fare' | 'in_corso' | 'completato' | 'bloccato' | 'in_attesa_materiali'
@@ -74,6 +75,18 @@ export interface Task {
   ricorrente: boolean
   frequenza?: string
   note?: string | null
+  progetto_id?: string | null
+}
+
+export interface Progetto {
+  id: string
+  cliente: string
+  nome: string
+  anno: number
+  ore_contratto: number
+  stato: 'attivo' | 'concluso' | 'sospeso'
+  data_inizio: string
+  data_fine: string
 }
 
 export interface Contatto {
@@ -104,6 +117,7 @@ export interface Seed {
   ore_consuntivate: CapacitaRiga[]
   allocazioni: AllocazioneRiga[]
   scadenze: Scadenza[]
+  progetti: Progetto[]
   tasks: Task[]
   contatti: Contatto[]
   note_rinnovo: NoteRinnovo[]
