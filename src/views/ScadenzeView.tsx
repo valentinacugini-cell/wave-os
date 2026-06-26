@@ -25,6 +25,8 @@ function CalendarioView({ seed, onClienteClick }: { seed: Seed; onClienteClick?:
   const [filterTipo, setFilterTipo] = useState<FilterTipo>('tutte')
   const [hoveredCliente, setHoveredCliente] = useState<string | null>(null)
 
+  const oggi = TODAY
+
   const personaById = useMemo(() => {
     const m: Record<string, Persona> = {}
     seed.team.forEach(p => { m[p.id] = p })
@@ -84,7 +86,6 @@ function CalendarioView({ seed, onClienteClick }: { seed: Seed; onClienteClick?:
   }, [scadenzeFiltered])
 
   const clientiAttivi = seed.clienti.filter(c => c.stato !== 'concluso')
-  const oggi = TODAY
   const oggiPct = pct(oggi)
 
   const tipoTabs = [
