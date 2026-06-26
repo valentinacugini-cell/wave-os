@@ -1,11 +1,12 @@
 import React, { useState } from 'react'
-import { Task, TaskStato, TaskPriorita, Persona } from '../types'
+import { Task, TaskStato, TaskPriorita, Persona, Progetto } from '../types'
 import { formatDate } from '../utils'
 
 interface TaskModalProps {
   task: Task
   personaById: Record<string, Persona>
   clienteNome: string
+  progetti: Progetto[]
   onClose: () => void
   onSave: (taskId: string, updates: Partial<Task>) => void
 }
@@ -24,7 +25,7 @@ const PRIORITA: { value: TaskPriorita; label: string; color: string; bg: string 
   { value: 'bassa', label: 'Bassa', color: '#2E7D32', bg: '#EAF3DE' },
 ]
 
-export default function TaskModal({ task, personaById, clienteNome, onClose, onSave }: TaskModalProps) {
+export default function TaskModal({ task, personaById, clienteNome, progetti, onClose, onSave }: TaskModalProps) {
   const [form, setForm] = useState({
     titolo: task.titolo,
     stato: task.stato,
@@ -36,6 +37,7 @@ export default function TaskModal({ task, personaById, clienteNome, onClose, onS
     ore_stimate: task.ore_stimate,
     note: task.note ?? '',
     assegnatari: [...task.assegnatari],
+    progetto_id: task.progetto_id ?? '',
   })
 
   const operativi = Object.values(personaById).filter(p => p.tipo === 'operativo')
@@ -61,6 +63,7 @@ export default function TaskModal({ task, personaById, clienteNome, onClose, onS
       ore_stimate: Number(form.ore_stimate),
       note: form.note || null,
       assegnatari: form.assegnatari,
+      progetto_id: form.progetto_id || null,
     })
     onClose()
   }
@@ -77,7 +80,13 @@ export default function TaskModal({ task, personaById, clienteNome, onClose, onS
         <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between"
           style={{ background: '#F8F9FA' }}>
           <div>
-            <p className="text-xs text-gray-400 mb-0.5">{clienteNome} · {task.area}</p>
+            <p className="text-xs text-gray-400 mb-0.5">
+            {clienteNome}
+            {progetti.find(p => p.id === form.progetto_id) && (
+              <span> · {progetti.find(p => p.id === form.progetto_id)?.nome}</span>
+            )}
+            {' · '}{task.area}
+          </p>
             <h2 className="text-base font-semibold text-gray-900">{form.titolo}</h2>
           </div>
           <button onClick={onClose}
@@ -121,6 +130,18 @@ export default function TaskModal({ task, personaById, clienteNome, onClose, onS
             <input value={form.titolo} onChange={e => setForm(f => ({ ...f, titolo: e.target.value }))}
               className="w-full text-sm px-3 py-2 rounded-lg border border-gray-200 outline-none focus:border-teal-400" />
           </div>
+
+          {/* Progetto */}
+          {progetti.length > 0 && (
+            <div>
+              <label className="text-xs text-gray-400 block mb-1">Progetto</label>
+              <select value={form.progetto_id} onChange={e => setForm(f => ({ ...f, progetto_id: e.target.value }))}
+                className="w-full text-sm px-2 py-1.5 rounded-lg border border-gray-200 outline-none bg-white">
+                <option value="">Nessun progetto</option>
+                {progetti.map(p => <option key={p.id} value={p.id}>{p.nome}</option>)}
+              </select>
+            </div>
+          )}
 
           <div className="grid grid-cols-3 gap-3">
             <div>
