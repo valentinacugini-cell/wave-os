@@ -245,13 +245,13 @@ export default function CaricoView({ seed }: CaricoProps) {
 
   const capacitaByPersona = useMemo(() => {
     const m: Record<string, number[]> = {}
-    seed.capacita.forEach(r => { m[r.persona] = r.valori })
+    if (seed.capacita) seed.capacita.forEach((r: any) => { m[r.persona] = r.valori })
     return m
   }, [seed.capacita])
 
   const pianificateByPersona = useMemo(() => {
     const m: Record<string, number[]> = {}
-    seed.ore_pianificate.forEach(r => { m[r.persona] = r.valori })
+    if (seed.ore_pianificate) seed.ore_pianificate.forEach((r: any) => { m[r.persona] = r.valori })
     return m
   }, [seed.ore_pianificate])
 
