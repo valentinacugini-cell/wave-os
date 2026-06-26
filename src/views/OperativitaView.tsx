@@ -143,7 +143,7 @@ function ListaSettimanale({ tasks, seed, onOpenTask }: {
                     return (
                       <div key={t.id} style={{ borderBottom: isLast ? 'none' : '1px solid #F0F0F0', background: t.stato === 'bloccato' ? '#FFF8F8' : 'white' }}>
                         <div className="flex items-center gap-3 px-4 py-2.5">
-                          <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ background: PRIO[t.priorita].dot }} />
+                          <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ background: (PRIO[t.priorita] ?? PRIO['media']).dot }} />
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2 mb-0.5">
                               <button onClick={() => setExpanded(isExp ? null : t.id)} className="text-xs font-semibold hover:underline" style={{ color: '#3DD4BE' }}>
@@ -174,12 +174,12 @@ function ListaSettimanale({ tasks, seed, onOpenTask }: {
                             })}
                           </div>
                           <span className="text-xs px-1.5 py-0.5 rounded flex-shrink-0"
-                            style={{ background: PRIO[t.priorita].bg, color: PRIO[t.priorita].color }}>
-                            {PRIO[t.priorita].label}
+                            style={{ background: (PRIO[t.priorita] ?? PRIO['media']).bg, color: (PRIO[t.priorita] ?? PRIO['media']).color }}>
+                            {(PRIO[t.priorita] ?? PRIO['media']).label}
                           </span>
                           <span className="text-xs px-1.5 py-0.5 rounded flex-shrink-0"
-                            style={{ background: STATI_LABEL[t.stato].bg, color: STATI_LABEL[t.stato].color }}>
-                            {STATI_LABEL[t.stato].label}
+                            style={{ background: (STATI_LABEL[t.stato] ?? STATI_LABEL['da_fare']).bg, color: (STATI_LABEL[t.stato] ?? STATI_LABEL['da_fare']).color }}>
+                            {(STATI_LABEL[t.stato] ?? STATI_LABEL['da_fare']).label}
                           </span>
                           <button onClick={() => setExpanded(isExp ? null : t.id)}
                             className="text-xs px-1.5 py-0.5 rounded border transition-colors flex-shrink-0"
