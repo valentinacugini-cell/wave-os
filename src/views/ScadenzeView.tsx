@@ -24,6 +24,7 @@ const TIPO_COLOR: Record<string, string> = {
 function CalendarioView({ seed, onClienteClick }: { seed: Seed; onClienteClick?: (id: string) => void }) {
   const [filterTipo, setFilterTipo] = useState<FilterTipo>('tutte')
   const [hoveredCliente, setHoveredCliente] = useState<string | null>(null)
+  const [annoSelezionato, setAnnoSelezionato] = useState(TODAY.getFullYear())
 
   const oggi = TODAY
 
@@ -33,40 +34,36 @@ function CalendarioView({ seed, onClienteClick }: { seed: Seed; onClienteClick?:
     return m
   }, [seed.team])
 
-  // Genera mesi dinamicamente: da oggi fino alla scadenza più lontana + 2 mesi buffer
-  const mesi = useMemo(() => {
-    // Trova la data più lontana tra contratti e scadenze
+  // Anno minimo = anno corrente, anno massimo = anno più lontano nei dati
+  const { annoMin, annoMax } = useMemo(() => {
     const allDates = [
       ...seed.clienti.map(c => c.scadenza_contratto).filter(Boolean).map(d => new Date(d!)),
       ...seed.scadenze.map(s => new Date(s.data)),
     ]
-    const maxDate = allDates.length > 0
-      ? new Date(Math.max(...allDates.map(d => d.getTime())))
-      : new Date(oggi.getFullYear(), oggi.getMonth() + 8, 0)
-
-    // Aggiunge 2 mesi buffer dopo la scadenza più lontana
-    const endDate = new Date(maxDate.getFullYear(), maxDate.getMonth() + 2, 1)
-
-    // Genera array di mesi da oggi a endDate
-    const result = []
-    const cur = new Date(oggi.getFullYear(), oggi.getMonth(), 1)
-    while (cur <= endDate) {
-      const label = cur.toLocaleDateString('it-IT', { month: 'short', year: cur.getFullYear() !== oggi.getFullYear() ? '2-digit' : undefined })
-      const monthEnd = new Date(cur.getFullYear(), cur.getMonth() + 1, 0)
-      result.push({ label: label.charAt(0).toUpperCase() + label.slice(1, 3), start: new Date(cur), end: monthEnd })
-      cur.setMonth(cur.getMonth() + 1)
-    }
-    return result
+    const max = allDates.length > 0 ? Math.max(...allDates.map(d => d.getFullYear())) : oggi.getFullYear() + 1
+    return { annoMin: oggi.getFullYear(), annoMax: max }
   }, [seed.clienti, seed.scadenze])
 
+  // 12 mesi dell'anno selezionato
+  const mesi = useMemo(() => {
+    const mesiLabel = ['Gen', 'Feb', 'Mar', 'Apr', 'Mag', 'Giu', 'Lug', 'Ago', 'Set', 'Ott', 'Nov', 'Dic']
+    return mesiLabel.map((label, i) => ({
+      label,
+      start: new Date(annoSelezionato, i, 1),
+      end: new Date(annoSelezionato, i + 1, 0),
+    }))
+  }, [annoSelezionato])
+
   const rangeStart = mesi[0].start
-  const rangeEnd = mesi[mesi.length - 1].end
+  const rangeEnd = mesi[11].end
   const totalDays = Math.round((rangeEnd.getTime() - rangeStart.getTime()) / (1000 * 60 * 60 * 24))
 
   function pct(date: Date): number {
     const days = Math.round((date.getTime() - rangeStart.getTime()) / (1000 * 60 * 60 * 24))
     return Math.max(0, Math.min(100, (days / totalDays) * 100))
   }
+
+  const oggiPct = annoSelezionato === oggi.getFullYear() ? pct(oggi) : -1
 
   const scadenzeFiltered = useMemo(() => {
     let s = seed.scadenze.filter(s => s.stato === 'aperto')
@@ -85,8 +82,19 @@ function CalendarioView({ seed, onClienteClick }: { seed: Seed; onClienteClick?:
     return m
   }, [scadenzeFiltered])
 
-  const clientiAttivi = seed.clienti.filter(c => c.stato !== 'concluso')
-  const oggiPct = pct(oggi)
+  // Clienti attivi con attività nell'anno selezionato
+  const clientiAnno = useMemo(() => {
+    return seed.clienti.filter(c => {
+      if (c.stato === 'concluso') return false
+      // Ha contratto che copre l'anno selezionato
+      const scad = c.scadenza_contratto ? new Date(c.scadenza_contratto) : null
+      if (scad && scad.getFullYear() >= annoSelezionato) return true
+      if (!scad && c.stato === 'attivo') return true
+      // Ha scadenze nell'anno selezionato
+      const scadenzeCliente = scadenzePerCliente[c.id] ?? []
+      return scadenzeCliente.some(s => new Date(s.data).getFullYear() === annoSelezionato)
+    })
+  }, [seed.clienti, annoSelezionato, scadenzePerCliente])
 
   const tipoTabs = [
     { id: 'tutte', label: 'Tutte' },
@@ -98,30 +106,55 @@ function CalendarioView({ seed, onClienteClick }: { seed: Seed; onClienteClick?:
 
   return (
     <div>
-      {/* Filtri */}
-      <div className="flex items-center gap-2 mb-5 flex-wrap">
-        {tipoTabs.map(t => (
-          <button key={t.id} onClick={() => setFilterTipo(t.id as FilterTipo)}
-            className="text-xs px-3 py-1.5 rounded-lg border transition-colors font-medium"
-            style={{
-              background: filterTipo === t.id ? '#1A1A2E' : 'white',
-              color: filterTipo === t.id ? '#7DF5DF' : '#666',
-              borderColor: filterTipo === t.id ? '#1A1A2E' : '#E0E0E0',
-            }}>
-            {t.label}
+      {/* Selezione anno + filtri */}
+      <div className="flex items-center justify-between mb-5">
+        {/* Anno */}
+        <div className="flex items-center gap-3">
+          <button onClick={() => setAnnoSelezionato(a => Math.max(a - 1, annoMin))}
+            className="w-8 h-8 rounded-lg border border-gray-200 flex items-center justify-center text-gray-500 hover:bg-gray-100 disabled:opacity-30 transition-colors"
+            disabled={annoSelezionato <= annoMin}>
+            ‹
           </button>
-        ))}
-        <div className="ml-auto flex items-center gap-4">
-          {[['rinnovo', 'Rinnovo'], ['rilascio', 'Rilascio'], ['riunione_cliente', 'Riunione'], ['interno', 'Interno']].map(([tipo, label]) => (
-            <span key={tipo} className="flex items-center gap-1.5 text-xs text-gray-400">
+          <div className="text-center min-w-20">
+            <p className="text-lg font-bold text-gray-900">{annoSelezionato}</p>
+            <p className="text-xs text-gray-400">{clientiAnno.length} clienti attivi</p>
+          </div>
+          <button onClick={() => setAnnoSelezionato(a => Math.min(a + 1, annoMax))}
+            className="w-8 h-8 rounded-lg border border-gray-200 flex items-center justify-center text-gray-500 hover:bg-gray-100 disabled:opacity-30 transition-colors"
+            disabled={annoSelezionato >= annoMax}>
+            ›
+          </button>
+        </div>
+
+        {/* Filtri tipo */}
+        <div className="flex gap-1 flex-wrap">
+          {tipoTabs.map(t => (
+            <button key={t.id} onClick={() => setFilterTipo(t.id as FilterTipo)}
+              className="text-xs px-2.5 py-1 rounded-lg border transition-colors font-medium"
+              style={{
+                background: filterTipo === t.id ? '#1A1A2E' : 'white',
+                color: filterTipo === t.id ? '#7DF5DF' : '#666',
+                borderColor: filterTipo === t.id ? '#1A1A2E' : '#E0E0E0',
+              }}>
+              {t.label}
+            </button>
+          ))}
+        </div>
+
+        {/* Legenda */}
+        <div className="flex items-center gap-3">
+          {[['rinnovo', 'Rinnovo'], ['rilascio', 'Rilascio'], ['riunione_cliente', 'Riunione']].map(([tipo, label]) => (
+            <span key={tipo} className="flex items-center gap-1 text-xs text-gray-400">
               <span className="w-2.5 h-2.5 rounded-full" style={{ background: TIPO_COLOR[tipo] }} />
               {label}
             </span>
           ))}
-          <span className="flex items-center gap-1.5 text-xs text-gray-400">
-            <span className="w-3 h-0 border-t-2 border-dashed" style={{ borderColor: '#1D9E75' }} />
-            Oggi
-          </span>
+          {oggiPct >= 0 && (
+            <span className="flex items-center gap-1 text-xs text-gray-400">
+              <span className="w-4 border-t-2 border-dashed inline-block" style={{ borderColor: '#1D9E75' }} />
+              Oggi
+            </span>
+          )}
         </div>
       </div>
 
@@ -137,12 +170,17 @@ function CalendarioView({ seed, onClienteClick }: { seed: Seed; onClienteClick?:
         </div>
 
         {/* Righe clienti */}
-        {clientiAttivi.map((cliente, ci) => {
+        {clientiAnno.length === 0 ? (
+          <div className="py-12 text-center text-sm text-gray-400">
+            Nessun cliente attivo nel {annoSelezionato}
+          </div>
+        ) : clientiAnno.map((cliente, ci) => {
           const referente = personaById[cliente.referente]
           const scadenze = scadenzePerCliente[cliente.id] ?? []
           const isHovered = hoveredCliente === cliente.id
 
           const contrEnd = cliente.scadenza_contratto ? new Date(cliente.scadenza_contratto) : rangeEnd
+          const barLeft = 0
           const barRight = pct(contrEnd)
           const barColor = referente?.colore ?? '#7DF5DF'
 
@@ -172,37 +210,27 @@ function CalendarioView({ seed, onClienteClick }: { seed: Seed; onClienteClick?:
                 {/* Linee verticali mesi */}
                 {mesi.map((_, i) => i > 0 && (
                   <div key={i} className="absolute top-0 bottom-0"
-                    style={{ left: `${(i / mesi.length) * 100}%`, borderLeft: '1px solid #F0F0F0' }} />
+                    style={{ left: `${(i / 12) * 100}%`, borderLeft: '1px solid #F0F0F0' }} />
                 ))}
 
                 {/* Linea oggi */}
-                <div className="absolute top-0 bottom-0 z-10"
-                  style={{ left: `${oggiPct}%`, borderLeft: '2px dashed #1D9E75', opacity: 0.5 }} />
+                {oggiPct >= 0 && oggiPct <= 100 && (
+                  <div className="absolute top-0 bottom-0 z-10"
+                    style={{ left: `${oggiPct}%`, borderLeft: '2px dashed #1D9E75', opacity: 0.6 }} />
+                )}
 
-                {/* Barra contratto — da oggi a scadenza */}
-                <div className="absolute rounded"
+                {/* Barra contratto */}
+                <div className="absolute rounded cursor-pointer hover:opacity-90 transition-opacity"
                   style={{
-                    left: `${oggiPct}%`,
-                    width: `${Math.max(barRight - oggiPct, 0.5)}%`,
+                    left: `${barLeft}%`,
+                    width: `${Math.max(Math.min(barRight, 100) - barLeft, 1)}%`,
                     top: '50%',
                     transform: 'translateY(-50%)',
                     height: 14,
                     background: barColor + '25',
-                    border: `1.5px solid ${barColor}50`,
+                    border: `1.5px solid ${barColor}60`,
                   }}
-                />
-
-                {/* Barra passata — da inizio a oggi */}
-                <div className="absolute rounded"
-                  style={{
-                    left: '0%',
-                    width: `${oggiPct}%`,
-                    top: '50%',
-                    transform: 'translateY(-50%)',
-                    height: 14,
-                    background: barColor + '10',
-                    border: `1.5px solid ${barColor}25`,
-                  }}
+                  onClick={() => onClienteClick?.(cliente.id)}
                 />
 
                 {/* Marker scadenze */}
@@ -217,7 +245,7 @@ function CalendarioView({ seed, onClienteClick }: { seed: Seed; onClienteClick?:
                       style={{ left: `${left}%`, top: '50%', transform: 'translate(-50%, -50%)' }}
                       onClick={() => onClienteClick?.(cliente.id)}>
                       <div
-                        className="w-3 h-3 rotate-45 transition-transform group-hover:scale-125"
+                        className="w-3 h-3 rotate-45 transition-transform group-hover:scale-150"
                         style={{ background: color, border: '1.5px solid white', boxShadow: `0 0 0 1.5px ${color}` }}
                       />
                       <div className="absolute z-30 bg-gray-900 text-white text-xs rounded-lg px-2 py-1 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap"
