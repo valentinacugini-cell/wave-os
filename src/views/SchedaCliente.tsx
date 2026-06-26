@@ -145,6 +145,7 @@ export default function SchedaCliente({ clienteId, seed, onBack }: Props) {
           task={getTask(activeTaskModal)}
           personaById={personaById}
           clienteNome={cliente.nome}
+          progetti={progetti}
           onClose={() => setActiveTaskModal(null)}
           onSave={(id, updates) => { updateTask(id, updates); setActiveTaskModal(null) }}
         />
