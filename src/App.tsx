@@ -38,14 +38,46 @@ class ErrorBoundary extends React.Component<{children: React.ReactNode}, {error:
   }
 }
 
+function normalizeSeed(raw: any): any {
+  const e: any[] = []
+  const arr = (v: any) => Array.isArray(v) ? v : e
+  return {
+    ...raw,
+    scadenze:        arr(raw?.scadenze),
+    progetti:        arr(raw?.progetti),
+    contatti:        arr(raw?.contatti),
+    allocazioni:     arr(raw?.allocazioni),
+    note_rinnovo:    arr(raw?.note_rinnovo),
+    capacita:        arr(raw?.capacita),
+    ore_pianificate: arr(raw?.ore_pianificate),
+    ore_consuntivate:arr(raw?.ore_consuntivate),
+    mesi_label:      arr(raw?.mesi_label).length > 0 ? raw.mesi_label : ['Giu','Lug','Ago','Set','Ott','Nov','Dic'],
+    team: arr(raw?.team).map((p: any) => ({
+      ...p,
+      capacita_mensile: Array.isArray(p.capacita_mensile) ? p.capacita_mensile : [],
+    })),
+    clienti: arr(raw?.clienti).map((c: any) => ({
+      ...c,
+      ore_effettive_mesi_2026: Array.isArray(c.ore_effettive_mesi_2026) ? c.ore_effettive_mesi_2026 : new Array(12).fill(0),
+    })),
+    tasks: arr(raw?.tasks).map((t: any) => ({
+      ...t,
+      assegnatari: Array.isArray(t.assegnatari) ? t.assegnatari : [],
+      priorita: t.priorita ?? 'media',
+      stato: t.stato ?? 'da_fare',
+      ore_stimate: t.ore_stimate ?? 0,
+    })),
+  }
+}
+
 export default function App() {
-  const [seed, setSeed] = React.useState<any>(seedData)
+  const [seed, setSeed] = React.useState<any>(normalizeSeed(seedData))
   const [loading, setLoading] = React.useState(true)
   const [dbError, setDbError] = React.useState<string | null>(null)
 
   React.useEffect(() => {
     loadSeed()
-      .then(data => { setSeed(data); setLoading(false) })
+      .then(data => { setSeed(normalizeSeed(data)); setLoading(false) })
       .catch(err => { console.error('Supabase:', err); setDbError(err.message); setLoading(false) })
   }, [])
 
