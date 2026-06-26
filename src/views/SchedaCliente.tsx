@@ -43,8 +43,9 @@ export default function SchedaCliente({ clienteId, seed, onBack }: Props) {
   const [anagraficaEdit, setAnagraficaEdit] = useState(false)
   const [showImport, setShowImport] = useState(false)
   const [taskImportati, setTaskImportati] = useState<any[]>([])
+  const [selezione, setSelezione] = useState<Set<string>>(new Set())
 
-  const { getTask, updateTask } = useTaskContext()
+  const { getTask, updateTask, eliminaTask, isEliminato } = useTaskContext()
   const { getCliente, getContatti, updateNoteRinnovo, getNoteRinnovo } = useClienteContext()
 
   const clienteBase = seed.clienti.find(c => c.id === clienteId)
@@ -69,7 +70,7 @@ export default function SchedaCliente({ clienteId, seed, onBack }: Props) {
   }, [progetti, progettoSelezionato])
 
   // Task filtrati per progetto
-  const tasksCliente = [...seed.tasks.filter(t => t.cliente === clienteId), ...taskImportati.filter(t => t.cliente === clienteId)]
+  const tasksCliente = [...seed.tasks.filter(t => t.cliente === clienteId), ...taskImportati.filter(t => t.cliente === clienteId)].filter(t => !isEliminato(t.id))
   const tasks = progettoAttivo
     ? tasksCliente.filter(t => t.progetto_id === progettoAttivo.id)
     : tasksCliente
@@ -422,6 +423,23 @@ export default function SchedaCliente({ clienteId, seed, onBack }: Props) {
       {/* ATTIVITÀ */}
       {activeTab === 'attivita' && (
         <div>
+          {selezione.size > 0 && (
+            <div className="flex items-center gap-3 px-4 py-2.5 rounded-xl mb-3"
+              style={{ background: '#FFEBEE', border: '1px solid #FFCDD2' }}>
+              <span className="text-sm font-medium text-red-700">{selezione.size} task selezionati</span>
+              <button
+                onClick={() => { eliminaTask(Array.from(selezione)); setSelezione(new Set()) }}
+                className="text-xs px-3 py-1.5 rounded-lg font-medium transition-colors"
+                style={{ background: '#E24B4A', color: 'white' }}>
+                Elimina selezionati
+              </button>
+              <button onClick={() => setSelezione(new Set())}
+                className="text-xs px-2 py-1.5 rounded-lg border border-red-200 text-red-600 hover:bg-red-50 transition-colors ml-auto">
+                Annulla selezione
+              </button>
+            </div>
+          )}
+
           <div className="flex items-center justify-between mb-4">
             <div className="flex gap-2">
               {(['aperti', 'tutti'] as const).map(f => (
@@ -436,11 +454,25 @@ export default function SchedaCliente({ clienteId, seed, onBack }: Props) {
               </button>
             ))}
             </div>
-            <button onClick={() => setShowImport(true)}
-              className="text-sm px-3 py-1.5 rounded-lg font-medium flex items-center gap-1.5 transition-colors"
-              style={{ background: '#1A1A2E', color: '#7DF5DF' }}>
-              ↑ Importa da Excel
-            </button>
+            <div className="flex items-center gap-2">
+              {tasksFiltrati.length > 0 && (
+                <button onClick={() => {
+                  if (selezione.size === tasksFiltrati.length) {
+                    setSelezione(new Set())
+                  } else {
+                    setSelezione(new Set(tasksFiltrati.map(t => t.id)))
+                  }
+                }}
+                className="text-xs px-2.5 py-1.5 rounded-lg border border-gray-200 text-gray-500 hover:bg-gray-100 transition-colors">
+                  {selezione.size === tasksFiltrati.length ? 'Deseleziona tutti' : 'Seleziona tutti'}
+                </button>
+              )}
+              <button onClick={() => setShowImport(true)}
+                className="text-sm px-3 py-1.5 rounded-lg font-medium flex items-center gap-1.5 transition-colors"
+                style={{ background: '#1A1A2E', color: '#7DF5DF' }}>
+                ↑ Importa da Excel
+              </button>
+            </div>
           </div>
           {tasksFiltrati.length === 0 ? (
             <p className="text-sm text-gray-400 py-8 text-center">Nessun task</p>
@@ -453,6 +485,14 @@ export default function SchedaCliente({ clienteId, seed, onBack }: Props) {
                   <div key={t.id}
                     style={{ borderBottom: isLast ? 'none' : '1px solid #F0F0F0', background: t.stato === 'bloccato' ? '#FFF8F8' : 'white' }}>
                     <div className="flex items-center gap-3 px-4 py-2.5">
+                      <input type="checkbox"
+                        checked={selezione.has(t.id)}
+                        onChange={e => setSelezione(prev => {
+                          const next = new Set(prev)
+                          e.target.checked ? next.add(t.id) : next.delete(t.id)
+                          return next
+                        })}
+                        className="w-3.5 h-3.5 rounded flex-shrink-0 cursor-pointer accent-teal-500" />
                       <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ background: PRIO[t.priorita].dot }} />
                       <div className="flex-1 min-w-0">
                         <span className="text-sm font-medium text-gray-900">{t.titolo}</span>
