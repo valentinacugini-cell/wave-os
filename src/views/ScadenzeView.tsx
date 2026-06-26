@@ -34,6 +34,12 @@ function CalendarioView({ seed, onClienteClick }: { seed: Seed; onClienteClick?:
     return m
   }, [seed.team])
 
+  const progettoById = useMemo(() => {
+    const m: Record<string, string> = {}
+    ;(seed.progetti ?? []).forEach(p => { m[p.id] = p.nome })
+    return m
+  }, [seed.progetti])
+
   // Anno minimo = anno corrente, anno massimo = anno più lontano nei dati
   const annoMin = oggi.getFullYear()
   const annoMax = oggi.getFullYear() + 5 // Navigazione libera fino a 5 anni avanti
@@ -277,6 +283,12 @@ function ListaView({ seed }: { seed: Seed }) {
     return m
   }, [seed.clienti])
 
+  const progettoById = useMemo(() => {
+    const m: Record<string, string> = {}
+    ;(seed.progetti ?? []).forEach(p => { m[p.id] = p.nome })
+    return m
+  }, [seed.progetti])
+
   const critiche = useMemo(() =>
     seed.scadenze.filter(s => { const d = daysUntil(s.data); return d !== null && d <= 30 && d >= 0 && s.stato === 'aperto' }).length
   , [seed.scadenze])
@@ -378,7 +390,11 @@ function ListaView({ seed }: { seed: Seed }) {
                           <BadgeScadenzaTipo tipo={s.tipo} />
                         </div>
                         <p className="font-semibold text-sm text-gray-900">{s.titolo}</p>
-                        {s.cliente && <p className="text-xs text-gray-400 mt-0.5">{clienteById[s.cliente] ?? s.cliente}</p>}
+                        <div className="flex items-center gap-2 mt-0.5">
+                          {s.cliente && <span className="text-xs text-gray-400">{clienteById[s.cliente] ?? s.cliente}</span>}
+                          {s.progetto_id && <span className="text-xs text-gray-300">·</span>}
+                          {s.progetto_id && <span className="text-xs text-gray-400 italic">{progettoById[s.progetto_id] ?? ''}</span>}
+                        </div>
                         {s.note && <p className="text-xs text-gray-400 mt-1.5 italic">{s.note}</p>}
                       </div>
                       <div className="flex flex-col items-end gap-2 shrink-0">
