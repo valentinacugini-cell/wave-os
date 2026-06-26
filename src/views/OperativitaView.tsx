@@ -189,12 +189,10 @@ function ListaSettimanale({ tasks, seed, onOpenTask }: {
 
 // ── Swimlane ───────────────────────────────────────────────────────────────
 
-function TaskTooltip({ tasks, personaById, clienteNome, onSelect, onClose }: {
+function TaskHoverCard({ tasks, personaById, onSelect }: {
   tasks: Task[]
   personaById: Record<string, Persona>
-  clienteNome: Record<string, string>
   onSelect: (t: Task) => void
-  onClose: () => void
 }) {
   const PRIO_DOT: Record<TaskPriorita, string> = { alta: '#E24B4A', media: '#EF9F27', bassa: '#639922' }
   const STATI_SHORT: Record<TaskStato, string> = {
@@ -202,38 +200,40 @@ function TaskTooltip({ tasks, personaById, clienteNome, onSelect, onClose }: {
     bloccato: 'Bloccato', in_attesa_materiali: 'Attesa'
   }
   return (
-    <div className="absolute z-30 bg-white rounded-xl shadow-2xl border border-gray-200 p-3 min-w-48 max-w-64"
-      style={{ top: '100%', left: 0, marginTop: 4 }}
-      onClick={e => e.stopPropagation()}>
-      <div className="flex items-center justify-between mb-2">
-        <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">{tasks.length} task</span>
-        <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-xs">x</button>
-      </div>
-      <div className="space-y-1.5">
-        {tasks.map(t => (
-          <button key={t.id} onClick={() => { onSelect(t); onClose() }}
-            className="w-full text-left p-2 rounded-lg hover:bg-gray-50 transition-colors"
-            style={{ border: '1px solid #F0F0F0' }}>
-            <div className="flex items-center gap-1.5 mb-0.5">
-              <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: PRIO_DOT[t.priorita] }} />
-              <span className="text-xs font-medium text-gray-900 truncate">{t.titolo}</span>
-            </div>
-            <div className="flex items-center gap-2 pl-3.5">
-              <span className="text-xs text-gray-400">{STATI_SHORT[t.stato]}</span>
-              {t.ore_stimate > 0 && <span className="text-xs text-gray-400">{t.ore_stimate}h</span>}
-              <div className="flex gap-0.5 ml-auto">
-                {t.assegnatari.slice(0, 2).map(pid => {
-                  const p = personaById[pid]
-                  return p ? (
-                    <span key={pid} className="w-4 h-4 rounded-full flex items-center justify-center text-white font-bold"
-                      style={{ background: p.colore, fontSize: 8 }}>{p.nome.charAt(0)}</span>
-                  ) : null
-                })}
+    <div className="absolute z-40 bg-white rounded-xl shadow-2xl border border-gray-100 p-3 min-w-52 max-w-72"
+      style={{ top: '100%', left: 0, marginTop: 6 }}
+      onMouseDown={e => e.preventDefault()}>
+      {tasks.map(t => (
+        <button key={t.id}
+          onClick={e => { e.stopPropagation(); onSelect(t) }}
+          className="w-full text-left p-2.5 rounded-lg hover:bg-gray-50 transition-colors mb-1 last:mb-0"
+          style={{ border: '1px solid #F0F0F0' }}>
+          <div className="flex items-start gap-1.5">
+            <span className="w-2 h-2 rounded-full flex-shrink-0 mt-1" style={{ background: PRIO_DOT[t.priorita] }} />
+            <div className="flex-1 min-w-0">
+              <p className="text-xs font-semibold text-gray-900 leading-snug">{t.titolo}</p>
+              <div className="flex items-center gap-2 mt-1 flex-wrap">
+                <span className="text-xs text-gray-400">{STATI_SHORT[t.stato]}</span>
+                {t.ore_stimate > 0 && <span className="text-xs text-gray-400">{t.ore_stimate}h</span>}
+                {t.data_fine && <span className="text-xs text-gray-400">scad. {new Date(t.data_fine).toLocaleDateString('it-IT', {day:'numeric', month:'short'})}</span>}
+                <div className="flex gap-0.5 ml-auto">
+                  {t.assegnatari.slice(0, 2).map(pid => {
+                    const p = personaById[pid]
+                    return p ? (
+                      <span key={pid} className="w-4 h-4 rounded-full flex items-center justify-center text-white font-bold"
+                        style={{ background: p.colore, fontSize: 8 }}>{p.nome.charAt(0)}</span>
+                    ) : null
+                  })}
+                </div>
               </div>
+              {t.note && <p className="text-xs text-gray-400 mt-1 italic truncate">{t.note}</p>}
             </div>
-          </button>
-        ))}
-      </div>
+          </div>
+        </button>
+      ))}
+      <p className="text-xs text-gray-400 text-center mt-2 pt-2" style={{ borderTop: '1px solid #F0F0F0' }}>
+        Clicca un task per modificarlo
+      </p>
     </div>
   )
 }
@@ -411,13 +411,9 @@ function Swimlane({ tasks, seed, onOpenTask }: {
                           return (
                             <div key={`${b.clienteId}-${b.area}-${bi}`} className="relative">
                               <button
-                                onClick={() => {
-                                  if (b.tasks.length === 1) {
-                                    onOpenTask(b.tasks[0])
-                                  } else {
-                                    setActiveTooltip(showTooltip ? null : blockKey)
-                                  }
-                                }}
+                                onClick={() => onOpenTask(b.tasks[0])}
+                                onMouseEnter={() => setActiveTooltip(blockKey)}
+                                onMouseLeave={() => setActiveTooltip(null)}
                                 className="text-left w-full rounded px-2 py-1 text-xs leading-snug hover:opacity-90 transition-opacity"
                                 style={{ background: prioColor + '18', borderLeft: `3px solid ${prioColor}`, color: '#1A1A1A' }}>
                                 <div className="font-semibold truncate" style={{ maxWidth: 115, fontSize: 11 }}>
@@ -428,12 +424,10 @@ function Swimlane({ tasks, seed, onOpenTask }: {
                                 </div>
                               </button>
                               {showTooltip && (
-                                <TaskTooltip
+                                <TaskHoverCard
                                   tasks={b.tasks}
                                   personaById={personaById}
-                                  clienteNome={clienteNome}
                                   onSelect={onOpenTask}
-                                  onClose={() => setActiveTooltip(null)}
                                 />
                               )}
                             </div>
