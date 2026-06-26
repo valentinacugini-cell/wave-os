@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react'
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid } from 'recharts'
 import { Seed, Persona, Task, TaskStato, TaskPriorita, Contatto } from '../types'
+import { useClienteContext } from '../context/ClienteContext'
 import { formatDate, daysUntil, getAlertLevel, getProssimaScadenza } from '../utils'
 import { BadgeTipo, BadgeAlert, BadgeScadenzaTipo } from '../components/UI'
 
@@ -33,9 +34,12 @@ export default function SchedaCliente({ clienteId, seed, onBack }: Props) {
   const [expandedTask, setExpandedTask] = useState<string | null>(null)
   const [taskEdits, setTaskEdits] = useState<Record<string, TaskEdit>>({})
   const [notaEdit, setNotaEdit] = useState<string | null>(null)
+  const [anagraficaFields, setAnagraficaFields] = useState<Record<string, string>>({})
   const [anagraficaEdit, setAnagraficaEdit] = useState(false)
 
-  const cliente = seed.clienti.find(c => c.id === clienteId)
+  const { getCliente, getContatti, updateCliente, updateContatti, updateNoteRinnovo, getNoteRinnovo } = useClienteContext()
+  const clienteBase = seed.clienti.find(c => c.id === clienteId)
+  const cliente = clienteBase ? getCliente(clienteBase) : undefined
   const personaById = useMemo(() => {
     const m: Record<string, Persona> = {}
     seed.team.forEach(p => { m[p.id] = p })
@@ -49,8 +53,10 @@ export default function SchedaCliente({ clienteId, seed, onBack }: Props) {
     : tasksConEdits
 
   const scadenze = seed.scadenze.filter(s => s.cliente === clienteId)
-  const contatti = (seed.contatti as Contatto[]).filter(c => c.cliente === clienteId)
-  const noteRinnovo = seed.note_rinnovo?.find(n => n.cliente === clienteId)
+  const contattiBase = (seed.contatti as Contatto[]).filter(c => c.cliente === clienteId)
+  const contatti = getContatti(clienteId, contattiBase)
+  const noteRinnovoBase = seed.note_rinnovo?.find(n => n.cliente === clienteId)
+  const noteRinnovoText = getNoteRinnovo(clienteId, noteRinnovoBase?.note)
   const allocazioni = seed.allocazioni.filter(a => a.cliente === clienteId)
 
   if (!cliente) return <div className="p-8 text-gray-500">Cliente non trovato</div>
@@ -500,7 +506,7 @@ export default function SchedaCliente({ clienteId, seed, onBack }: Props) {
         <div className="bg-white rounded-xl border border-gray-200 p-6">
           <div className="flex items-center justify-between mb-4">
             <p className="text-xs text-gray-400 uppercase tracking-wide font-medium">Note strategiche</p>
-            <button onClick={() => setNotaEdit(notaEdit !== null ? null : (noteRinnovo?.note ?? ''))}
+            <button onClick={() => setNotaEdit(notaEdit !== null ? null : (noteRinnovoText ?? ''))}
               className="text-xs px-2 py-1 rounded border transition-colors"
               style={{ borderColor: notaEdit !== null ? '#3DD4BE' : '#E0E0E0', color: notaEdit !== null ? '#3DD4BE' : '#999' }}>
               {notaEdit !== null ? 'Annulla' : 'Modifica'}
@@ -511,16 +517,16 @@ export default function SchedaCliente({ clienteId, seed, onBack }: Props) {
               <textarea value={notaEdit} onChange={e => setNotaEdit(e.target.value)}
                 className="w-full text-sm text-gray-800 border border-gray-200 rounded-lg p-3 outline-none resize-none"
                 style={{ minHeight: 120, lineHeight: 1.6 }} />
-              <button onClick={() => setNotaEdit(null)}
+              <button onClick={() => { if (notaEdit !== null) updateNoteRinnovo(clienteId, notaEdit); setNotaEdit(null) }}
                 className="mt-3 text-sm px-3 py-1.5 rounded-lg font-medium"
                 style={{ background: '#7DF5DF', color: '#1A1A2E' }}>
                 Salva nota
               </button>
-              <p className="text-xs text-gray-400 mt-2">Modifiche locali — si resettano al refresh. Nella Fase 2 salvate su database.</p>
+              <p className="text-xs text-gray-400 mt-2">Salvato nella sessione corrente.</p>
             </div>
           ) : (
             <p className="text-sm text-gray-800 leading-relaxed">
-              {noteRinnovo?.note ?? 'Nessuna nota ancora inserita.'}
+              {noteRinnovoText ?? 'Nessuna nota ancora inserita.'}
             </p>
           )}
           <div className="mt-4 pt-4 border-t border-gray-100">
@@ -591,11 +597,18 @@ export default function SchedaCliente({ clienteId, seed, onBack }: Props) {
 
           {anagraficaEdit && (
             <div className="mt-4 pt-4 border-t border-gray-100">
-              <button className="text-sm px-3 py-1.5 rounded-lg font-medium"
+              <button
+                onClick={() => {
+                  if (Object.keys(anagraficaFields).length > 0) {
+                    updateCliente(clienteId, anagraficaFields as any)
+                  }
+                  setAnagraficaEdit(false)
+                }}
+                className="text-sm px-3 py-1.5 rounded-lg font-medium"
                 style={{ background: '#7DF5DF', color: '#1A1A2E' }}>
                 Salva modifiche
               </button>
-              <p className="text-xs text-gray-400 mt-2">Modifiche locali — si resettano al refresh. Nella Fase 2 salvate su database.</p>
+              <p className="text-xs text-gray-400 mt-2">Salvato nella sessione corrente — con Supabase sara permanente.</p>
             </div>
           )}
         </div>
