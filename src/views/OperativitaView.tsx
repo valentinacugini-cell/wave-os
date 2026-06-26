@@ -288,7 +288,7 @@ function Swimlane({ tasks, seed, onOpenTask }: {
 
   const capacitaByPersona = useMemo(() => {
     const m: Record<string, number[]> = {}
-    seed.capacita.forEach(r => { m[r.persona] = r.valori })
+    if (seed.capacita) seed.capacita.forEach((r: any) => { m[r.persona] = r.valori })
     return m
   }, [seed.capacita])
 
@@ -564,13 +564,13 @@ function VistaAnno({ seed }: { seed: Seed }) {
   // Carico operativi per mese (indice = mese 0-11)
   const capacitaByPersona = useMemo(() => {
     const m: Record<string, number[]> = {}
-    seed.capacita.forEach(r => { m[r.persona] = r.valori })
+    if (seed.capacita) seed.capacita.forEach((r: any) => { m[r.persona] = r.valori })
     return m
   }, [seed.capacita])
 
   const pianificateByPersona = useMemo(() => {
     const m: Record<string, number[]> = {}
-    seed.ore_pianificate.forEach(r => { m[r.persona] = r.valori })
+    if (seed.ore_pianificate) seed.ore_pianificate.forEach((r: any) => { m[r.persona] = r.valori })
     return m
   }, [seed.ore_pianificate])
 
