@@ -250,7 +250,10 @@ function CalendarioView({ seed, onClienteClick }: { seed: Seed; onClienteClick?:
                       />
                       <div className="absolute z-30 bg-gray-900 text-white text-xs rounded-lg px-2 py-1 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap"
                         style={{ bottom: '140%', left: '50%', transform: 'translateX(-50%)' }}>
-                        {s.titolo}
+                        <p className="font-semibold">{s.titolo}</p>
+                        {s.progetto_id && progettoById[s.progetto_id] && (
+                          <p className="text-white/60 text-xs mt-0.5">{progettoById[s.progetto_id]}</p>
+                        )}
                       </div>
                     </div>
                   )
