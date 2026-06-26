@@ -50,6 +50,8 @@ function addDays(d: Date, n: number): Date {
   return r
 }
 
+// ── Lista settimanale ──────────────────────────────────────────────────────
+
 function ListaSettimanale({ tasks, seed, onOpenTask }: {
   tasks: Task[]
   seed: Seed
@@ -99,7 +101,7 @@ function ListaSettimanale({ tasks, seed, onOpenTask }: {
     const d = new Date(iso)
     const end = addDays(d, 6)
     const fmt = (x: Date) => x.toLocaleDateString('it-IT', { day: 'numeric', month: 'short' })
-    return { label: `${fmt(d)} - ${fmt(end)}`, isPast: end < TODAY, isCurrent: d <= TODAY && TODAY <= end }
+    return { label: `${fmt(d)} — ${fmt(end)}`, isPast: end < TODAY, isCurrent: d <= TODAY && TODAY <= end }
   }
 
   return (
@@ -113,6 +115,7 @@ function ListaSettimanale({ tasks, seed, onOpenTask }: {
           </button>
         ))}
       </div>
+
       {grouped.length === 0 ? <EmptyState message="Nessun task" /> : (
         <div className="space-y-6">
           {grouped.map(([weekStart, taskList]) => {
@@ -120,8 +123,9 @@ function ListaSettimanale({ tasks, seed, onOpenTask }: {
             return (
               <div key={weekStart}>
                 <div className="flex items-center gap-3 mb-3">
-                  <h3 className="text-sm font-semibold" style={{ color: isCurrent ? '#1D9E75' : isPast ? '#9CA3AF' : '#333' }}>
-                    {isCurrent && '> '}{label}
+                  <h3 className="text-sm font-semibold"
+                    style={{ color: isCurrent ? '#1D9E75' : isPast ? '#9CA3AF' : '#333' }}>
+                    {isCurrent && '▶ '}{label}
                   </h3>
                   <span className="text-xs text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">{taskList.length} task</span>
                   {isCurrent && <span className="text-xs px-2 py-0.5 rounded-full font-medium" style={{ background: '#E1F5EE', color: '#085041' }}>Settimana corrente</span>}
@@ -135,8 +139,7 @@ function ListaSettimanale({ tasks, seed, onOpenTask }: {
                         <div className="flex items-center gap-3 px-4 py-2.5">
                           <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ background: PRIO[t.priorita].dot }} />
                           <div className="flex-1 min-w-0">
-                            <button onClick={() => setExpanded(isExp ? null : t.id)}
-                              className="text-xs font-semibold mb-0.5 hover:underline block text-left" style={{ color: '#3DD4BE' }}>
+                            <button onClick={() => setExpanded(isExp ? null : t.id)} className="text-xs font-semibold mb-0.5 hover:underline block text-left" style={{ color: '#3DD4BE' }}>
                               {clienteNome[t.cliente] ?? t.cliente}
                             </button>
                             <span className="text-sm font-medium text-gray-900">{t.titolo}</span>
@@ -144,8 +147,9 @@ function ListaSettimanale({ tasks, seed, onOpenTask }: {
                               <div className="flex gap-3 mt-0.5 text-xs text-gray-400 flex-wrap">
                                 <span>{t.area}</span>
                                 {t.milestone && <span>· {t.milestone}</span>}
-                                <span>{formatDate(t.data_inizio)} - {formatDate(t.data_fine)}</span>
+                                <span>{formatDate(t.data_inizio)} → {formatDate(t.data_fine)}</span>
                                 {t.ore_stimate > 0 && <span>{t.ore_stimate}h</span>}
+                                {t.ricorrente && <span style={{ color: '#185FA5' }}>↻ {t.frequenza}</span>}
                                 {t.note && <span className="italic">{t.note}</span>}
                               </div>
                             )}
@@ -164,8 +168,8 @@ function ListaSettimanale({ tasks, seed, onOpenTask }: {
                             style={{ background: STATI_LABEL[t.stato].bg, color: STATI_LABEL[t.stato].color }}>
                             {STATI_LABEL[t.stato].label}
                           </span>
-                          <button onClick={() => onOpenTask(tasks.find(raw => raw.id === t.id) ?? t)}
-                            className="text-xs px-2 py-0.5 rounded border flex-shrink-0"
+                          <button onClick={() => onOpenTask(t)}
+                            className="text-xs px-2 py-0.5 rounded border transition-colors flex-shrink-0"
                             style={{ borderColor: '#E0E0E0', color: '#999', background: 'white' }}>
                             Modifica
                           </button>
@@ -183,6 +187,57 @@ function ListaSettimanale({ tasks, seed, onOpenTask }: {
   )
 }
 
+// ── Swimlane ───────────────────────────────────────────────────────────────
+
+function TaskTooltip({ tasks, personaById, clienteNome, onSelect, onClose }: {
+  tasks: Task[]
+  personaById: Record<string, Persona>
+  clienteNome: Record<string, string>
+  onSelect: (t: Task) => void
+  onClose: () => void
+}) {
+  const PRIO_DOT: Record<TaskPriorita, string> = { alta: '#E24B4A', media: '#EF9F27', bassa: '#639922' }
+  const STATI_SHORT: Record<TaskStato, string> = {
+    da_fare: 'Da fare', in_corso: 'In corso', completato: 'Fatto',
+    bloccato: 'Bloccato', in_attesa_materiali: 'Attesa'
+  }
+  return (
+    <div className="absolute z-30 bg-white rounded-xl shadow-2xl border border-gray-200 p-3 min-w-48 max-w-64"
+      style={{ top: '100%', left: 0, marginTop: 4 }}
+      onClick={e => e.stopPropagation()}>
+      <div className="flex items-center justify-between mb-2">
+        <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">{tasks.length} task</span>
+        <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-xs">x</button>
+      </div>
+      <div className="space-y-1.5">
+        {tasks.map(t => (
+          <button key={t.id} onClick={() => { onSelect(t); onClose() }}
+            className="w-full text-left p-2 rounded-lg hover:bg-gray-50 transition-colors"
+            style={{ border: '1px solid #F0F0F0' }}>
+            <div className="flex items-center gap-1.5 mb-0.5">
+              <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: PRIO_DOT[t.priorita] }} />
+              <span className="text-xs font-medium text-gray-900 truncate">{t.titolo}</span>
+            </div>
+            <div className="flex items-center gap-2 pl-3.5">
+              <span className="text-xs text-gray-400">{STATI_SHORT[t.stato]}</span>
+              {t.ore_stimate > 0 && <span className="text-xs text-gray-400">{t.ore_stimate}h</span>}
+              <div className="flex gap-0.5 ml-auto">
+                {t.assegnatari.slice(0, 2).map(pid => {
+                  const p = personaById[pid]
+                  return p ? (
+                    <span key={pid} className="w-4 h-4 rounded-full flex items-center justify-center text-white font-bold"
+                      style={{ background: p.colore, fontSize: 8 }}>{p.nome.charAt(0)}</span>
+                  ) : null
+                })}
+              </div>
+            </div>
+          </button>
+        ))}
+      </div>
+    </div>
+  )
+}
+
 function Swimlane({ tasks, seed, onOpenTask }: {
   tasks: Task[]
   seed: Seed
@@ -190,9 +245,16 @@ function Swimlane({ tasks, seed, onOpenTask }: {
 }) {
   const [zoom, setZoom] = useState<'settimana' | 'mese'>('settimana')
   const [expandedCell, setExpandedCell] = useState<string | null>(null)
+  const [activeTooltip, setActiveTooltip] = useState<string | null>(null)
   const { getTask } = useTaskContext()
 
   const operativi = seed.team.filter(p => p.tipo === 'operativo')
+
+  const personaById = useMemo(() => {
+    const m: Record<string, Persona> = {}
+    seed.team.forEach(p => { m[p.id] = p })
+    return m
+  }, [seed.team])
 
   const clienteNome = useMemo(() => {
     const m: Record<string, string> = {}
@@ -208,17 +270,17 @@ function Swimlane({ tasks, seed, onOpenTask }: {
 
   function getOreAllocate(personaId: string, colStart: Date, colEnd: Date): number {
     let ore = 0
-    tasks.filter(t => t.stato !== 'completato' && t.assegnatari.includes(personaId)).forEach(rawT => {
-      const t = getTask(rawT)
-      const tStart = parseDate(t.data_inizio)
-      const tEnd = parseDate(t.data_fine)
-      if (!tStart || !tEnd || t.ore_stimate <= 0) return
+    tasks.filter(t => t.stato !== 'completato' && t.assegnatari.includes(personaId)).forEach(t => {
+      const rt = getTask(t)
+      const tStart = parseDate(rt.data_inizio)
+      const tEnd = parseDate(rt.data_fine)
+      if (!tStart || !tEnd || rt.ore_stimate <= 0) return
       if (tStart <= colEnd && tEnd >= colStart) {
         const durataTask = Math.max(1, Math.round((tEnd.getTime() - tStart.getTime()) / (1000 * 60 * 60 * 24)))
         const overlapStart = tStart < colStart ? colStart : tStart
         const overlapEnd = tEnd > colEnd ? colEnd : tEnd
         const overlap = Math.max(1, Math.round((overlapEnd.getTime() - overlapStart.getTime()) / (1000 * 60 * 60 * 24)) + 1)
-        ore += Math.round((t.ore_stimate * overlap) / durataTask)
+        ore += Math.round((rt.ore_stimate * overlap) / durataTask)
       }
     })
     return ore
@@ -247,6 +309,7 @@ function Swimlane({ tasks, seed, onOpenTask }: {
     return cols
   }, [zoom])
 
+  // Aggrega per cliente+area con lista task associati
   const grid = useMemo(() => {
     type Block = { clienteId: string; area: string; priorita: TaskPriorita; tasks: Task[] }
     const result: Record<string, Record<number, Block[]>> = {}
@@ -266,6 +329,7 @@ function Swimlane({ tasks, seed, onOpenTask }: {
             const existing = result[pid][ci].find(b => b.clienteId === t.cliente && b.area === t.area)
             if (existing) {
               existing.tasks.push(rawT)
+              // Scala priorità al massimo
               const po: Record<TaskPriorita, number> = { alta: 0, media: 1, bassa: 2 }
               if (po[t.priorita] < po[existing.priorita]) existing.priorita = t.priorita
             } else {
@@ -291,11 +355,12 @@ function Swimlane({ tasks, seed, onOpenTask }: {
           </button>
         ))}
         <span className="text-xs text-gray-400 ml-2 flex items-center gap-3">
-          <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full" style={{ background: '#E24B4A' }}/>Alta</span>
-          <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full" style={{ background: '#EF9F27' }}/>Media</span>
-          <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full" style={{ background: '#639922' }}/>Bassa</span>
+          <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full inline-block" style={{ background: '#E24B4A' }}/>Alta</span>
+          <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full inline-block" style={{ background: '#EF9F27' }}/>Media</span>
+          <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full inline-block" style={{ background: '#639922' }}/>Bassa</span>
         </span>
       </div>
+
       <div className="bg-white rounded-xl border border-gray-200 overflow-x-auto">
         <table className="w-full min-w-max">
           <thead>
@@ -341,32 +406,51 @@ function Swimlane({ tasks, seed, onOpenTask }: {
                         )}
                         {visible.map((b, bi) => {
                           const prioColor = PRIO[b.priorita].dot
+                          const blockKey = `${p.id}-${ci}-${bi}`
+                          const showTooltip = activeTooltip === blockKey
                           return (
-                            <button key={`${b.clienteId}-${b.area}-${bi}`}
-                              onClick={() => b.tasks.length === 1 ? onOpenTask(b.tasks[0]) : null}
-                              className="text-left w-full rounded px-2 py-1 text-xs leading-snug hover:opacity-80 transition-opacity"
-                              style={{ background: prioColor + '18', borderLeft: `3px solid ${prioColor}`, color: '#1A1A1A' }}>
-                              <div className="font-semibold truncate" style={{ maxWidth: 115, fontSize: 11 }}>
-                                {clienteNome[b.clienteId] ?? b.clienteId}
-                              </div>
-                              <div className="truncate text-gray-500" style={{ maxWidth: 115, fontSize: 10 }}>
-                                {b.area}{b.tasks.length > 1 ? ` (${b.tasks.length})` : ''}
-                              </div>
-                            </button>
+                            <div key={`${b.clienteId}-${b.area}-${bi}`} className="relative">
+                              <button
+                                onClick={() => {
+                                  if (b.tasks.length === 1) {
+                                    onOpenTask(b.tasks[0])
+                                  } else {
+                                    setActiveTooltip(showTooltip ? null : blockKey)
+                                  }
+                                }}
+                                className="text-left w-full rounded px-2 py-1 text-xs leading-snug hover:opacity-90 transition-opacity"
+                                style={{ background: prioColor + '18', borderLeft: `3px solid ${prioColor}`, color: '#1A1A1A' }}>
+                                <div className="font-semibold truncate" style={{ maxWidth: 115, fontSize: 11 }}>
+                                  {clienteNome[b.clienteId] ?? b.clienteId}
+                                </div>
+                                <div className="truncate text-gray-500" style={{ maxWidth: 115, fontSize: 10 }}>
+                                  {b.area}{b.tasks.length > 1 ? ` (${b.tasks.length})` : ''}
+                                </div>
+                              </button>
+                              {showTooltip && (
+                                <TaskTooltip
+                                  tasks={b.tasks}
+                                  personaById={personaById}
+                                  clienteNome={clienteNome}
+                                  onSelect={onOpenTask}
+                                  onClose={() => setActiveTooltip(null)}
+                                />
+                              )}
+                            </div>
                           )
                         })}
                         {!isExp && hidden > 0 && (
                           <button onClick={() => setExpandedCell(cellKey)}
                             className="text-xs text-center py-0.5 rounded w-full"
                             style={{ background: '#F1EFE8', color: '#666' }}>
-                            +{hidden} altri
+                            +{hidden} altri ▾
                           </button>
                         )}
                         {isExp && blocks.length > MAX_VISIBLE && (
                           <button onClick={() => setExpandedCell(null)}
                             className="text-xs text-center py-0.5 rounded w-full"
                             style={{ background: '#F1EFE8', color: '#666' }}>
-                            Meno
+                            Mostra meno ▴
                           </button>
                         )}
                       </div>
@@ -382,19 +466,24 @@ function Swimlane({ tasks, seed, onOpenTask }: {
   )
 }
 
+// ── Vista Anno ─────────────────────────────────────────────────────────────
+
 function VistaAnno({ seed }: { seed: Seed }) {
   const operativi = seed.team.filter(p => p.tipo === 'operativo')
   const mesi = seed.mesi_label
+
   const capacitaMap = useMemo(() => {
     const m: Record<string, number[]> = {}
     seed.capacita.forEach(r => { m[r.persona] = r.valori })
     return m
   }, [seed.capacita])
+
   const pianificateMap = useMemo(() => {
     const m: Record<string, number[]> = {}
     seed.ore_pianificate.forEach(r => { m[r.persona] = r.valori })
     return m
   }, [seed.ore_pianificate])
+
   const milestonePerMese = useMemo(() => {
     const m: Record<number, typeof seed.scadenze> = {}
     seed.scadenze.forEach(s => {
@@ -407,9 +496,11 @@ function VistaAnno({ seed }: { seed: Seed }) {
     })
     return m
   }, [seed.scadenze])
+
   const tipoColor: Record<string, string> = {
     rinnovo: '#E07B54', rilascio: '#4F86C6', riunione_cliente: '#1D9E75', interno: '#888780',
   }
+
   return (
     <div className="bg-white rounded-xl border border-gray-200 overflow-x-auto">
       <table className="w-full min-w-max">
@@ -431,7 +522,7 @@ function VistaAnno({ seed }: { seed: Seed }) {
                       <div key={s.id} className="text-xs px-1.5 py-0.5 rounded truncate"
                         style={{ background: tipoColor[s.tipo] + '18', color: tipoColor[s.tipo], borderLeft: `2px solid ${tipoColor[s.tipo]}`, maxWidth: 100 }}
                         title={s.titolo}>
-                        {s.titolo.length > 16 ? s.titolo.slice(0, 16) + '...' : s.titolo}
+                        {s.titolo.length > 16 ? s.titolo.slice(0, 16) + '…' : s.titolo}
                       </div>
                     ))}
                   </div>
@@ -473,6 +564,8 @@ function VistaAnno({ seed }: { seed: Seed }) {
     </div>
   )
 }
+
+// ── Root ───────────────────────────────────────────────────────────────────
 
 export default function OperativitaView({ seed, onClienteClick }: OperativitaProps) {
   const [subView, setSubView] = useState<SubView>('settimana')
@@ -519,6 +612,7 @@ export default function OperativitaView({ seed, onClienteClick }: OperativitaPro
           onSave={(id, updates) => updateTask(id, updates)}
         />
       )}
+
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-xl font-semibold text-gray-900">Operatività</h1>
         <div className="flex gap-2">
@@ -534,7 +628,9 @@ export default function OperativitaView({ seed, onClienteClick }: OperativitaPro
           </select>
         </div>
       </div>
+
       <Tabs tabs={tabs as any} active={subView} onChange={id => setSubView(id as SubView)} />
+
       {subView === 'settimana' && <ListaSettimanale tasks={tasksFiltrati} seed={seed} onOpenTask={setActiveTask} />}
       {subView === 'swimlane' && <Swimlane tasks={tasksFiltrati} seed={seed} onOpenTask={setActiveTask} />}
       {subView === 'anno' && <VistaAnno seed={seed} />}
