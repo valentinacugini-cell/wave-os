@@ -350,9 +350,9 @@
       "commerciale": "roberto",
       "scadenza_contratto": "2026-12-31",
       "rinnovo_previsto": null,
-      "tipo_contratto": "progetto",
-      "lead_obiettivo": null,
-      "lead_raccolte": null
+      "tipo_contratto": "ppl",
+      "lead_obiettivo": 80,
+      "lead_raccolte": 23
     },
     {
       "id": "collezioni_arte",
@@ -363,9 +363,9 @@
       "commerciale": "mario",
       "scadenza_contratto": "2026-12-31",
       "rinnovo_previsto": null,
-      "tipo_contratto": "progetto",
-      "lead_obiettivo": null,
-      "lead_raccolte": null
+      "tipo_contratto": "ppl",
+      "lead_obiettivo": 60,
+      "lead_raccolte": 41
     },
     {
       "id": "new_srl",
@@ -1332,7 +1332,8 @@
       "referente": "valentina",
       "stato": "aperto",
       "urgenza": "critica",
-      "note": "Scadenza imminente — definire rinnovo entro fine mese"
+      "note": "Scadenza imminente — definire rinnovo entro fine mese",
+      "progetto_id": "proj_fotorent_2026"
     },
     {
       "id": "s02",
@@ -1343,7 +1344,8 @@
       "referente": "valentina",
       "stato": "aperto",
       "urgenza": "critica",
-      "note": "Scadenza imminente"
+      "note": "Scadenza imminente",
+      "progetto_id": null
     },
     {
       "id": "s03",
@@ -1354,7 +1356,8 @@
       "referente": "valentina",
       "stato": "aperto",
       "urgenza": "alta",
-      "note": "Presentare dati campagne + proposta continuità luglio–dicembre"
+      "note": "Presentare dati campagne + proposta continuità luglio–dicembre",
+      "progetto_id": "proj_giardinia_2026"
     },
     {
       "id": "s04",
@@ -1365,7 +1368,8 @@
       "referente": "valentina",
       "stato": "aperto",
       "urgenza": "alta",
-      "note": "Presentare piano concreto + struttura organizzativa + strategia orologi"
+      "note": "Presentare piano concreto + struttura organizzativa + strategia orologi",
+      "progetto_id": "proj_fotorent_2026"
     },
     {
       "id": "s05",
@@ -1376,7 +1380,8 @@
       "referente": "valentina",
       "stato": "aperto",
       "urgenza": "normale",
-      "note": "Mappare tutti i rilasci e rinnovi da luglio a dicembre. Evitare sovrapposizioni."
+      "note": "Mappare tutti i rilasci e rinnovi da luglio a dicembre. Evitare sovrapposizioni.",
+      "progetto_id": null
     },
     {
       "id": "s06",
@@ -1387,7 +1392,8 @@
       "referente": "valentina",
       "stato": "aperto",
       "urgenza": "alta",
-      "note": null
+      "note": null,
+      "progetto_id": "proj_giardinia_2026"
     },
     {
       "id": "s07",
@@ -1398,7 +1404,8 @@
       "referente": "valentina",
       "stato": "aperto",
       "urgenza": "normale",
-      "note": null
+      "note": null,
+      "progetto_id": "proj_naturalclima_2026"
     },
     {
       "id": "s08",
@@ -1409,7 +1416,8 @@
       "referente": "gloria",
       "stato": "aperto",
       "urgenza": "alta",
-      "note": "Milestone critica — dev in corso da luglio"
+      "note": "Milestone critica — dev in corso da luglio",
+      "progetto_id": "proj_carbotermo_2026"
     },
     {
       "id": "s09",
@@ -1420,7 +1428,8 @@
       "referente": "roberto",
       "stato": "aperto",
       "urgenza": "normale",
-      "note": null
+      "note": null,
+      "progetto_id": "proj_diemme_2026"
     },
     {
       "id": "s10",
@@ -1431,7 +1440,8 @@
       "referente": "valentina",
       "stato": "aperto",
       "urgenza": "normale",
-      "note": null
+      "note": null,
+      "progetto_id": "proj_alimeco_2026"
     },
     {
       "id": "s11",
@@ -1442,7 +1452,8 @@
       "referente": "beppe",
       "stato": "aperto",
       "urgenza": "normale",
-      "note": null
+      "note": null,
+      "progetto_id": "proj_gb_2026"
     },
     {
       "id": "s12",
@@ -1453,7 +1464,8 @@
       "referente": "valentina",
       "stato": "aperto",
       "urgenza": "normale",
-      "note": null
+      "note": null,
+      "progetto_id": "proj_brizzolari_2026"
     },
     {
       "id": "s13",
@@ -1464,7 +1476,8 @@
       "referente": "beppe",
       "stato": "aperto",
       "urgenza": "normale",
-      "note": null
+      "note": null,
+      "progetto_id": "proj_mainardi_2026"
     },
     {
       "id": "s14",
@@ -1475,7 +1488,8 @@
       "referente": "mario",
       "stato": "aperto",
       "urgenza": "normale",
-      "note": null
+      "note": null,
+      "progetto_id": "proj_oltre_2026"
     },
     {
       "id": "s15",
@@ -1486,7 +1500,8 @@
       "referente": "roberto",
       "stato": "aperto",
       "urgenza": "normale",
-      "note": null
+      "note": null,
+      "progetto_id": "proj_silvauto_2026"
     },
     {
       "id": "s16",
@@ -1497,7 +1512,8 @@
       "referente": "beppe",
       "stato": "aperto",
       "urgenza": "normale",
-      "note": null
+      "note": null,
+      "progetto_id": "proj_mech_2026_bb"
     },
     {
       "id": "s17",
@@ -1508,7 +1524,8 @@
       "referente": "beppe",
       "stato": "aperto",
       "urgenza": "normale",
-      "note": null
+      "note": null,
+      "progetto_id": "proj_gruppodigit_2026"
     },
     {
       "id": "s18",
@@ -1519,7 +1536,8 @@
       "referente": "mario",
       "stato": "aperto",
       "urgenza": "normale",
-      "note": null
+      "note": null,
+      "progetto_id": "proj_ferrari_adv_2026"
     },
     {
       "id": "s19",
@@ -1530,7 +1548,8 @@
       "referente": "roberto",
       "stato": "aperto",
       "urgenza": "normale",
-      "note": null
+      "note": null,
+      "progetto_id": "proj_leonart_2026"
     },
     {
       "id": "s20",
@@ -1541,7 +1560,8 @@
       "referente": "gloria",
       "stato": "aperto",
       "urgenza": "normale",
-      "note": "QA + go-live dicembre"
+      "note": "QA + go-live dicembre",
+      "progetto_id": "proj_mech_2026_bb"
     }
   ],
   "tasks": [
@@ -1560,7 +1580,8 @@
       "priorita": "alta",
       "stato": "in_corso",
       "ricorrente": false,
-      "note": "Nuovo sito corporate Megatronic Group"
+      "note": "Nuovo sito corporate Megatronic Group",
+      "progetto_id": "proj_mech_2026_bb"
     },
     {
       "id": "t002",
@@ -1577,7 +1598,8 @@
       "priorita": "alta",
       "stato": "da_fare",
       "ricorrente": false,
-      "note": null
+      "note": null,
+      "progetto_id": "proj_mech_2026_bb"
     },
     {
       "id": "t003",
@@ -1594,7 +1616,8 @@
       "priorita": "alta",
       "stato": "in_corso",
       "ricorrente": false,
-      "note": "Macchine industriali — ricerche specifiche"
+      "note": "Macchine industriali — ricerche specifiche",
+      "progetto_id": "proj_mech_2026_bb"
     },
     {
       "id": "t004",
@@ -1612,7 +1635,8 @@
       "stato": "in_corso",
       "ricorrente": true,
       "frequenza": "mensile",
-      "note": null
+      "note": null,
+      "progetto_id": "proj_mech_2026_bb"
     },
     {
       "id": "t005",
@@ -1630,7 +1654,8 @@
       "priorita": "alta",
       "stato": "da_fare",
       "ricorrente": false,
-      "note": "Deadline fissa — non spostabile"
+      "note": "Deadline fissa — non spostabile",
+      "progetto_id": "proj_mech_2026_bb"
     },
     {
       "id": "t006",
@@ -1647,7 +1672,8 @@
       "priorita": "alta",
       "stato": "in_corso",
       "ricorrente": false,
-      "note": null
+      "note": null,
+      "progetto_id": "proj_carbotermo_2026"
     },
     {
       "id": "t007",
@@ -1664,7 +1690,8 @@
       "priorita": "alta",
       "stato": "da_fare",
       "ricorrente": false,
-      "note": null
+      "note": null,
+      "progetto_id": "proj_carbotermo_2026"
     },
     {
       "id": "t008",
@@ -1682,7 +1709,8 @@
       "priorita": "alta",
       "stato": "da_fare",
       "ricorrente": false,
-      "note": "Deadline cliente: 31 ottobre"
+      "note": "Deadline cliente: 31 ottobre",
+      "progetto_id": "proj_carbotermo_2026"
     },
     {
       "id": "t009",
@@ -1699,7 +1727,8 @@
       "priorita": "media",
       "stato": "da_fare",
       "ricorrente": false,
-      "note": "In presenza — Gloria presente se possibile"
+      "note": "In presenza — Gloria presente se possibile",
+      "progetto_id": "proj_carbotermo_2026"
     },
     {
       "id": "t010",
@@ -1717,7 +1746,8 @@
       "priorita": "alta",
       "stato": "in_corso",
       "ricorrente": false,
-      "note": "Incontro 15 luglio — numeri + strategia orologi"
+      "note": "Incontro 15 luglio — numeri + strategia orologi",
+      "progetto_id": "proj_fotorent_2026"
     },
     {
       "id": "t011",
@@ -1734,7 +1764,8 @@
       "priorita": "alta",
       "stato": "in_corso",
       "ricorrente": false,
-      "note": null
+      "note": null,
+      "progetto_id": "proj_fotorent_2026"
     },
     {
       "id": "t012",
@@ -1751,7 +1782,8 @@
       "priorita": "alta",
       "stato": "da_fare",
       "ricorrente": false,
-      "note": null
+      "note": null,
+      "progetto_id": "proj_fotorent_2026"
     },
     {
       "id": "t013",
@@ -1769,7 +1801,8 @@
       "priorita": "alta",
       "stato": "in_corso",
       "ricorrente": false,
-      "note": "Incontro 8 luglio — dati campagne + proposta H2"
+      "note": "Incontro 8 luglio — dati campagne + proposta H2",
+      "progetto_id": "proj_giardinia_2026"
     },
     {
       "id": "t014",
@@ -1787,7 +1820,8 @@
       "priorita": "media",
       "stato": "da_fare",
       "ricorrente": false,
-      "note": "Include spinta natalizia"
+      "note": "Include spinta natalizia",
+      "progetto_id": "proj_giardinia_2026"
     },
     {
       "id": "t015",
@@ -1804,7 +1838,8 @@
       "priorita": "alta",
       "stato": "in_corso",
       "ricorrente": false,
-      "note": "80% completato — manca sezione video"
+      "note": "80% completato — manca sezione video",
+      "progetto_id": "proj_gruppodigit_2026"
     },
     {
       "id": "t016",
@@ -1821,7 +1856,8 @@
       "priorita": "alta",
       "stato": "da_fare",
       "ricorrente": false,
-      "note": "Stessa struttura LP1 — duplica e adatta"
+      "note": "Stessa struttura LP1 — duplica e adatta",
+      "progetto_id": "proj_gruppodigit_2026"
     },
     {
       "id": "t017",
@@ -1838,7 +1874,8 @@
       "priorita": "media",
       "stato": "da_fare",
       "ricorrente": false,
-      "note": null
+      "note": null,
+      "progetto_id": "proj_gruppodigit_2026"
     },
     {
       "id": "t018",
@@ -1856,7 +1893,8 @@
       "stato": "in_corso",
       "ricorrente": true,
       "frequenza": "mensile",
-      "note": null
+      "note": null,
+      "progetto_id": "proj_gruppodigit_2026"
     },
     {
       "id": "t019",
@@ -1873,7 +1911,8 @@
       "priorita": "alta",
       "stato": "da_fare",
       "ricorrente": false,
-      "note": "Priorità URL fase 2"
+      "note": "Priorità URL fase 2",
+      "progetto_id": "proj_alimeco_2026"
     },
     {
       "id": "t020",
@@ -1890,7 +1929,8 @@
       "priorita": "alta",
       "stato": "da_fare",
       "ricorrente": false,
-      "note": null
+      "note": null,
+      "progetto_id": "proj_alimeco_2026"
     },
     {
       "id": "t021",
@@ -1908,7 +1948,8 @@
       "stato": "in_corso",
       "ricorrente": true,
       "frequenza": "mensile",
-      "note": null
+      "note": null,
+      "progetto_id": "proj_alimeco_2026"
     },
     {
       "id": "t022",
@@ -1926,7 +1967,8 @@
       "priorita": "alta",
       "stato": "in_corso",
       "ricorrente": false,
-      "note": "Da mandare entro fine giugno — posticipabile max 3 lug"
+      "note": "Da mandare entro fine giugno — posticipabile max 3 lug",
+      "progetto_id": "proj_brizzolari_2026"
     },
     {
       "id": "t023",
@@ -1944,7 +1986,8 @@
       "stato": "in_corso",
       "ricorrente": true,
       "frequenza": "mensile",
-      "note": null
+      "note": null,
+      "progetto_id": "proj_brizzolari_2026"
     },
     {
       "id": "t024",
@@ -1962,7 +2005,8 @@
       "stato": "in_corso",
       "ricorrente": true,
       "frequenza": "mensile",
-      "note": null
+      "note": null,
+      "progetto_id": "proj_ferrari_adv_2026"
     },
     {
       "id": "t025",
@@ -1979,7 +2023,8 @@
       "priorita": "media",
       "stato": "da_fare",
       "ricorrente": false,
-      "note": "Aggiungere scaffalature come 4° blocco"
+      "note": "Aggiungere scaffalature come 4° blocco",
+      "progetto_id": "proj_ferrari_adv_2026"
     },
     {
       "id": "t026",
@@ -1996,7 +2041,8 @@
       "priorita": "alta",
       "stato": "in_corso",
       "ricorrente": false,
-      "note": null
+      "note": null,
+      "progetto_id": "proj_diemme_2026"
     },
     {
       "id": "t027",
@@ -2013,7 +2059,8 @@
       "priorita": "media",
       "stato": "da_fare",
       "ricorrente": false,
-      "note": null
+      "note": null,
+      "progetto_id": "proj_diemme_2026"
     },
     {
       "id": "t028",
@@ -2030,7 +2077,8 @@
       "priorita": "bassa",
       "stato": "in_attesa_materiali",
       "ricorrente": false,
-      "note": "In attesa materiali da Maddalena"
+      "note": "In attesa materiali da Maddalena",
+      "progetto_id": "proj_oltre_2026"
     },
     {
       "id": "t029",
@@ -2047,7 +2095,8 @@
       "priorita": "alta",
       "stato": "in_corso",
       "ricorrente": false,
-      "note": "Nuovo cliente — rivenditore prodotti eccellenza Vimercate"
+      "note": "Nuovo cliente — rivenditore prodotti eccellenza Vimercate",
+      "progetto_id": "proj_shoptime_2026"
     },
     {
       "id": "t030",
@@ -2065,7 +2114,8 @@
       "stato": "in_corso",
       "ricorrente": true,
       "frequenza": "mensile",
-      "note": null
+      "note": null,
+      "progetto_id": "proj_silvauto_2026"
     },
     {
       "id": "t031",
@@ -2082,7 +2132,8 @@
       "priorita": "alta",
       "stato": "in_corso",
       "ricorrente": false,
-      "note": "Annuncio attivato il 23/06 — monitorare conversioni"
+      "note": "Annuncio attivato il 23/06 — monitorare conversioni",
+      "progetto_id": "proj_topfilm_2026"
     },
     {
       "id": "t032",
@@ -2099,86 +2150,145 @@
       "priorita": "alta",
       "stato": "bloccato",
       "ricorrente": false,
-      "note": "Tutto bloccato fino a decisione sul naming"
+      "note": "Tutto bloccato fino a decisione sul naming",
+      "progetto_id": "proj_onenergy_2026"
     }
   ],
   "contatti": [
     {
+      "id": "c001",
       "cliente": "mech_i_tronic",
       "nome": "Massimo Rossi",
       "ruolo": "Responsabile marketing",
       "email": "m.rossi@mechitronic.it",
-      "telefono": null
+      "telefono": "+39 039 123456",
+      "principale": true
     },
     {
-      "cliente": "carbotermo",
-      "nome": "Referente Carbotermo",
-      "ruolo": "CEO",
-      "email": null,
-      "telefono": null
+      "id": "c002",
+      "cliente": "mech_i_tronic",
+      "nome": "Laura Bianchi",
+      "ruolo": "Direttore commerciale",
+      "email": "l.bianchi@mechitronic.it",
+      "telefono": null,
+      "principale": false
     },
     {
+      "id": "c003",
       "cliente": "fotorent",
       "nome": "Massimo (titolare)",
       "ruolo": "Titolare",
-      "email": null,
-      "telefono": null
+      "email": "massimo@fotorent.it",
+      "telefono": "+39 02 9876543",
+      "principale": true
     },
     {
+      "id": "c004",
       "cliente": "giardinia",
-      "nome": "Paola",
-      "ruolo": "Referente",
-      "email": null,
-      "telefono": null
+      "nome": "Paola Verdi",
+      "ruolo": "Referente comunicazione",
+      "email": "p.verdi@giardinia.it",
+      "telefono": null,
+      "principale": true
     },
     {
+      "id": "c005",
       "cliente": "gruppodigit",
-      "nome": "Referente Gruppodigit",
-      "ruolo": "Responsabile",
-      "email": null,
-      "telefono": null
-    },
-    {
-      "cliente": "alimeco",
-      "nome": "Referente Alimeco",
-      "ruolo": "Quality office",
-      "email": null,
-      "telefono": null
-    },
-    {
-      "cliente": "brizzolari",
-      "nome": "Andrea",
-      "ruolo": "Referente",
-      "email": null,
-      "telefono": null
-    },
-    {
-      "cliente": "ferrari",
-      "nome": "Referente Ferrari Contract",
-      "ruolo": "Marketing",
-      "email": null,
-      "telefono": null
-    },
-    {
-      "cliente": "on_energy",
-      "nome": "Referente On Energy",
+      "nome": "Marco Digitale",
       "ruolo": "CEO",
-      "email": null,
-      "telefono": null
+      "email": "m.digitale@gruppodigit.it",
+      "telefono": "+39 039 654321",
+      "principale": true
     },
     {
+      "id": "c006",
+      "cliente": "alimeco",
+      "nome": "Sara Qualità",
+      "ruolo": "Quality office",
+      "email": "qualita@alimeco.it",
+      "telefono": null,
+      "principale": true
+    },
+    {
+      "id": "c007",
+      "cliente": "brizzolari",
+      "nome": "Andrea Brizzolari",
+      "ruolo": "Referente",
+      "email": "andrea@nastribrizzolari.it",
+      "telefono": "+39 039 111222",
+      "principale": true
+    },
+    {
+      "id": "c008",
+      "cliente": "ferrari",
+      "nome": "Luca Ferrari",
+      "ruolo": "Marketing manager",
+      "email": "l.ferrari@ferraricontract.it",
+      "telefono": null,
+      "principale": true
+    },
+    {
+      "id": "c009",
+      "cliente": "on_energy",
+      "nome": "Roberto Energia",
+      "ruolo": "CEO",
+      "email": "r.energia@onenergy.it",
+      "telefono": "+39 02 555666",
+      "principale": true
+    },
+    {
+      "id": "c010",
       "cliente": "shoptime",
-      "nome": "Referente Shoptime",
+      "nome": "Titolare Shoptime",
       "ruolo": "Titolare",
-      "email": null,
-      "telefono": null
+      "email": "info@shoptime.it",
+      "telefono": null,
+      "principale": true
     },
     {
-      "cliente": "topfilm",
-      "nome": "Referente Top Film",
-      "ruolo": "Commerciale",
-      "email": null,
-      "telefono": null
+      "id": "c011",
+      "cliente": "carbotermo",
+      "nome": "Referente Carbotermo",
+      "ruolo": "CEO",
+      "email": "info@carbotermo.it",
+      "telefono": "+39 039 789012",
+      "principale": true
+    },
+    {
+      "id": "c012",
+      "cliente": "natural_clima",
+      "nome": "Referente Natural Clima",
+      "ruolo": "Marketing",
+      "email": "info@naturalclima.it",
+      "telefono": null,
+      "principale": true
+    },
+    {
+      "id": "c013",
+      "cliente": "silvauto",
+      "nome": "Referente Silvauto",
+      "ruolo": "Titolare",
+      "email": "info@silvauto.it",
+      "telefono": null,
+      "principale": true
+    },
+    {
+      "id": "c014",
+      "cliente": "diemme",
+      "nome": "Referente Diemme",
+      "ruolo": "Responsabile",
+      "email": "info@diemme.it",
+      "telefono": null,
+      "principale": true
+    },
+    {
+      "id": "c015",
+      "cliente": "leonart",
+      "nome": "Referente Leonart",
+      "ruolo": "Direttore artistico",
+      "email": "info@leonart.it",
+      "telefono": null,
+      "principale": true
     }
   ],
   "note_rinnovo": [
@@ -2223,6 +2333,258 @@
       "note": "Rinnovo novembre. BB2026 in corso — sito, campagne, sussidiarie. Anticipare proposta a ottobre.",
       "anno_precedente_valore": null,
       "anno_corrente_proposta": null
+    }
+  ],
+  "progetti": [
+    {
+      "id": "proj_mech_2026_bb",
+      "cliente": "mech_i_tronic",
+      "nome": "Mech-i-Tronic 2026 — BB Integration",
+      "anno": 2026,
+      "ore_contratto": 277,
+      "stato": "attivo",
+      "data_inizio": "2026-01-01",
+      "data_fine": "2026-12-31"
+    },
+    {
+      "id": "proj_carbotermo_2026",
+      "cliente": "carbotermo",
+      "nome": "Carbotermo 2026",
+      "anno": 2026,
+      "ore_contratto": 90,
+      "stato": "attivo",
+      "data_inizio": "2026-03-01",
+      "data_fine": "2026-12-31"
+    },
+    {
+      "id": "proj_shoptime_2026",
+      "cliente": "shoptime",
+      "nome": "Shoptime 2026",
+      "anno": 2026,
+      "ore_contratto": 88,
+      "stato": "attivo",
+      "data_inizio": "2026-06-01",
+      "data_fine": "2026-12-31"
+    },
+    {
+      "id": "proj_wit_2026",
+      "cliente": "wit_cloud",
+      "nome": "W.I.T. in Cloud 2026",
+      "anno": 2026,
+      "ore_contratto": 96,
+      "stato": "attivo",
+      "data_inizio": "2026-01-01",
+      "data_fine": "2026-12-31"
+    },
+    {
+      "id": "proj_alimeco_2026",
+      "cliente": "alimeco",
+      "nome": "Alimeco 2026",
+      "anno": 2026,
+      "ore_contratto": 180,
+      "stato": "attivo",
+      "data_inizio": "2026-01-01",
+      "data_fine": "2026-12-31"
+    },
+    {
+      "id": "proj_ferrari_adv_2026",
+      "cliente": "ferrari",
+      "nome": "Ferrari Contract 2026 — Google Ads",
+      "anno": 2026,
+      "ore_contratto": 63,
+      "stato": "attivo",
+      "data_inizio": "2026-01-01",
+      "data_fine": "2026-12-31"
+    },
+    {
+      "id": "proj_ferrari_landing_2026",
+      "cliente": "ferrari",
+      "nome": "Ferrari Contract 2026 — Landing",
+      "anno": 2026,
+      "ore_contratto": 28,
+      "stato": "attivo",
+      "data_inizio": "2026-01-01",
+      "data_fine": "2026-12-31"
+    },
+    {
+      "id": "proj_naturalclima_2026",
+      "cliente": "natural_clima",
+      "nome": "Natural Clima 2026",
+      "anno": 2026,
+      "ore_contratto": 132,
+      "stato": "attivo",
+      "data_inizio": "2026-01-01",
+      "data_fine": "2026-09-30"
+    },
+    {
+      "id": "proj_onenergy_2026",
+      "cliente": "on_energy",
+      "nome": "On Energy 2026",
+      "anno": 2026,
+      "ore_contratto": 96,
+      "stato": "attivo",
+      "data_inizio": "2026-06-01",
+      "data_fine": "2026-12-31"
+    },
+    {
+      "id": "proj_leonart_2026",
+      "cliente": "leonart",
+      "nome": "Leonart-Treccani 2026",
+      "anno": 2026,
+      "ore_contratto": 98,
+      "stato": "attivo",
+      "data_inizio": "2026-01-01",
+      "data_fine": "2026-12-31"
+    },
+    {
+      "id": "proj_fotorent_2026",
+      "cliente": "fotorent",
+      "nome": "Fotorent 2026",
+      "anno": 2026,
+      "ore_contratto": 120,
+      "stato": "attivo",
+      "data_inizio": "2026-01-01",
+      "data_fine": "2026-06-30"
+    },
+    {
+      "id": "proj_silvauto_2026",
+      "cliente": "silvauto",
+      "nome": "Silvauto 2026",
+      "anno": 2026,
+      "ore_contratto": 84,
+      "stato": "attivo",
+      "data_inizio": "2026-01-01",
+      "data_fine": "2026-12-31"
+    },
+    {
+      "id": "proj_brizzolari_2026",
+      "cliente": "brizzolari",
+      "nome": "Nastri Brizzolari 2026",
+      "anno": 2026,
+      "ore_contratto": 98,
+      "stato": "attivo",
+      "data_inizio": "2026-01-01",
+      "data_fine": "2026-12-31"
+    },
+    {
+      "id": "proj_mainardi_2026",
+      "cliente": "mainardi",
+      "nome": "Mainardi Sistemi 2026",
+      "anno": 2026,
+      "ore_contratto": 49,
+      "stato": "attivo",
+      "data_inizio": "2026-01-01",
+      "data_fine": "2026-12-31"
+    },
+    {
+      "id": "proj_diemme_2026",
+      "cliente": "diemme",
+      "nome": "Diemme 2026",
+      "anno": 2026,
+      "ore_contratto": 147,
+      "stato": "attivo",
+      "data_inizio": "2026-01-01",
+      "data_fine": "2026-12-31"
+    },
+    {
+      "id": "proj_gb_2026",
+      "cliente": "gb_group",
+      "nome": "G&B Group 2026",
+      "anno": 2026,
+      "ore_contratto": 85,
+      "stato": "attivo",
+      "data_inizio": "2026-01-01",
+      "data_fine": "2026-12-31"
+    },
+    {
+      "id": "proj_oltre_2026",
+      "cliente": "oltre_impact",
+      "nome": "Oltre Impact 2026",
+      "anno": 2026,
+      "ore_contratto": 49,
+      "stato": "attivo",
+      "data_inizio": "2026-01-01",
+      "data_fine": "2026-12-31"
+    },
+    {
+      "id": "proj_giardinia_2026",
+      "cliente": "giardinia",
+      "nome": "Giardinia 2026",
+      "anno": 2026,
+      "ore_contratto": 56,
+      "stato": "attivo",
+      "data_inizio": "2026-01-01",
+      "data_fine": "2026-09-30"
+    },
+    {
+      "id": "proj_gruppodigit_2026",
+      "cliente": "gruppodigit",
+      "nome": "Gruppodigit 2026",
+      "anno": 2026,
+      "ore_contratto": 126,
+      "stato": "attivo",
+      "data_inizio": "2026-01-01",
+      "data_fine": "2026-12-31"
+    },
+    {
+      "id": "proj_clscritti_2026",
+      "cliente": "cl_scritti",
+      "nome": "CL Scritti 2026",
+      "anno": 2026,
+      "ore_contratto": 14,
+      "stato": "attivo",
+      "data_inizio": "2026-01-01",
+      "data_fine": "2026-12-31"
+    },
+    {
+      "id": "proj_cdo_2026",
+      "cliente": "cdo_como",
+      "nome": "CDO Como 2026",
+      "anno": 2026,
+      "ore_contratto": 24,
+      "stato": "attivo",
+      "data_inizio": "2026-01-01",
+      "data_fine": "2026-12-31"
+    },
+    {
+      "id": "proj_topfilm_2026",
+      "cliente": "topfilm",
+      "nome": "Top Film 2026 — PPL Vernici",
+      "anno": 2026,
+      "ore_contratto": 35,
+      "stato": "attivo",
+      "data_inizio": "2026-01-01",
+      "data_fine": "2026-12-31"
+    },
+    {
+      "id": "proj_collezioni_2026",
+      "cliente": "collezioni_arte",
+      "nome": "Collezioni d'Arte 2026 — PPL",
+      "anno": 2026,
+      "ore_contratto": 42,
+      "stato": "attivo",
+      "data_inizio": "2026-01-01",
+      "data_fine": "2026-12-31"
+    },
+    {
+      "id": "proj_new_2026",
+      "cliente": "new_srl",
+      "nome": "NEW 2026",
+      "anno": 2026,
+      "ore_contratto": 28,
+      "stato": "attivo",
+      "data_inizio": "2026-01-01",
+      "data_fine": "2026-12-31"
+    },
+    {
+      "id": "proj_accuracy_2026",
+      "cliente": "accuracy",
+      "nome": "Accuracy 2026",
+      "anno": 2026,
+      "ore_contratto": 16,
+      "stato": "attivo",
+      "data_inizio": "2026-01-01",
+      "data_fine": "2026-08-31"
     }
   ]
 }
