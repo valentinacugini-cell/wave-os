@@ -79,9 +79,10 @@ export async function loadSeed() {
     .filter((p: any) => p.tipo === 'operativo')
     .map((p: any) => ({ persona: p.id, valori: new Array(7).fill(0) }))
 
-  return {
-    team: teamNorm,
-    clienti: clienti.map((c: any) => ({
+  // Assicuro che tutti gli array siano sempre array validi
+  const safeSeed = {
+    team: teamNorm ?? [],
+    clienti: (clienti ?? []).map((c: any) => ({
       id: c.id, nome: c.nome, stato: c.stato, tipo: c.tipo,
       tipo_contratto: c.tipo_contratto, referente: c.referente, commerciale: c.commerciale,
       scadenza_contratto: c.scadenza_contratto, rinnovo_previsto: c.rinnovo_previsto,
@@ -113,8 +114,20 @@ export async function loadSeed() {
     })),
     note_rinnovo: noteRinnovo.map((n: any) => ({ cliente: n.cliente, note: n.note })),
     allocazioni: [],
-    mesi_label,
-    capacita,
-    ore_pianificate,
+    mesi_label: mesi_label ?? ['Giu','Lug','Ago','Set','Ott','Nov','Dic'],
+    capacita: capacita ?? [],
+    ore_pianificate: ore_pianificate ?? [],
   }
+
+  // Patch difensiva: garantisce che ogni cliente abbia gli array necessari
+  safeSeed.clienti = safeSeed.clienti.map((c: any) => ({
+    ...c,
+    ore_effettive_mesi_2026: c.ore_effettive_mesi_2026 ?? new Array(12).fill(0),
+  }))
+  safeSeed.team = safeSeed.team.map((p: any) => ({
+    ...p,
+    capacita_mensile: p.capacita_mensile ?? [],
+  }))
+
+  return safeSeed
 }
