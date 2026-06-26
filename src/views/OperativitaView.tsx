@@ -26,6 +26,13 @@ const PRIO: Record<TaskPriorita, { dot: string; bg: string; color: string; label
   bassa: { dot: '#639922', bg: '#EAF3DE', color: '#2E7D32', label: 'Bassa' },
 }
 
+function getStat(stato: string) {
+  return STATI_LABEL[stato as TaskStato] ?? STATI_LABEL['da_fare']
+}
+function getPrio(priorita: string) {
+  return PRIO[priorita as TaskPriorita] ?? PRIO['media']
+}
+
 function Avatar({ persona, size = 24 }: { persona: Persona; size?: number }) {
   return (
     <span className="rounded-full flex items-center justify-center text-white font-bold flex-shrink-0"
@@ -75,7 +82,7 @@ function ListaSettimanale({ tasks, seed, onOpenTask }: {
 
   const progettoNome = useMemo(() => {
     const m: Record<string, string> = {}
-    ;(seed.progetti ?? []).forEach(p => { m[p.id] = p.nome })
+    ;seed.progetti.forEach(p => { m[p.id] = p.nome })
     return m
   }, [seed.progetti])
 
@@ -143,7 +150,7 @@ function ListaSettimanale({ tasks, seed, onOpenTask }: {
                     return (
                       <div key={t.id} style={{ borderBottom: isLast ? 'none' : '1px solid #F0F0F0', background: t.stato === 'bloccato' ? '#FFF8F8' : 'white' }}>
                         <div className="flex items-center gap-3 px-4 py-2.5">
-                          <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ background: (PRIO[t.priorita] ?? PRIO['media']).dot }} />
+                          <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ background: getPrio(t.priorita).dot }} />
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2 mb-0.5">
                               <button onClick={() => setExpanded(isExp ? null : t.id)} className="text-xs font-semibold hover:underline" style={{ color: '#3DD4BE' }}>
@@ -174,12 +181,12 @@ function ListaSettimanale({ tasks, seed, onOpenTask }: {
                             })}
                           </div>
                           <span className="text-xs px-1.5 py-0.5 rounded flex-shrink-0"
-                            style={{ background: (PRIO[t.priorita] ?? PRIO['media']).bg, color: (PRIO[t.priorita] ?? PRIO['media']).color }}>
-                            {(PRIO[t.priorita] ?? PRIO['media']).label}
+                            style={{ background: getPrio(t.priorita).bg, color: getPrio(t.priorita).color }}>
+                            {getPrio(t.priorita).label}
                           </span>
                           <span className="text-xs px-1.5 py-0.5 rounded flex-shrink-0"
-                            style={{ background: (STATI_LABEL[t.stato] ?? STATI_LABEL['da_fare']).bg, color: (STATI_LABEL[t.stato] ?? STATI_LABEL['da_fare']).color }}>
-                            {(STATI_LABEL[t.stato] ?? STATI_LABEL['da_fare']).label}
+                            style={{ background: getStat(t.stato).bg, color: getStat(t.stato).color }}>
+                            {getStat(t.stato).label}
                           </span>
                           <button onClick={() => setExpanded(isExp ? null : t.id)}
                             className="text-xs px-1.5 py-0.5 rounded border transition-colors flex-shrink-0"
@@ -282,7 +289,7 @@ function Swimlane({ tasks, seed, onOpenTask }: {
 
   const progettoNome = useMemo(() => {
     const m: Record<string, string> = {}
-    ;(seed.progetti ?? []).forEach(p => { m[p.id] = p.nome })
+    ;seed.progetti.forEach(p => { m[p.id] = p.nome })
     return m
   }, [seed.progetti])
 
@@ -429,7 +436,7 @@ function Swimlane({ tasks, seed, onOpenTask }: {
                           </div>
                         )}
                         {visible.map((b, bi) => {
-                          const prioColor = PRIO[b.priorita].dot
+                          const prioColor = (PRIO[b.priorita as TaskPriorita] ?? PRIO['media']).dot
                           const blockKey = `${p.id}-${ci}-${bi}`
                           const showTooltip = activeTooltip === blockKey
                           return (
@@ -505,7 +512,7 @@ function VistaAnno({ seed }: { seed: Seed }) {
 
   const progettoById = useMemo(() => {
     const m: Record<string, string> = {}
-    ;(seed.progetti ?? []).forEach(p => { m[p.id] = p.nome })
+    ;seed.progetti.forEach(p => { m[p.id] = p.nome })
     return m
   }, [seed.progetti])
 
@@ -809,7 +816,7 @@ export default function OperativitaView({ seed, onClienteClick }: OperativitaPro
   // Progetti per cliente attivo nel modal
   const progettiPerCliente = useMemo(() => {
     const m: Record<string, Progetto[]> = {}
-    ;(seed.progetti ?? []).forEach(p => {
+    ;seed.progetti.forEach(p => {
       if (!m[p.cliente]) m[p.cliente] = []
       m[p.cliente].push(p)
     })
