@@ -28,6 +28,13 @@ const PRIO: Record<TaskPriorita, { dot: string; bg: string; color: string; label
   bassa: { dot: '#639922', bg: '#EAF3DE', color: '#2E7D32', label: 'Bassa' },
 }
 
+function getStat(stato: string) {
+  return STATI_LABEL[stato as TaskStato] ?? STATI_LABEL['da_fare']
+}
+function getPrio(priorita: string) {
+  return PRIO[priorita as TaskPriorita] ?? PRIO['media']
+}
+
 const areaColors: Record<string, string> = {
   Dev: '#4F86C6', ADV: '#A67DC6', Content: '#7DC67D',
   Strategia: '#E07B54', Grafica: '#F9A825', Gestione: '#9CA3AF',
@@ -59,7 +66,7 @@ export default function SchedaCliente({ clienteId, seed, onBack }: Props) {
 
   // Progetti del cliente
   const progetti = useMemo(() =>
-    (seed.progetti ?? []).filter(p => p.cliente === clienteId)
+    seed.progetti.filter(p => p.cliente === clienteId)
   , [seed.progetti, clienteId])
 
   // Progetto attivo (primo di default)
@@ -92,7 +99,7 @@ export default function SchedaCliente({ clienteId, seed, onBack }: Props) {
   const noteRinnovoBase = seed.note_rinnovo?.find(n => n.cliente === clienteId)
   const noteRinnovoText = getNoteRinnovo(clienteId, noteRinnovoBase?.note)
 
-  const allocazioni = (seed.allocazioni ?? []).filter(a => a.cliente === clienteId)
+  const allocazioni = seed.allocazioni.filter(a => a.cliente === clienteId)
 
   if (!cliente) return <div className="p-8 text-gray-500">Cliente non trovato</div>
 
@@ -493,7 +500,7 @@ export default function SchedaCliente({ clienteId, seed, onBack }: Props) {
                           return next
                         })}
                         className="w-3.5 h-3.5 rounded flex-shrink-0 cursor-pointer accent-teal-500" />
-                      <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ background: (PRIO[t.priorita] ?? PRIO['media']).dot }} />
+                      <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ background: getPrio(t.priorita).dot }} />
                       <div className="flex-1 min-w-0">
                         <span className="text-sm font-medium text-gray-900">{t.titolo}</span>
                         <span className="text-xs text-gray-400 ml-2">{t.area}</span>
@@ -517,12 +524,12 @@ export default function SchedaCliente({ clienteId, seed, onBack }: Props) {
                         })}
                       </div>
                       <span className="text-xs px-1.5 py-0.5 rounded font-medium flex-shrink-0"
-                        style={{ background: (PRIO[t.priorita] ?? PRIO['media']).bg, color: (PRIO[t.priorita] ?? PRIO['media']).color }}>
-                        {(PRIO[t.priorita] ?? PRIO['media']).label}
+                        style={{ background: getPrio(t.priorita).bg, color: getPrio(t.priorita).color }}>
+                        {getPrio(t.priorita).label}
                       </span>
                       <span className="text-xs px-1.5 py-0.5 rounded flex-shrink-0"
-                        style={{ background: (STATI_LABEL[t.stato] ?? STATI_LABEL['da_fare']).bg, color: (STATI_LABEL[t.stato] ?? STATI_LABEL['da_fare']).color }}>
-                        {(STATI_LABEL[t.stato] ?? STATI_LABEL['da_fare']).label}
+                        style={{ background: getStat(t.stato).bg, color: getStat(t.stato).color }}>
+                        {getStat(t.stato).label}
                       </span>
                       <button onClick={() => setExpandedTask(isExp ? null : t.id)}
                         className="text-xs px-1.5 py-0.5 rounded border flex-shrink-0"
