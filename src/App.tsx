@@ -14,6 +14,30 @@ import ForecastView from './views/ForecastView'
 
 const seed = seedData as unknown as Seed
 
+
+class ErrorBoundary extends React.Component<{children: React.ReactNode}, {error: string | null}> {
+  constructor(props: any) {
+    super(props)
+    this.state = { error: null }
+  }
+  static getDerivedStateFromError(error: Error) {
+    return { error: error.message + '\n' + error.stack }
+  }
+  render() {
+    if (this.state.error) {
+      return (
+        <div style={{ padding: 32, fontFamily: 'monospace', fontSize: 12 }}>
+          <p style={{ color: '#E24B4A', fontWeight: 600, marginBottom: 8 }}>Errore React — dettagli:</p>
+          <pre style={{ background: '#FFF0F0', padding: 16, borderRadius: 8, whiteSpace: 'pre-wrap', color: '#333' }}>
+            {this.state.error}
+          </pre>
+        </div>
+      )
+    }
+    return this.props.children
+  }
+}
+
 export default function App() {
   const [seed, setSeed] = React.useState<any>(seedData)
   const [loading, setLoading] = React.useState(true)
@@ -61,28 +85,30 @@ export default function App() {
   )
 
   return (
-    <ClienteProvider>
-      <TaskProvider>
-      <div className="flex min-h-screen" style={{ backgroundColor: '#F8F9FA' }}>
-        <Sidebar
-          currentView={currentView}
-          onViewChange={(v) => { setCurrentView(v); if (v !== 'cliente') setSelectedCliente(null) }}
-          currentUser={currentUser}
-          team={seed.team}
-          onUserChange={setCurrentUserId}
-        />
-        <main className="flex-1 overflow-auto" style={{ marginLeft: 240 }}>
-          <div className="max-w-6xl mx-auto px-8 py-8">
-            {currentView === 'home' && <HomeView seed={seed} currentUser={currentUser} onClienteClick={handleClienteClick} />}
-            {currentView === 'carico' && <CaricoView seed={seed} />}
-            {currentView === 'scadenze' && <ScadenzeView seed={seed} onClienteClick={handleClienteClick} />}
-            {currentView === 'operativita' && <OperativitaView seed={seed} onClienteClick={handleClienteClick} />}
-            {currentView === 'cliente' && selectedCliente && <SchedaCliente clienteId={selectedCliente} seed={seed} onBack={handleBack} />}
-            {currentView === 'forecast' && <ForecastView />}
+    <ErrorBoundary>
+      <ClienteProvider>
+        <TaskProvider>
+          <div className="flex min-h-screen" style={{ backgroundColor: '#F8F9FA' }}>
+            <Sidebar
+              currentView={currentView}
+              onViewChange={(v) => { setCurrentView(v); if (v !== 'cliente') setSelectedCliente(null) }}
+              currentUser={currentUser}
+              team={seed.team}
+              onUserChange={setCurrentUserId}
+            />
+            <main className="flex-1 overflow-auto" style={{ marginLeft: 240 }}>
+              <div className="max-w-6xl mx-auto px-8 py-8">
+                {currentView === 'home' && <HomeView seed={seed} currentUser={currentUser} onClienteClick={handleClienteClick} />}
+                {currentView === 'carico' && <CaricoView seed={seed} />}
+                {currentView === 'scadenze' && <ScadenzeView seed={seed} onClienteClick={handleClienteClick} />}
+                {currentView === 'operativita' && <OperativitaView seed={seed} onClienteClick={handleClienteClick} />}
+                {currentView === 'cliente' && selectedCliente && <SchedaCliente clienteId={selectedCliente} seed={seed} onBack={handleBack} />}
+                {currentView === 'forecast' && <ForecastView />}
+              </div>
+            </main>
           </div>
-        </main>
-      </div>
-    </TaskProvider>
-    </ClienteProvider>
+        </TaskProvider>
+      </ClienteProvider>
+    </ErrorBoundary>
   )
 }
