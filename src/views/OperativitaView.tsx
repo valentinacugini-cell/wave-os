@@ -168,7 +168,12 @@ function ListaSettimanale({ tasks, seed, onOpenTask }: {
                             style={{ background: STATI_LABEL[t.stato].bg, color: STATI_LABEL[t.stato].color }}>
                             {STATI_LABEL[t.stato].label}
                           </span>
-                          <button onClick={() => onOpenTask(t)}
+                          <button onClick={() => setExpanded(isExp ? null : t.id)}
+                            className="text-xs px-1.5 py-0.5 rounded border transition-colors flex-shrink-0"
+                            style={{ borderColor: '#E0E0E0', color: '#999', background: 'white' }}>
+                            {isExp ? '▴' : '▾'}
+                          </button>
+                          <button onClick={() => onOpenTask(tasks.find(raw => raw.id === t.id) ?? t)}
                             className="text-xs px-2 py-0.5 rounded border transition-colors flex-shrink-0"
                             style={{ borderColor: '#E0E0E0', color: '#999', background: 'white' }}>
                             Modifica
