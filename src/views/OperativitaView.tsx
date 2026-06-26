@@ -145,9 +145,16 @@ function ListaSettimanale({ tasks, seed, onOpenTask }: {
                         <div className="flex items-center gap-3 px-4 py-2.5">
                           <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ background: PRIO[t.priorita].dot }} />
                           <div className="flex-1 min-w-0">
-                            <button onClick={() => setExpanded(isExp ? null : t.id)} className="text-xs font-semibold mb-0.5 hover:underline block text-left" style={{ color: '#3DD4BE' }}>
-                              {clienteNome[t.cliente] ?? t.cliente}
-                            </button>
+                            <div className="flex items-center gap-2 mb-0.5">
+                              <button onClick={() => setExpanded(isExp ? null : t.id)} className="text-xs font-semibold hover:underline" style={{ color: '#3DD4BE' }}>
+                                {clienteNome[t.cliente] ?? t.cliente}
+                              </button>
+                              {t.progetto_id && progettoNome[t.progetto_id] && (
+                                <span className="text-xs text-gray-400 truncate" style={{ maxWidth: 180 }}>
+                                  · {progettoNome[t.progetto_id]}
+                                </span>
+                              )}
+                            </div>
                             <span className="text-sm font-medium text-gray-900">{t.titolo}</span>
                             {isExp && (
                               <div className="flex gap-3 mt-0.5 text-xs text-gray-400 flex-wrap">
