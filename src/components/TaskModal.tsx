@@ -26,10 +26,15 @@ const PRIORITA: { value: TaskPriorita; label: string; color: string; bg: string 
 ]
 
 export default function TaskModal({ task, personaById, clienteNome, progetti, onClose, onSave }: TaskModalProps) {
+  const STATI_VALIDI: TaskStato[] = ['da_fare','in_corso','completato','bloccato','in_attesa_materiali']
+  const PRIO_VALIDE: TaskPriorita[] = ['alta','media','bassa']
+  const safeStato = (s: string): TaskStato => STATI_VALIDI.includes(s as TaskStato) ? s as TaskStato : 'da_fare'
+  const safePrio = (p: string): TaskPriorita => PRIO_VALIDE.includes(p as TaskPriorita) ? p as TaskPriorita : 'media'
+
   const [form, setForm] = useState({
-    titolo: task.titolo,
-    stato: task.stato,
-    priorita: task.priorita,
+    titolo: task.titolo ?? '',
+    stato: safeStato(task.stato ?? ''),
+    priorita: safePrio(task.priorita ?? ''),
     data_inizio: task.data_inizio,
     data_fine: task.data_fine,
     area: task.area,
