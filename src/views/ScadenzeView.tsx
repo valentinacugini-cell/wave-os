@@ -35,14 +35,8 @@ function CalendarioView({ seed, onClienteClick }: { seed: Seed; onClienteClick?:
   }, [seed.team])
 
   // Anno minimo = anno corrente, anno massimo = anno più lontano nei dati
-  const { annoMin, annoMax } = useMemo(() => {
-    const allDates = [
-      ...seed.clienti.map(c => c.scadenza_contratto).filter(Boolean).map(d => new Date(d!)),
-      ...seed.scadenze.map(s => new Date(s.data)),
-    ]
-    const max = allDates.length > 0 ? Math.max(...allDates.map(d => d.getFullYear())) : oggi.getFullYear() + 1
-    return { annoMin: oggi.getFullYear(), annoMax: max }
-  }, [seed.clienti, seed.scadenze])
+  const annoMin = oggi.getFullYear()
+  const annoMax = oggi.getFullYear() + 5 // Navigazione libera fino a 5 anni avanti
 
   // 12 mesi dell'anno selezionato
   const mesi = useMemo(() => {
