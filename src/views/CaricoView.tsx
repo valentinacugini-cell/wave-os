@@ -63,6 +63,7 @@ function PersonaLoadBar({ persona, pianificate, capacita, consuntivate }: {
               onMouseEnter={() => setHovered(i)}
               onMouseLeave={() => setHovered(null)}>
 
+              {/* Tooltip */}
               {hovered === i && (
                 <div className="absolute z-20 bg-gray-900 text-white text-xs rounded-lg px-3 py-2 shadow-xl pointer-events-none whitespace-nowrap"
                   style={{ bottom: maxH + 40 }}>
@@ -75,15 +76,21 @@ function PersonaLoadBar({ persona, pianificate, capacita, consuntivate }: {
                 </div>
               )}
 
+              {/* Barre */}
               <div className="relative flex items-end gap-0.5" style={{ height: maxH + 24 }}>
+                {/* Linea capacità */}
                 <div className="absolute left-0 right-0 border-t-2 border-dashed pointer-events-none"
                   style={{ bottom: 0, marginBottom: maxH, borderColor: persona.colore + '60' }} />
+
+                {/* Barra pianificate */}
                 <div className="w-5 rounded-t transition-all flex-shrink-0"
                   style={{
                     height: Math.max(planH, 2),
                     background: isOver ? '#FCA5A5' : persona.colore,
                     opacity: 0.5,
                   }} />
+
+                {/* Barra consuntivate sovrapposta */}
                 {cons > 0 && (
                   <div className="absolute left-0 w-5 rounded-t"
                     style={{
@@ -96,6 +103,7 @@ function PersonaLoadBar({ persona, pianificate, capacita, consuntivate }: {
 
               <span className="text-xs text-gray-400">{mese}</span>
 
+              {/* Saldo */}
               {isOver ? (
                 <span className="text-xs font-semibold px-1.5 py-0.5 rounded w-full text-center"
                   style={{ background: '#FEE2E2', color: '#B91C1C' }}>
@@ -108,6 +116,123 @@ function PersonaLoadBar({ persona, pianificate, capacita, consuntivate }: {
           )
         })}
       </div>
+    </div>
+  )
+}
+
+
+// ── Tabella allocazioni aggregata per cliente ──────────────────────────────
+
+function AllocazioniTabella({ allocazioni, personaById, clienteById, pianificateByPersona, capacitaByPersona, mesiLabel }: {
+  allocazioni: any[]
+  personaById: Record<string, any>
+  clienteById: Record<string, string>
+  pianificateByPersona: Record<string, number[]>
+  capacitaByPersona: Record<string, number[]>
+  mesiLabel: string[]
+}) {
+  const [expanded, setExpanded] = useState<Set<string>>(new Set())
+
+  // Aggrega allocazioni per cliente
+  const perCliente = useMemo(() => {
+    const m: Record<string, { totali: number[]; righe: any[] }> = {}
+    allocazioni.forEach(a => {
+      if (!m[a.cliente]) m[a.cliente] = { totali: new Array(7).fill(0), righe: [] }
+      m[a.cliente].righe.push(a)
+      a.valori.forEach((v: number, i: number) => { m[a.cliente].totali[i] += v })
+    })
+    return m
+  }, [allocazioni])
+
+  const totaleRiga = (valori: number[]) => valori.reduce((s, v) => s + v, 0)
+
+  return (
+    <div className="bg-white rounded-xl border border-gray-200 overflow-x-auto">
+      <table className="w-full min-w-max">
+        <thead>
+          <tr style={{ background: '#F8F9FA', borderBottom: '1px solid #E0E0E0' }}>
+            <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide sticky left-0 bg-gray-50" style={{ minWidth: 160 }}>Cliente</th>
+            {mesiLabel.map((m, i) => (
+              <th key={i} className="text-center px-3 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide" style={{ minWidth: 50 }}>{m}</th>
+            ))}
+            <th className="text-center px-3 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide" style={{ minWidth: 50 }}>Tot</th>
+          </tr>
+        </thead>
+        <tbody>
+          {Object.entries(perCliente).map(([clienteId, { totali, righe }], ci) => {
+            const isExp = expanded.has(clienteId)
+            const nomeCliente = clienteById[clienteId] ?? clienteId
+            const totale = totaleRiga(totali)
+
+            return (
+              <React.Fragment key={clienteId}>
+                {/* Riga aggregata cliente */}
+                <tr
+                  className="cursor-pointer hover:bg-blue-50 transition-colors"
+                  style={{ borderBottom: '1px solid #E0E0E0', background: ci % 2 === 0 ? '#FFF' : '#FAFAFA' }}
+                  onClick={() => {
+                    const next = new Set(expanded)
+                    if (isExp) next.delete(clienteId)
+                    else next.add(clienteId)
+                    setExpanded(next)
+                  }}>
+                  <td className="px-4 py-2.5 sticky left-0 bg-inherit" style={{ minWidth: 160 }}>
+                    <div className="flex items-center gap-2">
+                      <span className="text-gray-400 text-xs w-3">{isExp ? '▾' : '▸'}</span>
+                      <span className="text-sm font-semibold text-gray-900">{nomeCliente}</span>
+                      <span className="text-xs text-gray-400">({righe.length} risorse)</span>
+                    </div>
+                  </td>
+                  {totali.map((v, mi) => (
+                    <td key={mi} className="px-3 py-2.5 text-center text-sm font-medium"
+                      style={{ color: v > 0 ? '#374151' : '#D1D5DB' }}>
+                      {v > 0 ? v : '·'}
+                    </td>
+                  ))}
+                  <td className="px-3 py-2.5 text-center text-sm font-bold text-gray-900">{totale}</td>
+                </tr>
+
+                {/* Righe espanse per risorsa */}
+                {isExp && righe.map((a, ri) => {
+                  const p = personaById[a.persona]
+                  const pianificate = pianificateByPersona[a.persona] ?? []
+                  const capacita = capacitaByPersona[a.persona] ?? []
+                  return (
+                    <tr key={`${a.persona}-${ri}`}
+                      style={{ borderBottom: '1px solid #F5F5F5', background: '#F8FFFE' }}>
+                      <td className="px-4 py-2 sticky left-0 bg-inherit" style={{ minWidth: 160 }}>
+                        <div className="flex items-center gap-2 pl-6">
+                          {p && (
+                            <span className="w-5 h-5 rounded-full flex items-center justify-center text-white text-xs font-bold"
+                              style={{ background: p.colore }}>{p.nome.charAt(0)}</span>
+                          )}
+                          <span className="text-xs text-gray-600">{p?.nome.split(' ')[0] ?? a.persona}</span>
+                          <span className="text-xs text-gray-400">{a.area}</span>
+                        </div>
+                      </td>
+                      {a.valori.map((v: number, mi: number) => {
+                        const isOver = pianificate[mi] > (capacita[mi] ?? 0)
+                        return (
+                          <td key={mi} className="px-3 py-2 text-center text-xs"
+                            style={{
+                              background: v > 0 && isOver ? '#FFEBEE' : undefined,
+                              color: v === 0 ? '#D1D5DB' : v > 0 && isOver ? '#B91C1C' : '#6B7280',
+                            }}>
+                            {v > 0 ? v : '·'}
+                          </td>
+                        )
+                      })}
+                      <td className="px-3 py-2 text-center text-xs font-semibold text-gray-600">
+                        {totaleRiga(a.valori)}
+                      </td>
+                    </tr>
+                  )
+                })}
+              </React.Fragment>
+            )
+          })}
+        </tbody>
+      </table>
     </div>
   )
 }
@@ -161,6 +286,7 @@ export default function CaricoView({ seed }: CaricoProps) {
     <div>
       <SectionHeader title="Carico Team" />
 
+      {/* Barre */}
       <div className="mb-8">
         <h2 className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-4">
           Carico mensile — Giu–Dic 2026
@@ -174,6 +300,7 @@ export default function CaricoView({ seed }: CaricoProps) {
         ))}
       </div>
 
+      {/* Tabella allocazioni */}
       <div>
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-xs font-semibold text-gray-400 uppercase tracking-widest">
@@ -197,62 +324,14 @@ export default function CaricoView({ seed }: CaricoProps) {
           </div>
         </div>
 
-        <div className="bg-white rounded-xl border border-gray-200 overflow-x-auto">
-          <table className="w-full min-w-max">
-            <thead>
-              <tr style={{ background: '#F8F9FA', borderBottom: '1px solid #E0E0E0' }}>
-                <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide sticky left-0 bg-gray-50" style={{ minWidth: 140 }}>Cliente</th>
-                <th className="text-left px-3 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide" style={{ minWidth: 90 }}>Risorsa</th>
-                <th className="text-left px-3 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide" style={{ minWidth: 80 }}>Area</th>
-                {MESI_LABEL.map((m, i) => (
-                  <th key={i} className="text-center px-3 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide" style={{ minWidth: 50 }}>{m}</th>
-                ))}
-                <th className="text-center px-3 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide" style={{ minWidth: 50 }}>Tot</th>
-              </tr>
-            </thead>
-            <tbody>
-              {allocazioniFiltered.map((a, i) => {
-                const p = personaById[a.persona]
-                const pianificate = pianificateByPersona[a.persona] ?? []
-                const capacita = capacitaByPersona[a.persona] ?? []
-                return (
-                  <tr key={`${a.cliente}-${a.persona}-${i}`}
-                    style={{ borderBottom: '1px solid #F0F0F0', background: i % 2 === 0 ? '#FFF' : '#FAFAFA' }}>
-                    <td className="px-4 py-2.5 text-sm font-medium text-gray-900 sticky left-0 bg-inherit">
-                      {clienteById[a.cliente] ?? a.cliente}
-                    </td>
-                    <td className="px-3 py-2.5">
-                      {p && (
-                        <div className="flex items-center gap-1.5">
-                          <span className="w-5 h-5 rounded-full flex items-center justify-center text-white text-xs font-bold"
-                            style={{ background: p.colore }}>{p.nome.charAt(0)}</span>
-                          <span className="text-xs text-gray-700">{p.nome.split(' ')[0]}</span>
-                        </div>
-                      )}
-                    </td>
-                    <td className="px-3 py-2.5 text-xs text-gray-400">{a.area}</td>
-                    {a.valori.map((v, mi) => {
-                      const isOver = pianificate[mi] > (capacita[mi] ?? 0)
-                      return (
-                        <td key={mi} className="px-3 py-2.5 text-center text-sm"
-                          style={{
-                            background: v > 0 && isOver ? '#FFEBEE' : undefined,
-                            color: v === 0 ? '#D1D5DB' : v > 0 && isOver ? '#B91C1C' : '#374151',
-                            fontWeight: v > 0 ? 500 : 400,
-                          }}>
-                          {v > 0 ? v : '·'}
-                        </td>
-                      )
-                    })}
-                    <td className="px-3 py-2.5 text-center text-sm font-semibold text-gray-900">
-                      {totaleRiga(a.valori)}
-                    </td>
-                  </tr>
-                )
-              })}
-            </tbody>
-          </table>
-        </div>
+        <AllocazioniTabella
+          allocazioni={allocazioniFiltered}
+          personaById={personaById}
+          clienteById={clienteById}
+          pianificateByPersona={pianificateByPersona}
+          capacitaByPersona={capacitaByPersona}
+          mesiLabel={MESI_LABEL}
+        />
       </div>
     </div>
   )
