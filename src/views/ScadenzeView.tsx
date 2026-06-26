@@ -31,15 +31,31 @@ function CalendarioView({ seed, onClienteClick }: { seed: Seed; onClienteClick?:
     return m
   }, [seed.team])
 
-  const mesi = [
-    { label: 'Giu', start: new Date(2026, 5, 1), end: new Date(2026, 5, 30) },
-    { label: 'Lug', start: new Date(2026, 6, 1), end: new Date(2026, 6, 31) },
-    { label: 'Ago', start: new Date(2026, 7, 1), end: new Date(2026, 7, 31) },
-    { label: 'Set', start: new Date(2026, 8, 1), end: new Date(2026, 8, 30) },
-    { label: 'Ott', start: new Date(2026, 9, 1), end: new Date(2026, 9, 31) },
-    { label: 'Nov', start: new Date(2026, 10, 1), end: new Date(2026, 10, 30) },
-    { label: 'Dic', start: new Date(2026, 11, 1), end: new Date(2026, 11, 31) },
-  ]
+  // Genera mesi dinamicamente: da oggi fino alla scadenza più lontana + 2 mesi buffer
+  const mesi = useMemo(() => {
+    // Trova la data più lontana tra contratti e scadenze
+    const allDates = [
+      ...seed.clienti.map(c => c.scadenza_contratto).filter(Boolean).map(d => new Date(d!)),
+      ...seed.scadenze.map(s => new Date(s.data)),
+    ]
+    const maxDate = allDates.length > 0
+      ? new Date(Math.max(...allDates.map(d => d.getTime())))
+      : new Date(oggi.getFullYear(), oggi.getMonth() + 8, 0)
+
+    // Aggiunge 2 mesi buffer dopo la scadenza più lontana
+    const endDate = new Date(maxDate.getFullYear(), maxDate.getMonth() + 2, 1)
+
+    // Genera array di mesi da oggi a endDate
+    const result = []
+    const cur = new Date(oggi.getFullYear(), oggi.getMonth(), 1)
+    while (cur <= endDate) {
+      const label = cur.toLocaleDateString('it-IT', { month: 'short', year: cur.getFullYear() !== oggi.getFullYear() ? '2-digit' : undefined })
+      const monthEnd = new Date(cur.getFullYear(), cur.getMonth() + 1, 0)
+      result.push({ label: label.charAt(0).toUpperCase() + label.slice(1, 3), start: new Date(cur), end: monthEnd })
+      cur.setMonth(cur.getMonth() + 1)
+    }
+    return result
+  }, [seed.clienti, seed.scadenze])
 
   const rangeStart = mesi[0].start
   const rangeEnd = mesi[mesi.length - 1].end
