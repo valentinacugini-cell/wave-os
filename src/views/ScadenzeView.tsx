@@ -5,6 +5,7 @@ import { BadgeScadenzaTipo, StatCard, SectionHeader, Tabs, EmptyState } from '..
 
 interface ScadenzeProps {
   seed: Seed
+  onClienteClick?: (id: string) => void
 }
 
 type FilterTipo = 'tutte' | ScadenzaTipo
@@ -18,14 +19,11 @@ const TIPO_COLOR: Record<string, string> = {
   checkpoint: '#A67DC6',
 }
 
-// ── Calendario ────────────────────────────────────────────────────────────
+// ── Calendario Gantt ──────────────────────────────────────────────────────
 
-function CalendarioView({ seed }: { seed: Seed }) {
-  const oggi = TODAY
-  const [anno, setAnno] = useState(oggi.getFullYear())
-  const [mese, setMese] = useState(oggi.getMonth()) // 0-indexed
-
-  const scadenzeAperte = seed.scadenze.filter(s => s.stato === 'aperto')
+function CalendarioView({ seed, onClienteClick }: { seed: Seed; onClienteClick?: (id: string) => void }) {
+  const [filterTipo, setFilterTipo] = useState<FilterTipo>('tutte')
+  const [hoveredCliente, setHoveredCliente] = useState<string | null>(null)
 
   const personaById = useMemo(() => {
     const m: Record<string, Persona> = {}
@@ -33,147 +31,189 @@ function CalendarioView({ seed }: { seed: Seed }) {
     return m
   }, [seed.team])
 
-  const clienteNome = useMemo(() => {
-    const m: Record<string, string> = {}
-    seed.clienti.forEach(c => { m[c.id] = c.nome })
-    return m
-  }, [seed.clienti])
+  const mesi = [
+    { label: 'Giu', start: new Date(2026, 5, 1), end: new Date(2026, 5, 30) },
+    { label: 'Lug', start: new Date(2026, 6, 1), end: new Date(2026, 6, 31) },
+    { label: 'Ago', start: new Date(2026, 7, 1), end: new Date(2026, 7, 31) },
+    { label: 'Set', start: new Date(2026, 8, 1), end: new Date(2026, 8, 30) },
+    { label: 'Ott', start: new Date(2026, 9, 1), end: new Date(2026, 9, 31) },
+    { label: 'Nov', start: new Date(2026, 10, 1), end: new Date(2026, 10, 30) },
+    { label: 'Dic', start: new Date(2026, 11, 1), end: new Date(2026, 11, 31) },
+  ]
 
-  // Genera i giorni del mese corrente
-  const primoGiorno = new Date(anno, mese, 1)
-  const ultimoGiorno = new Date(anno, mese + 1, 0)
-  const giorniNelMese = ultimoGiorno.getDate()
-  // Giorno della settimana del primo giorno (0=Dom, adattiamo a Lun=0)
-  const inizioSettimana = (primoGiorno.getDay() + 6) % 7
+  const rangeStart = mesi[0].start
+  const rangeEnd = mesi[mesi.length - 1].end
+  const totalDays = Math.round((rangeEnd.getTime() - rangeStart.getTime()) / (1000 * 60 * 60 * 24))
 
-  // Scadenze per giorno
-  const scadenzePerGiorno = useMemo(() => {
-    const m: Record<number, Scadenza[]> = {}
-    scadenzeAperte.forEach(s => {
-      const d = new Date(s.data)
-      if (d.getFullYear() === anno && d.getMonth() === mese) {
-        const giorno = d.getDate()
-        if (!m[giorno]) m[giorno] = []
-        m[giorno].push(s)
+  function pct(date: Date): number {
+    const days = Math.round((date.getTime() - rangeStart.getTime()) / (1000 * 60 * 60 * 24))
+    return Math.max(0, Math.min(100, (days / totalDays) * 100))
+  }
+
+  const scadenzeFiltered = useMemo(() => {
+    let s = seed.scadenze.filter(s => s.stato === 'aperto')
+    if (filterTipo !== 'tutte') s = s.filter(s => s.tipo === filterTipo)
+    return s
+  }, [seed.scadenze, filterTipo])
+
+  const scadenzePerCliente = useMemo(() => {
+    const m: Record<string, typeof scadenzeFiltered> = {}
+    scadenzeFiltered.forEach(s => {
+      if (s.cliente) {
+        if (!m[s.cliente]) m[s.cliente] = []
+        m[s.cliente].push(s)
       }
     })
     return m
-  }, [scadenzeAperte, anno, mese])
+  }, [scadenzeFiltered])
 
-  const meseLabel = primoGiorno.toLocaleDateString('it-IT', { month: 'long', year: 'numeric' })
-  const giorniSettimana = ['Lun', 'Mar', 'Mer', 'Gio', 'Ven', 'Sab', 'Dom']
+  const clientiAttivi = seed.clienti.filter(c => c.stato !== 'concluso')
+  const oggi = TODAY
+  const oggiPct = pct(oggi)
 
-  function prevMese() {
-    if (mese === 0) { setMese(11); setAnno(a => a - 1) }
-    else setMese(m => m - 1)
-  }
-  function nextMese() {
-    if (mese === 11) { setMese(0); setAnno(a => a + 1) }
-    else setMese(m => m + 1)
-  }
-
-  // Conta scadenze nel mese
-  const totMese = Object.values(scadenzePerGiorno).flat().length
+  const tipoTabs = [
+    { id: 'tutte', label: 'Tutte' },
+    { id: 'rinnovo', label: 'Rinnovi' },
+    { id: 'rilascio', label: 'Rilasci' },
+    { id: 'riunione_cliente', label: 'Riunioni' },
+    { id: 'interno', label: 'Interne' },
+  ]
 
   return (
     <div>
-      {/* Navigazione mese */}
-      <div className="flex items-center justify-between mb-4">
-        <button onClick={prevMese}
-          className="w-8 h-8 rounded-lg border border-gray-200 flex items-center justify-center text-gray-500 hover:bg-gray-100 transition-colors">
-          ‹
-        </button>
-        <div className="text-center">
-          <h3 className="text-base font-semibold text-gray-900 capitalize">{meseLabel}</h3>
-          <p className="text-xs text-gray-400">{totMese} scadenze nel mese</p>
+      {/* Filtri */}
+      <div className="flex items-center gap-2 mb-5 flex-wrap">
+        {tipoTabs.map(t => (
+          <button key={t.id} onClick={() => setFilterTipo(t.id as FilterTipo)}
+            className="text-xs px-3 py-1.5 rounded-lg border transition-colors font-medium"
+            style={{
+              background: filterTipo === t.id ? '#1A1A2E' : 'white',
+              color: filterTipo === t.id ? '#7DF5DF' : '#666',
+              borderColor: filterTipo === t.id ? '#1A1A2E' : '#E0E0E0',
+            }}>
+            {t.label}
+          </button>
+        ))}
+        <div className="ml-auto flex items-center gap-4">
+          {[['rinnovo', 'Rinnovo'], ['rilascio', 'Rilascio'], ['riunione_cliente', 'Riunione'], ['interno', 'Interno']].map(([tipo, label]) => (
+            <span key={tipo} className="flex items-center gap-1.5 text-xs text-gray-400">
+              <span className="w-2.5 h-2.5 rounded-full" style={{ background: TIPO_COLOR[tipo] }} />
+              {label}
+            </span>
+          ))}
+          <span className="flex items-center gap-1.5 text-xs text-gray-400">
+            <span className="w-3 h-0 border-t-2 border-dashed" style={{ borderColor: '#1D9E75' }} />
+            Oggi
+          </span>
         </div>
-        <button onClick={nextMese}
-          className="w-8 h-8 rounded-lg border border-gray-200 flex items-center justify-center text-gray-500 hover:bg-gray-100 transition-colors">
-          ›
-        </button>
       </div>
 
-      {/* Griglia calendario */}
       <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-        {/* Header giorni settimana */}
-        <div className="grid grid-cols-7 border-b border-gray-100">
-          {giorniSettimana.map(g => (
-            <div key={g} className="py-2 text-center text-xs font-semibold text-gray-400 uppercase tracking-wide">
-              {g}
+        {/* Header mesi */}
+        <div className="flex border-b border-gray-200" style={{ paddingLeft: 176 }}>
+          {mesi.map((m, i) => (
+            <div key={i} className="flex-1 text-center text-xs font-semibold text-gray-400 uppercase tracking-wide py-2.5"
+              style={{ borderLeft: i > 0 ? '1px solid #F0F0F0' : 'none' }}>
+              {m.label}
             </div>
           ))}
         </div>
 
-        {/* Celle giorni */}
-        <div className="grid grid-cols-7">
-          {/* Celle vuote prima del primo giorno */}
-          {Array.from({ length: inizioSettimana }).map((_, i) => (
-            <div key={`empty-${i}`} className="min-h-24 border-r border-b border-gray-100 bg-gray-50/50" />
-          ))}
+        {/* Righe clienti */}
+        {clientiAttivi.map((cliente, ci) => {
+          const referente = personaById[cliente.referente]
+          const scadenze = scadenzePerCliente[cliente.id] ?? []
+          const isHovered = hoveredCliente === cliente.id
 
-          {/* Giorni del mese */}
-          {Array.from({ length: giorniNelMese }).map((_, i) => {
-            const giorno = i + 1
-            const dataGiorno = new Date(anno, mese, giorno)
-            const isOggi = dataGiorno.toDateString() === oggi.toDateString()
-            const isPast = dataGiorno < oggi && !isOggi
-            const scadenze = scadenzePerGiorno[giorno] ?? []
-            const colIndex = (inizioSettimana + i) % 7
-            const isLastCol = colIndex === 6
+          const contrEnd = cliente.scadenza_contratto ? new Date(cliente.scadenza_contratto) : rangeEnd
+          const barRight = pct(contrEnd)
+          const barColor = referente?.colore ?? '#7DF5DF'
 
-            return (
-              <div key={giorno}
-                className="min-h-24 border-b border-gray-100 p-1.5 flex flex-col"
-                style={{
-                  borderRight: isLastCol ? 'none' : '1px solid #F0F0F0',
-                  background: isOggi ? '#F0FDF9' : isPast ? '#FAFAFA' : 'white',
-                }}>
-                {/* Numero giorno */}
-                <div className="flex justify-end mb-1">
-                  <span
-                    className="w-6 h-6 flex items-center justify-center text-xs font-medium rounded-full"
-                    style={{
-                      background: isOggi ? '#1D9E75' : 'transparent',
-                      color: isOggi ? 'white' : isPast ? '#9CA3AF' : '#374151',
-                      fontWeight: isOggi ? 700 : 400,
-                    }}>
-                    {giorno}
+          return (
+            <div key={cliente.id}
+              className="flex items-center border-b border-gray-100 last:border-0"
+              style={{ minHeight: 48, background: isHovered ? '#F8FFFE' : ci % 2 === 0 ? 'white' : '#FAFAFA' }}
+              onMouseEnter={() => setHoveredCliente(cliente.id)}
+              onMouseLeave={() => setHoveredCliente(null)}>
+
+              {/* Nome cliente */}
+              <div className="flex items-center gap-2 px-3 flex-shrink-0" style={{ width: 176, borderRight: '1px solid #F0F0F0' }}>
+                {referente && (
+                  <span className="w-5 h-5 rounded-full flex items-center justify-center text-white font-bold flex-shrink-0"
+                    style={{ background: referente.colore, fontSize: 9 }}>
+                    {referente.nome.charAt(0)}
                   </span>
-                </div>
-
-                {/* Scadenze del giorno */}
-                <div className="flex flex-col gap-0.5 flex-1">
-                  {scadenze.slice(0, 3).map(s => {
-                    const color = TIPO_COLOR[s.tipo] ?? '#888780'
-                    return (
-                      <div key={s.id}
-                        className="rounded px-1.5 py-0.5 text-xs leading-snug truncate"
-                        style={{ background: color + '18', borderLeft: `2px solid ${color}`, color: '#1A1A1A' }}
-                        title={s.titolo}>
-                        <span className="truncate block" style={{ fontSize: 10 }}>
-                          {s.cliente ? (clienteNome[s.cliente] ?? s.titolo) : s.titolo}
-                        </span>
-                      </div>
-                    )
-                  })}
-                  {scadenze.length > 3 && (
-                    <span className="text-xs text-gray-400 px-1">+{scadenze.length - 3}</span>
-                  )}
-                </div>
+                )}
+                <button onClick={() => onClienteClick?.(cliente.id)}
+                  className="text-xs font-medium text-gray-900 hover:text-teal-600 hover:underline text-left truncate flex-1">
+                  {cliente.nome}
+                </button>
               </div>
-            )
-          })}
-        </div>
-      </div>
 
-      {/* Legenda */}
-      <div className="flex gap-4 mt-3 flex-wrap">
-        {Object.entries(TIPO_COLOR).map(([tipo, color]) => (
-          <span key={tipo} className="flex items-center gap-1.5 text-xs text-gray-500">
-            <span className="w-3 h-3 rounded-sm" style={{ background: color + '40', borderLeft: `2px solid ${color}` }} />
-            {tipo === 'rinnovo' ? 'Rinnovo' : tipo === 'rilascio' ? 'Rilascio' : tipo === 'riunione_cliente' ? 'Riunione' : tipo === 'interno' ? 'Interno' : 'Checkpoint'}
-          </span>
-        ))}
+              {/* Area Gantt */}
+              <div className="flex-1 relative" style={{ height: 48 }}>
+                {/* Linee verticali mesi */}
+                {mesi.map((_, i) => i > 0 && (
+                  <div key={i} className="absolute top-0 bottom-0"
+                    style={{ left: `${(i / mesi.length) * 100}%`, borderLeft: '1px solid #F0F0F0' }} />
+                ))}
+
+                {/* Linea oggi */}
+                <div className="absolute top-0 bottom-0 z-10"
+                  style={{ left: `${oggiPct}%`, borderLeft: '2px dashed #1D9E75', opacity: 0.5 }} />
+
+                {/* Barra contratto — da oggi a scadenza */}
+                <div className="absolute rounded"
+                  style={{
+                    left: `${oggiPct}%`,
+                    width: `${Math.max(barRight - oggiPct, 0.5)}%`,
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    height: 14,
+                    background: barColor + '25',
+                    border: `1.5px solid ${barColor}50`,
+                  }}
+                />
+
+                {/* Barra passata — da inizio a oggi */}
+                <div className="absolute rounded"
+                  style={{
+                    left: '0%',
+                    width: `${oggiPct}%`,
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    height: 14,
+                    background: barColor + '10',
+                    border: `1.5px solid ${barColor}25`,
+                  }}
+                />
+
+                {/* Marker scadenze */}
+                {scadenze.map(s => {
+                  const d = new Date(s.data)
+                  if (d < rangeStart || d > rangeEnd) return null
+                  const left = pct(d)
+                  const color = TIPO_COLOR[s.tipo] ?? '#888780'
+                  return (
+                    <div key={s.id}
+                      className="absolute z-20 cursor-pointer group"
+                      style={{ left: `${left}%`, top: '50%', transform: 'translate(-50%, -50%)' }}
+                      onClick={() => onClienteClick?.(cliente.id)}>
+                      <div
+                        className="w-3 h-3 rotate-45 transition-transform group-hover:scale-125"
+                        style={{ background: color, border: '1.5px solid white', boxShadow: `0 0 0 1.5px ${color}` }}
+                      />
+                      <div className="absolute z-30 bg-gray-900 text-white text-xs rounded-lg px-2 py-1 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap"
+                        style={{ bottom: '140%', left: '50%', transform: 'translateX(-50%)' }}>
+                        {s.titolo}
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          )
+        })}
       </div>
     </div>
   )
@@ -333,7 +373,7 @@ function ListaView({ seed }: { seed: Seed }) {
 
 // ── Root ──────────────────────────────────────────────────────────────────
 
-export default function ScadenzeView({ seed }: ScadenzeProps) {
+export default function ScadenzeView({ seed, onClienteClick }: ScadenzeProps) {
   const [mainView, setMainView] = useState<MainView>('lista')
 
   return (
@@ -357,13 +397,13 @@ export default function ScadenzeView({ seed }: ScadenzeProps) {
               color: mainView === 'calendario' ? '#1A1A2E' : '#94A3B8',
               boxShadow: mainView === 'calendario' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
             }}>
-            Calendario
+            Gantt
           </button>
         </div>
       </div>
 
       {mainView === 'lista' && <ListaView seed={seed} />}
-      {mainView === 'calendario' && <CalendarioView seed={seed} />}
+      {mainView === 'calendario' && <CalendarioView seed={seed} onClienteClick={onClienteClick} />}
     </div>
   )
 }
