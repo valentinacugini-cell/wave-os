@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react'
-import { Seed, Task, Persona, TaskStato, TaskPriorita } from '../types'
+import { Seed, Task, Persona, TaskStato, TaskPriorita, Progetto } from '../types'
 import { formatDate, parseDate, TODAY } from '../utils'
 import { Tabs, EmptyState } from '../components/UI'
 import TaskModal from '../components/TaskModal'
@@ -72,6 +72,12 @@ function ListaSettimanale({ tasks, seed, onOpenTask }: {
     seed.clienti.forEach(c => { m[c.id] = c.nome })
     return m
   }, [seed.clienti])
+
+  const progettoNome = useMemo(() => {
+    const m: Record<string, string> = {}
+    ;(seed.progetti ?? []).forEach(p => { m[p.id] = p.nome })
+    return m
+  }, [seed.progetti])
 
   const filtered = useMemo(() => {
     let t = tasks.map(t => getTask(t))
@@ -587,6 +593,16 @@ export default function OperativitaView({ seed, onClienteClick }: OperativitaPro
     return m
   }, [seed.clienti])
 
+  // Progetti per cliente attivo nel modal
+  const progettiPerCliente = useMemo(() => {
+    const m: Record<string, Progetto[]> = {}
+    ;(seed.progetti ?? []).forEach(p => {
+      if (!m[p.cliente]) m[p.cliente] = []
+      m[p.cliente].push(p)
+    })
+    return m
+  }, [seed.progetti])
+
   const tasksFiltrati = useMemo(() => {
     let t = seed.tasks
     if (filtroPersona !== 'tutti') t = t.filter(task => task.assegnatari.includes(filtroPersona))
@@ -607,6 +623,7 @@ export default function OperativitaView({ seed, onClienteClick }: OperativitaPro
           task={getTask(activeTask)}
           personaById={personaById}
           clienteNome={clienteNome[activeTask.cliente] ?? activeTask.cliente}
+          progetti={progettiPerCliente[activeTask.cliente] ?? []}
           onClose={() => setActiveTask(null)}
           onSave={(id, updates) => updateTask(id, updates)}
         />
