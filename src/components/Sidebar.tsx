@@ -80,3 +80,4 @@ export default function Sidebar({ currentView, onViewChange, currentUser, team, 
     </div>
   )
 }
+
