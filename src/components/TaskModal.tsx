@@ -65,11 +65,15 @@ export default function TaskModal({ task, personaById, clienteNome, onClose, onS
     onClose()
   }
 
+  const statoInfo = STATI.find(s => s.value === form.stato)!
+  const prioInfo = PRIORITA.find(p => p.value === form.priorita)!
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center"
       style={{ background: 'rgba(0,0,0,0.4)' }}
       onClick={e => { if (e.target === e.currentTarget) onClose() }}>
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl mx-4 overflow-hidden">
+        {/* Header */}
         <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between"
           style={{ background: '#F8F9FA' }}>
           <div>
@@ -78,11 +82,12 @@ export default function TaskModal({ task, personaById, clienteNome, onClose, onS
           </div>
           <button onClick={onClose}
             className="w-8 h-8 rounded-full flex items-center justify-center text-gray-400 hover:text-gray-700 hover:bg-gray-200 transition-colors">
-            x
+            ✕
           </button>
         </div>
 
-        <div className="px-6 py-3 flex gap-2 border-b border-gray-100 flex-wrap">
+        {/* Stato + Priorità rapidi */}
+        <div className="px-6 py-3 flex gap-2 border-b border-gray-100">
           {STATI.map(s => (
             <button key={s.value} onClick={() => setForm(f => ({ ...f, stato: s.value }))}
               className="text-xs px-2 py-1 rounded-lg font-medium transition-all"
@@ -103,18 +108,20 @@ export default function TaskModal({ task, personaById, clienteNome, onClose, onS
                   color: form.priorita === p.value ? p.color : '#94A3B8',
                   border: form.priorita === p.value ? `1.5px solid ${p.color}40` : '1.5px solid transparent',
                 }}>
-              {p.label}
-            </button>
+                {p.label}
+              </button>
             ))}
           </div>
         </div>
 
+        {/* Form */}
         <div className="px-6 py-4 space-y-4">
           <div>
             <label className="text-xs text-gray-400 block mb-1">Titolo</label>
             <input value={form.titolo} onChange={e => setForm(f => ({ ...f, titolo: e.target.value }))}
               className="w-full text-sm px-3 py-2 rounded-lg border border-gray-200 outline-none focus:border-teal-400" />
           </div>
+
           <div className="grid grid-cols-3 gap-3">
             <div>
               <label className="text-xs text-gray-400 block mb-1">Area</label>
@@ -132,6 +139,7 @@ export default function TaskModal({ task, personaById, clienteNome, onClose, onS
                 className="w-full text-xs px-2 py-1.5 rounded-lg border border-gray-200 outline-none" />
             </div>
           </div>
+
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="text-xs text-gray-400 block mb-1">Milestone</label>
@@ -145,6 +153,7 @@ export default function TaskModal({ task, personaById, clienteNome, onClose, onS
                 className="w-full text-xs px-2 py-1.5 rounded-lg border border-gray-200 outline-none" />
             </div>
           </div>
+
           <div>
             <label className="text-xs text-gray-400 block mb-2">Assegnatari</label>
             <div className="flex gap-2 flex-wrap">
@@ -163,6 +172,7 @@ export default function TaskModal({ task, personaById, clienteNome, onClose, onS
               ))}
             </div>
           </div>
+
           <div>
             <label className="text-xs text-gray-400 block mb-1">Note</label>
             <textarea value={form.note} onChange={e => setForm(f => ({ ...f, note: e.target.value }))}
@@ -171,16 +181,19 @@ export default function TaskModal({ task, personaById, clienteNome, onClose, onS
           </div>
         </div>
 
+        {/* Footer */}
         <div className="px-6 py-4 border-t border-gray-100 flex items-center justify-between"
           style={{ background: '#F8F9FA' }}>
-          <p className="text-xs text-gray-400">Modifiche locali — sessione corrente</p>
+          <p className="text-xs text-gray-400">
+            Modifiche locali — salvate nella sessione corrente
+          </p>
           <div className="flex gap-2">
             <button onClick={onClose}
               className="text-sm px-4 py-2 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-100 transition-colors">
               Annulla
             </button>
             <button onClick={handleSave}
-              className="text-sm px-4 py-2 rounded-lg font-medium"
+              className="text-sm px-4 py-2 rounded-lg font-medium transition-colors"
               style={{ background: '#7DF5DF', color: '#1A1A2E' }}>
               Salva task
             </button>
