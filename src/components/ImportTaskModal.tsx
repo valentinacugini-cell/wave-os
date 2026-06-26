@@ -348,12 +348,78 @@ export default function ImportTaskModal({ progetti, personaById, clienteId, onCl
                 </button>
               </div>
 
-              {/* Tabella preview */}
+              {/* Righe con errori in evidenza */}
+              {conErrori > 0 && (
+                <div className="mb-4 rounded-xl border border-red-200 overflow-hidden"
+                  style={{ background: '#FFF8F8' }}>
+                  <div className="px-4 py-2 border-b border-red-100 flex items-center gap-2"
+                    style={{ background: '#FFEBEE' }}>
+                    <span className="text-xs font-semibold text-red-700">
+                      ⚠ {conErrori} righe con errori — non verranno importate
+                    </span>
+                  </div>
+                  {righe.filter(r => r.errori.length > 0).map((r, i) => (
+                    <div key={i} className="px-4 py-3 border-b border-red-100 last:border-0">
+                      <div className="flex items-start justify-between gap-4">
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs font-semibold text-gray-900 truncate">Riga {r.row}: {r.titolo}</p>
+                          <div className="flex flex-col gap-1 mt-1.5">
+                            {r.errori.map((err, ei) => (
+                              <div key={ei} className="flex items-center gap-2">
+                                <span className="text-xs text-red-600 font-medium">· {err}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                        {/* Fix rapido assegnatari */}
+                        {r.errori.some(e => e.includes('assegnatario')) && (
+                          <div className="flex-shrink-0">
+                            <label className="text-xs text-gray-500 block mb-1">Assegna a:</label>
+                            <select
+                              className="text-xs px-2 py-1 rounded border border-gray-200 bg-white outline-none"
+                              onChange={e => {
+                                if (!e.target.value) return
+                                setRighe(prev => prev.map(row =>
+                                  row.row === r.row
+                                    ? { ...row, assegnatari: [e.target.value], errori: row.errori.filter(err => !err.includes('assegnatario')) }
+                                    : row
+                                ))
+                              }}>
+                              <option value="">Seleziona...</option>
+                              {Object.values(personaById).filter(p => p.tipo === 'operativo').map(p => (
+                                <option key={p.id} value={p.id}>{p.nome}</option>
+                              ))}
+                            </select>
+                          </div>
+                        )}
+                        {/* Fix data mancante */}
+                        {r.errori.some(e => e.includes('data fine')) && (
+                          <div className="flex-shrink-0">
+                            <label className="text-xs text-gray-500 block mb-1">Data fine:</label>
+                            <input type="date"
+                              className="text-xs px-2 py-1 rounded border border-gray-200 bg-white outline-none"
+                              onChange={e => {
+                                if (!e.target.value) return
+                                setRighe(prev => prev.map(row =>
+                                  row.row === r.row
+                                    ? { ...row, data_fine: e.target.value, data_inizio: row.data_inizio || e.target.value, errori: row.errori.filter(err => !err.includes('data fine')) }
+                                    : row
+                                ))
+                              }} />
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Tabella anteprima completa */}
               <div className="rounded-xl border border-gray-200 overflow-hidden">
                 <table className="w-full text-xs">
                   <thead>
                     <tr style={{ background: '#F8F9FA', borderBottom: '1px solid #E0E0E0' }}>
-                      {['', 'Titolo', 'Area', 'Milestone', 'Assegnatari', 'Ore', 'Scadenza', 'Priorità', 'Stato', 'Progetto'].map(h => (
+                      {['', 'Titolo', 'Area', 'Milestone', 'Assegnatari', 'Ore', 'Scadenza', 'Priorità', 'Stato'].map(h => (
                         <th key={h} className="text-left px-3 py-2 font-semibold text-gray-500 uppercase tracking-wide whitespace-nowrap">{h}</th>
                       ))}
                     </tr>
@@ -365,18 +431,20 @@ export default function ImportTaskModal({ progetti, personaById, clienteId, onCl
                         <tr key={i} style={{
                           borderBottom: '1px solid #F0F0F0',
                           background: hasError ? '#FFF8F8' : i % 2 === 0 ? 'white' : '#FAFAFA',
-                          opacity: hasError ? 0.7 : 1,
                         }}>
-                          <td className="px-3 py-1.5">
-                            {hasError ? (
-                              <span title={r.errori.join(', ')} className="cursor-help text-red-500">⚠</span>
-                            ) : (
-                              <span className="text-green-500">✓</span>
-                            )}
+                          <td className="px-3 py-1.5 w-6">
+                            {hasError
+                              ? <span className="text-red-500 font-bold">✕</span>
+                              : <span className="text-green-500">✓</span>
+                            }
                           </td>
-                          <td className="px-3 py-1.5 font-medium text-gray-900 max-w-48 truncate">{r.titolo}</td>
-                          <td className="px-3 py-1.5 text-gray-500">{r.area}</td>
-                          <td className="px-3 py-1.5 text-gray-400 max-w-32 truncate">{r.milestone || '—'}</td>
+                          <td className="px-3 py-1.5 font-medium text-gray-900" style={{ maxWidth: 200 }}>
+                            <p className="truncate">{r.titolo}</p>
+                          </td>
+                          <td className="px-3 py-1.5 text-gray-500 whitespace-nowrap">{r.area}</td>
+                          <td className="px-3 py-1.5 text-gray-400" style={{ maxWidth: 120 }}>
+                            <p className="truncate">{r.milestone || '—'}</p>
+                          </td>
                           <td className="px-3 py-1.5">
                             <div className="flex gap-0.5">
                               {r.assegnatari.map(pid => {
@@ -386,20 +454,17 @@ export default function ImportTaskModal({ progetti, personaById, clienteId, onCl
                                     style={{ background: p.colore, fontSize: 8 }}>{p.nome.charAt(0)}</span>
                                 ) : null
                               })}
-                              {r.assegnatari.length === 0 && <span className="text-red-400">—</span>}
+                              {r.assegnatari.length === 0 && <span className="text-red-400 text-xs">—</span>}
                             </div>
                           </td>
-                          <td className="px-3 py-1.5 text-gray-500">{r.ore_stimate > 0 ? `${r.ore_stimate}h` : '—'}</td>
-                          <td className="px-3 py-1.5 text-gray-500">{r.data_fine || '—'}</td>
-                          <td className="px-3 py-1.5">
+                          <td className="px-3 py-1.5 text-gray-500 whitespace-nowrap">{r.ore_stimate > 0 ? `${r.ore_stimate}h` : '—'}</td>
+                          <td className="px-3 py-1.5 text-gray-500 whitespace-nowrap">{r.data_fine ? r.data_fine.slice(0,10) : '—'}</td>
+                          <td className="px-3 py-1.5 whitespace-nowrap">
                             <span className="w-2 h-2 rounded-full inline-block mr-1"
                               style={{ background: PRIO_COLOR[r.priorita] }} />
                             {r.priorita}
                           </td>
-                          <td className="px-3 py-1.5 text-gray-500">{r.stato.replace('_', ' ')}</td>
-                          <td className="px-3 py-1.5 text-gray-400 max-w-32 truncate">
-                            {r.progetto_id ? (progetti.find(p => p.id === r.progetto_id)?.nome ?? r.progetto) : '—'}
-                          </td>
+                          <td className="px-3 py-1.5 text-gray-500 whitespace-nowrap">{r.stato.replace(/_/g, ' ')}</td>
                         </tr>
                       )
                     })}
