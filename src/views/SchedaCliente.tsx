@@ -1,9 +1,11 @@
 import React, { useState, useMemo } from 'react'
-import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid } from 'recharts'
-import { Seed, Persona, Task, TaskStato, TaskPriorita, Contatto } from '../types'
-import { useClienteContext } from '../context/ClienteContext'
+import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Legend } from 'recharts'
+import { Seed, Persona, Task, TaskStato, TaskPriorita, Contatto, Progetto } from '../types'
 import { formatDate, daysUntil, getAlertLevel, getProssimaScadenza } from '../utils'
 import { BadgeTipo, BadgeAlert, BadgeScadenzaTipo } from '../components/UI'
+import { useTaskContext } from '../context/TaskContext'
+import { useClienteContext } from '../context/ClienteContext'
+import TaskModal from '../components/TaskModal'
 
 interface Props {
   clienteId: string
@@ -25,38 +27,67 @@ const PRIO: Record<TaskPriorita, { dot: string; bg: string; color: string; label
   bassa: { dot: '#639922', bg: '#EAF3DE', color: '#2E7D32', label: 'Bassa' },
 }
 
-type TaskEdit = Partial<Pick<Task, 'titolo' | 'stato' | 'data_fine' | 'note' | 'priorita'>>
+const areaColors: Record<string, string> = {
+  Dev: '#4F86C6', ADV: '#A67DC6', Content: '#7DC67D',
+  Strategia: '#E07B54', Grafica: '#F9A825', Gestione: '#9CA3AF',
+}
 
 export default function SchedaCliente({ clienteId, seed, onBack }: Props) {
+  const [progettoSelezionato, setProgettoSelezionato] = useState<string | null>(null)
   const [activeTab, setActiveTab] = useState<'attivita' | 'scadenze' | 'rinnovo' | 'anagrafica'>('attivita')
   const [filtroStato, setFiltroStato] = useState<'aperti' | 'tutti'>('aperti')
-  const [editingTask, setEditingTask] = useState<string | null>(null)
   const [expandedTask, setExpandedTask] = useState<string | null>(null)
-  const [taskEdits, setTaskEdits] = useState<Record<string, TaskEdit>>({})
+  const [activeTaskModal, setActiveTaskModal] = useState<Task | null>(null)
   const [notaEdit, setNotaEdit] = useState<string | null>(null)
-  const [anagraficaFields, setAnagraficaFields] = useState<Record<string, string>>({})
   const [anagraficaEdit, setAnagraficaEdit] = useState(false)
 
-  const { getCliente, getContatti, updateCliente, updateContatti, updateNoteRinnovo, getNoteRinnovo } = useClienteContext()
+  const { getTask, updateTask } = useTaskContext()
+  const { getCliente, getContatti, updateNoteRinnovo, getNoteRinnovo } = useClienteContext()
+
   const clienteBase = seed.clienti.find(c => c.id === clienteId)
   const cliente = clienteBase ? getCliente(clienteBase) : undefined
+
   const personaById = useMemo(() => {
     const m: Record<string, Persona> = {}
     seed.team.forEach(p => { m[p.id] = p })
     return m
   }, [seed.team])
 
-  const tasks = seed.tasks.filter(t => t.cliente === clienteId)
-  const tasksConEdits = tasks.map(t => ({ ...t, ...(taskEdits[t.id] ?? {}) }))
+  // Progetti del cliente
+  const progetti = useMemo(() =>
+    (seed.progetti ?? []).filter(p => p.cliente === clienteId)
+  , [seed.progetti, clienteId])
+
+  // Progetto attivo (primo di default)
+  const progettoAttivo: Progetto | null = useMemo(() => {
+    if (progetti.length === 0) return null
+    const id = progettoSelezionato ?? progetti[0].id
+    return progetti.find(p => p.id === id) ?? progetti[0]
+  }, [progetti, progettoSelezionato])
+
+  // Task filtrati per progetto
+  const tasksCliente = seed.tasks.filter(t => t.cliente === clienteId)
+  const tasks = progettoAttivo
+    ? tasksCliente.filter(t => t.progetto_id === progettoAttivo.id)
+    : tasksCliente
+
+  const tasksConEdits = tasks.map(t => getTask(t))
+
   const tasksFiltrati = filtroStato === 'aperti'
     ? tasksConEdits.filter(t => t.stato !== 'completato')
     : tasksConEdits
 
-  const scadenze = seed.scadenze.filter(s => s.cliente === clienteId)
+  // Scadenze filtrate per progetto
+  const scadenzeCliente = seed.scadenze.filter(s => s.cliente === clienteId)
+  const scadenze = progettoAttivo
+    ? scadenzeCliente.filter(s => !s.progetto_id || s.progetto_id === progettoAttivo.id)
+    : scadenzeCliente
+
   const contattiBase = (seed.contatti as Contatto[]).filter(c => c.cliente === clienteId)
   const contatti = getContatti(clienteId, contattiBase)
   const noteRinnovoBase = seed.note_rinnovo?.find(n => n.cliente === clienteId)
   const noteRinnovoText = getNoteRinnovo(clienteId, noteRinnovoBase?.note)
+
   const allocazioni = seed.allocazioni.filter(a => a.cliente === clienteId)
 
   if (!cliente) return <div className="p-8 text-gray-500">Cliente non trovato</div>
@@ -67,75 +98,108 @@ export default function SchedaCliente({ clienteId, seed, onBack }: Props) {
   const prossimaScadenza = getProssimaScadenza(cliente)
   const giorni = daysUntil(prossimaScadenza)
 
-  // Dati torta ore per risorsa
+  // Ore: contratto vs allocate vs saldo
+  const oreContratto = progettoAttivo?.ore_contratto ?? 0
   const risorseUniche = [...new Set(allocazioni.map(a => a.persona))]
+  const oreAllocateTotali = allocazioni.reduce((s, a) => s + a.valori.reduce((x, v) => x + v, 0), 0)
+  const oreSaldo = oreContratto - oreAllocateTotali
+
+  // Dati grafico a barre mensile
+  const mesiLabel = seed.mesi_label
+  const barData = mesiLabel.map((mese, mi) => {
+    const allocate = allocazioni.reduce((s, a) => s + (a.valori[mi] ?? 0), 0)
+    return { mese, allocate, contratto: Math.round(oreContratto / 7) }
+  }).filter(d => d.allocate > 0 || d.contratto > 0)
+
+  // Torta ore per risorsa
   const pieDataRisorsa = risorseUniche.map(pid => {
     const ore = allocazioni.filter(a => a.persona === pid).reduce((s, a) => s + a.valori.reduce((x, v) => x + v, 0), 0)
     const p = personaById[pid]
     return { name: p?.nome.split(' ')[0] ?? pid, value: ore, colore: p?.colore ?? '#ccc' }
   }).filter(d => d.value > 0)
 
-  // Dati torta ore per area
+  // Torta ore per area
   const areeUniche = [...new Set(allocazioni.map(a => a.area))]
-  const areaColors: Record<string, string> = {
-    Dev: '#4F86C6', ADV: '#A67DC6', Content: '#7DC67D',
-    Strategia: '#E07B54', Grafica: '#F9A825', Gestione: '#9CA3AF',
-  }
   const pieDataArea = areeUniche.map(area => {
     const ore = allocazioni.filter(a => a.area === area).reduce((s, a) => s + a.valori.reduce((x, v) => x + v, 0), 0)
     return { name: area, value: ore, colore: areaColors[area] ?? '#ccc' }
   }).filter(d => d.value > 0)
 
-  const oreTotali = pieDataRisorsa.reduce((s, d) => s + d.value, 0)
-
-  // Barra ore allocate vs consuntivate per mese
-  const mesiLabel = seed.mesi_label
-  const consMap: Record<string, number[]> = {}
-  seed.ore_consuntivate.forEach(r => { consMap[r.persona] = r.valori })
-  const barData = mesiLabel.map((mese, mi) => {
-    const allocate = allocazioni.reduce((s, a) => s + (a.valori[mi] ?? 0), 0)
-    // Consuntivate per questo cliente: approssimazione proporzionale
-    const totConsTeam = risorseUniche.reduce((s, pid) => s + (consMap[pid]?.[mi] ?? 0), 0)
-    return { mese, allocate, consuntivate: mi === 0 ? Math.round(allocate * 0.72) : 0 }
-  }).filter(d => d.allocate > 0)
-
   // Task stats
   const totTask = tasksConEdits.length
   const completati = tasksConEdits.filter(t => t.stato === 'completato').length
   const pctCompletamento = totTask > 0 ? Math.round((completati / totTask) * 100) : 0
+  const taskBloccati = tasksConEdits.filter(t => t.stato === 'bloccato' || t.stato === 'in_attesa_materiali').length
 
-  function saveTaskEdit(id: string, changes: TaskEdit) {
-    setTaskEdits(prev => ({ ...prev, [id]: { ...(prev[id] ?? {}), ...changes } }))
-    setEditingTask(null)
-  }
+  // PPL progress
+  const isPPL = cliente.tipo_contratto === 'ppl'
+  const leadObiettivo = cliente.lead_obiettivo ?? 0
+  const leadRaccolte = cliente.lead_raccolte ?? 0
+  const pctLead = leadObiettivo > 0 ? Math.round((leadRaccolte / leadObiettivo) * 100) : 0
 
   return (
     <div>
+      {/* TaskModal */}
+      {activeTaskModal && (
+        <TaskModal
+          task={getTask(activeTaskModal)}
+          personaById={personaById}
+          clienteNome={cliente.nome}
+          onClose={() => setActiveTaskModal(null)}
+          onSave={(id, updates) => { updateTask(id, updates); setActiveTaskModal(null) }}
+        />
+      )}
+
       <button onClick={onBack}
-        className="flex items-center gap-2 text-sm text-gray-500 hover:text-gray-800 mb-6 transition-colors">
+        className="flex items-center gap-2 text-sm text-gray-500 hover:text-gray-800 mb-5 transition-colors">
         ← Tutti i clienti
       </button>
 
-      {/* Header */}
-      <div className="bg-white rounded-xl border border-gray-200 p-6 mb-6">
+      {/* Tab progetto — solo se più di un progetto */}
+      {progetti.length > 0 && (
+        <div className="flex items-center gap-2 mb-5 overflow-x-auto">
+          {progetti.map(p => (
+            <button key={p.id}
+              onClick={() => { setProgettoSelezionato(p.id); setActiveTab('attivita') }}
+              className="flex-shrink-0 px-4 py-2 rounded-lg text-sm font-medium transition-all border"
+              style={{
+                background: progettoAttivo?.id === p.id ? '#1A1A2E' : 'white',
+                color: progettoAttivo?.id === p.id ? '#7DF5DF' : '#666',
+                borderColor: progettoAttivo?.id === p.id ? '#1A1A2E' : '#E0E0E0',
+              }}>
+              {p.nome}
+            </button>
+          ))}
+          <button
+            className="flex-shrink-0 px-3 py-2 rounded-lg text-sm border border-dashed border-gray-300 text-gray-400 hover:border-teal-400 hover:text-teal-500 transition-colors">
+            + Progetto
+          </button>
+        </div>
+      )}
+
+      {/* Header cliente */}
+      <div className="bg-white rounded-xl border border-gray-200 p-5 mb-5">
         <div className="flex items-start justify-between">
           <div className="flex items-start gap-4">
-            <div className="w-12 h-12 rounded-xl flex items-center justify-center text-white font-bold text-lg"
+            <div className="w-11 h-11 rounded-xl flex items-center justify-center text-white font-bold text-lg flex-shrink-0"
               style={{ background: '#1A1A2E' }}>
               {cliente.nome.charAt(0)}
             </div>
             <div>
               <h1 className="text-xl font-semibold text-gray-900">{cliente.nome}</h1>
-              <div className="flex items-center gap-3 mt-1 flex-wrap">
+              <div className="flex items-center gap-2 mt-1 flex-wrap">
                 <BadgeTipo tipo={cliente.tipo} />
-                {cliente.tipo_contratto === 'ppl' && (
+                {isPPL && (
                   <span className="text-xs px-2 py-0.5 rounded font-medium"
                     style={{ background: '#F5F3FF', color: '#6D28D9' }}>
-                    PPL{cliente.lead_obiettivo ? ` · ${cliente.lead_raccolte ?? 0}/${cliente.lead_obiettivo} lead` : ''}
+                    PPL
                   </span>
                 )}
                 <BadgeAlert level={alertLevel}
                   daysLabel={giorni !== null && giorni >= 0 ? `${giorni}gg` : undefined} />
+                {progettoAttivo && (
+                  <span className="text-xs text-gray-400 italic">{progettoAttivo.nome}</span>
+                )}
               </div>
             </div>
           </div>
@@ -147,7 +211,7 @@ export default function SchedaCliente({ clienteId, seed, onBack }: Props) {
           )}
         </div>
 
-        <div className="grid grid-cols-4 gap-4 mt-5 pt-5 border-t border-gray-100">
+        <div className="grid grid-cols-4 gap-4 mt-4 pt-4 border-t border-gray-100">
           <div>
             <p className="text-xs text-gray-400 mb-1">Referente Wave</p>
             {referente && (
@@ -163,19 +227,14 @@ export default function SchedaCliente({ clienteId, seed, onBack }: Props) {
             <p className="text-sm font-medium text-gray-900">{commerciale?.nome ?? '—'}</p>
           </div>
           <div>
-            <p className="text-xs text-gray-400 mb-1">Contatti cliente</p>
-            {contatti.length === 0 ? <p className="text-sm text-gray-400">—</p> : (
-              <div className="flex flex-col gap-0.5">
-                {contatti.slice(0, 2).map(c => (
-                  <div key={c.id} className="flex items-center gap-1">
-                    {c.principale && <span className="w-1.5 h-1.5 rounded-full bg-teal-400 flex-shrink-0" />}
-                    <span className="text-sm text-gray-900">{c.nome}</span>
-                    <span className="text-xs text-gray-400">— {c.ruolo}</span>
-                  </div>
-                ))}
-                {contatti.length > 2 && <span className="text-xs text-gray-400">+{contatti.length - 2} altri</span>}
+            <p className="text-xs text-gray-400 mb-1">Contatto cliente</p>
+            {contatti.filter(c => c.principale).slice(0, 1).map(c => (
+              <div key={c.id}>
+                <p className="text-sm font-medium text-gray-900">{c.nome}</p>
+                <p className="text-xs text-gray-400">{c.ruolo}</p>
               </div>
-            )}
+            ))}
+            {contatti.length === 0 && <p className="text-sm text-gray-400">—</p>}
           </div>
           <div>
             <p className="text-xs text-gray-400 mb-1">Contratto</p>
@@ -187,42 +246,76 @@ export default function SchedaCliente({ clienteId, seed, onBack }: Props) {
         </div>
       </div>
 
-      {/* Stats row */}
-      <div className="grid grid-cols-4 gap-4 mb-6">
-        <div className="bg-white rounded-xl border border-gray-200 p-4">
-          <p className="text-xs text-gray-400 mb-1">Ore pianificate 2026</p>
-          <p className="text-2xl font-bold text-gray-900">{oreTotali}</p>
-          <p className="text-xs text-gray-400 mt-1">{risorseUniche.length} risorse</p>
-        </div>
-        <div className="bg-white rounded-xl border border-gray-200 p-4">
-          <p className="text-xs text-gray-400 mb-2">Completamento task</p>
-          <div className="flex items-center gap-2">
-            <div className="flex-1 h-2 rounded-full bg-gray-100 overflow-hidden">
-              <div className="h-full rounded-full transition-all"
-                style={{ width: `${pctCompletamento}%`, background: pctCompletamento > 60 ? '#1D9E75' : '#F9A825' }} />
+      {/* Stats */}
+      <div className="grid grid-cols-4 gap-4 mb-5">
+        {isPPL ? (
+          <>
+            <div className="col-span-2 bg-white rounded-xl border border-gray-200 p-4">
+              <p className="text-xs text-gray-400 mb-2">Lead raccolte / obiettivo</p>
+              <div className="flex items-center gap-3 mb-2">
+                <span className="text-2xl font-bold text-gray-900">{leadRaccolte}</span>
+                <span className="text-gray-400">/</span>
+                <span className="text-lg font-medium text-gray-500">{leadObiettivo}</span>
+                <span className="ml-auto text-lg font-bold" style={{ color: pctLead >= 80 ? '#1D9E75' : pctLead >= 50 ? '#F9A825' : '#E24B4A' }}>
+                  {pctLead}%
+                </span>
+              </div>
+              <div className="h-2 rounded-full bg-gray-100 overflow-hidden">
+                <div className="h-full rounded-full transition-all"
+                  style={{ width: `${Math.min(pctLead, 100)}%`, background: pctLead >= 80 ? '#1D9E75' : pctLead >= 50 ? '#F9A825' : '#E24B4A' }} />
+              </div>
             </div>
-            <span className="text-sm font-bold text-gray-900">{pctCompletamento}%</span>
-          </div>
-          <p className="text-xs text-gray-400 mt-1">{completati}/{totTask} task</p>
-        </div>
-        <div className="bg-white rounded-xl border border-gray-200 p-4"
-          style={{ borderLeft: tasksConEdits.filter(t => t.stato === 'bloccato' || t.stato === 'in_attesa_materiali').length > 0 ? '4px solid #E24B4A' : undefined }}>
-          <p className="text-xs text-gray-400 mb-1">Bloccati / in attesa</p>
-          <p className="text-2xl font-bold"
-            style={{ color: tasksConEdits.filter(t => t.stato === 'bloccato' || t.stato === 'in_attesa_materiali').length > 0 ? '#E24B4A' : '#9CA3AF' }}>
-            {tasksConEdits.filter(t => t.stato === 'bloccato' || t.stato === 'in_attesa_materiali').length}
-          </p>
-        </div>
-        <div className="bg-white rounded-xl border border-gray-200 p-4">
-          <p className="text-xs text-gray-400 mb-1">Scadenze aperte</p>
-          <p className="text-2xl font-bold text-gray-900">{scadenze.filter(s => s.stato === 'aperto').length}</p>
-        </div>
+            <div className="bg-white rounded-xl border border-gray-200 p-4">
+              <p className="text-xs text-gray-400 mb-1">Completamento task</p>
+              <div className="flex items-center gap-2">
+                <div className="flex-1 h-2 rounded-full bg-gray-100 overflow-hidden">
+                  <div className="h-full rounded-full" style={{ width: `${pctCompletamento}%`, background: '#1D9E75' }} />
+                </div>
+                <span className="text-sm font-bold text-gray-900">{pctCompletamento}%</span>
+              </div>
+              <p className="text-xs text-gray-400 mt-1">{completati}/{totTask} task</p>
+            </div>
+            <div className="bg-white rounded-xl border border-gray-200 p-4"
+              style={{ borderLeft: taskBloccati > 0 ? '4px solid #E24B4A' : undefined }}>
+              <p className="text-xs text-gray-400 mb-1">Bloccati</p>
+              <p className="text-2xl font-bold" style={{ color: taskBloccati > 0 ? '#E24B4A' : '#9CA3AF' }}>{taskBloccati}</p>
+            </div>
+          </>
+        ) : (
+          <>
+            {/* Ore contratto vs allocate */}
+            <div className="bg-white rounded-xl border border-gray-200 p-4">
+              <p className="text-xs text-gray-400 mb-1">Ore contratto</p>
+              <p className="text-2xl font-bold text-gray-900">{oreContratto}</p>
+            </div>
+            <div className="bg-white rounded-xl border border-gray-200 p-4">
+              <p className="text-xs text-gray-400 mb-1">Ore allocate</p>
+              <p className="text-2xl font-bold text-gray-900">{oreAllocateTotali}</p>
+            </div>
+            <div className="bg-white rounded-xl border border-gray-200 p-4"
+              style={{ borderLeft: oreSaldo < 0 ? '4px solid #E24B4A' : '4px solid #1D9E75' }}>
+              <p className="text-xs text-gray-400 mb-1">Saldo ore</p>
+              <p className="text-2xl font-bold" style={{ color: oreSaldo < 0 ? '#E24B4A' : '#1D9E75' }}>
+                {oreSaldo >= 0 ? `+${oreSaldo}` : oreSaldo}
+              </p>
+            </div>
+            <div className="bg-white rounded-xl border border-gray-200 p-4">
+              <p className="text-xs text-gray-400 mb-2">Task</p>
+              <div className="flex items-center gap-2">
+                <div className="flex-1 h-2 rounded-full bg-gray-100 overflow-hidden">
+                  <div className="h-full rounded-full" style={{ width: `${pctCompletamento}%`, background: '#1D9E75' }} />
+                </div>
+                <span className="text-sm font-bold text-gray-900">{pctCompletamento}%</span>
+              </div>
+              <p className="text-xs text-gray-400 mt-1">{completati}/{totTask} completati</p>
+            </div>
+          </>
+        )}
       </div>
 
       {/* Grafici */}
-      <div className="grid grid-cols-3 gap-4 mb-6">
-        {/* Barra ore mese */}
-        <div className="col-span-1 bg-white rounded-xl border border-gray-200 p-4">
+      <div className="grid grid-cols-3 gap-4 mb-5">
+        <div className="bg-white rounded-xl border border-gray-200 p-4">
           <p className="text-xs text-gray-400 uppercase tracking-wide font-medium mb-3">Ore per mese</p>
           {barData.length > 0 ? (
             <ResponsiveContainer width="100%" height={120}>
@@ -231,14 +324,13 @@ export default function SchedaCliente({ clienteId, seed, onBack }: Props) {
                 <XAxis dataKey="mese" tick={{ fontSize: 10 }} />
                 <YAxis tick={{ fontSize: 10 }} />
                 <Tooltip />
-                <Bar dataKey="allocate" name="Pianificate" fill="#7DF5DF" opacity={0.7} radius={[2,2,0,0]} />
-                <Bar dataKey="consuntivate" name="Consuntivate" fill="#1D9E75" radius={[2,2,0,0]} />
+                <Bar dataKey="contratto" name="Contratto" fill="#E0E0E0" radius={[2,2,0,0]} />
+                <Bar dataKey="allocate" name="Allocate" fill="#7DF5DF" opacity={0.8} radius={[2,2,0,0]} />
               </BarChart>
             </ResponsiveContainer>
           ) : <p className="text-xs text-gray-400 text-center py-8">Nessun dato</p>}
         </div>
 
-        {/* Torta per risorsa */}
         <div className="bg-white rounded-xl border border-gray-200 p-4">
           <p className="text-xs text-gray-400 uppercase tracking-wide font-medium mb-3">Ore per risorsa</p>
           {pieDataRisorsa.length > 0 ? (
@@ -264,7 +356,6 @@ export default function SchedaCliente({ clienteId, seed, onBack }: Props) {
           ) : <p className="text-xs text-gray-400 text-center py-8">Nessun dato</p>}
         </div>
 
-        {/* Torta per area */}
         <div className="bg-white rounded-xl border border-gray-200 p-4">
           <p className="text-xs text-gray-400 uppercase tracking-wide font-medium mb-3">Ore per area</p>
           {pieDataArea.length > 0 ? (
@@ -291,8 +382,8 @@ export default function SchedaCliente({ clienteId, seed, onBack }: Props) {
         </div>
       </div>
 
-      {/* Tabs */}
-      <div className="flex border-b border-gray-200 mb-6">
+      {/* Tabs contenuto */}
+      <div className="flex border-b border-gray-200 mb-5">
         {[
           { id: 'attivita', label: `Attività (${tasks.length})` },
           { id: 'scadenze', label: `Scadenze (${scadenze.length})` },
@@ -326,143 +417,59 @@ export default function SchedaCliente({ clienteId, seed, onBack }: Props) {
               </button>
             ))}
           </div>
-
           {tasksFiltrati.length === 0 ? (
             <p className="text-sm text-gray-400 py-8 text-center">Nessun task</p>
           ) : (
             <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
               {tasksFiltrati.map((t, i) => {
-                const isEditing = editingTask === t.id
-                const isExpanded = expandedTask === t.id
+                const isExp = expandedTask === t.id
                 const isLast = i === tasksFiltrati.length - 1
-
                 return (
                   <div key={t.id}
-                    style={{
-                      borderBottom: isLast ? 'none' : '1px solid #F0F0F0',
-                      background: t.stato === 'bloccato' ? '#FFF8F8' : isEditing ? '#F8FFFE' : 'white',
-                    }}>
-                    {/* Riga compatta */}
+                    style={{ borderBottom: isLast ? 'none' : '1px solid #F0F0F0', background: t.stato === 'bloccato' ? '#FFF8F8' : 'white' }}>
                     <div className="flex items-center gap-3 px-4 py-2.5">
-                      {/* Priorità dot */}
-                      <span className="w-2.5 h-2.5 rounded-full flex-shrink-0"
-                        style={{ background: PRIO[t.priorita].dot }} />
-
-                      {/* Titolo + meta compatta */}
+                      <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ background: PRIO[t.priorita].dot }} />
                       <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2">
-                          <span className="text-sm font-medium text-gray-900 truncate">{t.titolo}</span>
-                          <span className="text-xs text-gray-400 flex-shrink-0">{t.area}</span>
-                          {t.ricorrente && (
-                            <span className="text-xs px-1 py-0.5 rounded flex-shrink-0"
-                              style={{ background: '#E6F1FB', color: '#185FA5' }}>↻</span>
-                          )}
-                        </div>
-                        {isExpanded && (
+                        <span className="text-sm font-medium text-gray-900">{t.titolo}</span>
+                        <span className="text-xs text-gray-400 ml-2">{t.area}</span>
+                        {isExp && (
                           <div className="flex gap-3 mt-0.5 text-xs text-gray-400 flex-wrap">
                             {t.milestone && <span>· {t.milestone}</span>}
                             <span>{formatDate(t.data_inizio)} → {formatDate(t.data_fine)}</span>
-                            {t.ore_stimate > 0 && <span>{t.ore_stimate}h stimate</span>}
+                            {t.ore_stimate > 0 && <span>{t.ore_stimate}h</span>}
+                            {t.ricorrente && <span style={{ color: '#185FA5' }}>↻ {t.frequenza}</span>}
                             {t.note && <span className="italic">{t.note}</span>}
                           </div>
                         )}
                       </div>
-
-                      {/* Assegnatari */}
                       <div className="flex gap-0.5 flex-shrink-0">
                         {t.assegnatari.map(pid => {
                           const p = personaById[pid]
                           return p ? (
-                            <span key={pid}
-                              className="w-5 h-5 rounded-full flex items-center justify-center text-white text-xs font-bold"
-                              style={{ background: p.colore }} title={p.nome}>
-                              {p.nome.charAt(0)}
-                            </span>
+                            <span key={pid} className="w-5 h-5 rounded-full flex items-center justify-center text-white text-xs font-bold"
+                              style={{ background: p.colore }} title={p.nome}>{p.nome.charAt(0)}</span>
                           ) : null
                         })}
                       </div>
-
-                      {/* Badge priorità */}
                       <span className="text-xs px-1.5 py-0.5 rounded font-medium flex-shrink-0"
                         style={{ background: PRIO[t.priorita].bg, color: PRIO[t.priorita].color }}>
                         {PRIO[t.priorita].label}
                       </span>
-
-                      {/* Stato */}
                       <span className="text-xs px-1.5 py-0.5 rounded flex-shrink-0"
                         style={{ background: STATI_LABEL[t.stato].bg, color: STATI_LABEL[t.stato].color }}>
                         {STATI_LABEL[t.stato].label}
                       </span>
-
-                      {/* Azioni */}
-                      <div className="flex gap-1 flex-shrink-0">
-                        <button onClick={() => setExpandedTask(isExpanded ? null : t.id)}
-                          className="text-xs px-1.5 py-0.5 rounded border transition-colors"
-                          style={{ borderColor: '#E0E0E0', color: '#999', background: 'white' }}>
-                          {isExpanded ? '▴' : '▾'}
-                        </button>
-                        <button onClick={() => {
-                          setEditingTask(isEditing ? null : t.id)
-                          if (!isExpanded) setExpandedTask(t.id)
-                        }}
-                          className="text-xs px-2 py-0.5 rounded border transition-colors"
-                          style={{
-                            borderColor: isEditing ? '#3DD4BE' : '#E0E0E0',
-                            color: isEditing ? '#3DD4BE' : '#999',
-                            background: 'white',
-                          }}>
-                          {isEditing ? 'Chiudi' : 'Modifica'}
-                        </button>
-                      </div>
+                      <button onClick={() => setExpandedTask(isExp ? null : t.id)}
+                        className="text-xs px-1.5 py-0.5 rounded border flex-shrink-0"
+                        style={{ borderColor: '#E0E0E0', color: '#999', background: 'white' }}>
+                        {isExp ? '▴' : '▾'}
+                      </button>
+                      <button onClick={() => setActiveTaskModal(tasks.find(raw => raw.id === t.id) ?? null)}
+                        className="text-xs px-2 py-0.5 rounded border flex-shrink-0"
+                        style={{ borderColor: '#E0E0E0', color: '#999', background: 'white' }}>
+                        Modifica
+                      </button>
                     </div>
-
-                    {/* Form modifica */}
-                    {isEditing && (
-                      <div className="px-4 pb-3 pt-1 border-t border-dashed border-gray-200"
-                        style={{ background: '#F8FFFE' }}>
-                        <div className="grid grid-cols-4 gap-3 mb-2">
-                          <div>
-                            <label className="text-xs text-gray-400 block mb-1">Stato</label>
-                            <select defaultValue={t.stato}
-                              onChange={e => setTaskEdits(prev => ({ ...prev, [t.id]: { ...(prev[t.id] ?? {}), stato: e.target.value as TaskStato } }))}
-                              className="w-full text-xs px-2 py-1.5 rounded border border-gray-200 bg-white outline-none">
-                              <option value="da_fare">Da fare</option>
-                              <option value="in_corso">In corso</option>
-                              <option value="completato">Completato</option>
-                              <option value="bloccato">Bloccato</option>
-                              <option value="in_attesa_materiali">Attesa materiali</option>
-                            </select>
-                          </div>
-                          <div>
-                            <label className="text-xs text-gray-400 block mb-1">Priorità</label>
-                            <select defaultValue={t.priorita}
-                              onChange={e => setTaskEdits(prev => ({ ...prev, [t.id]: { ...(prev[t.id] ?? {}), priorita: e.target.value as TaskPriorita } }))}
-                              className="w-full text-xs px-2 py-1.5 rounded border border-gray-200 bg-white outline-none">
-                              <option value="alta">Alta</option>
-                              <option value="media">Media</option>
-                              <option value="bassa">Bassa</option>
-                            </select>
-                          </div>
-                          <div>
-                            <label className="text-xs text-gray-400 block mb-1">Scadenza</label>
-                            <input type="date" defaultValue={t.data_fine}
-                              onChange={e => setTaskEdits(prev => ({ ...prev, [t.id]: { ...(prev[t.id] ?? {}), data_fine: e.target.value } }))}
-                              className="w-full text-xs px-2 py-1.5 rounded border border-gray-200 bg-white outline-none" />
-                          </div>
-                          <div className="flex items-end">
-                            <button onClick={() => setEditingTask(null)}
-                              className="w-full text-sm py-1.5 rounded-lg font-medium"
-                              style={{ background: '#7DF5DF', color: '#1A1A2E' }}>
-                              Salva
-                            </button>
-                          </div>
-                        </div>
-                        <input type="text" defaultValue={t.note ?? ''}
-                          placeholder="Nota..."
-                          onChange={e => setTaskEdits(prev => ({ ...prev, [t.id]: { ...(prev[t.id] ?? {}), note: e.target.value } }))}
-                          className="w-full text-xs px-2 py-1.5 rounded border border-gray-200 bg-white outline-none" />
-                      </div>
-                    )}
                   </div>
                 )
               })}
@@ -517,12 +524,11 @@ export default function SchedaCliente({ clienteId, seed, onBack }: Props) {
               <textarea value={notaEdit} onChange={e => setNotaEdit(e.target.value)}
                 className="w-full text-sm text-gray-800 border border-gray-200 rounded-lg p-3 outline-none resize-none"
                 style={{ minHeight: 120, lineHeight: 1.6 }} />
-              <button onClick={() => { if (notaEdit !== null) updateNoteRinnovo(clienteId, notaEdit); setNotaEdit(null) }}
+              <button onClick={() => { updateNoteRinnovo(clienteId, notaEdit ?? ''); setNotaEdit(null) }}
                 className="mt-3 text-sm px-3 py-1.5 rounded-lg font-medium"
                 style={{ background: '#7DF5DF', color: '#1A1A2E' }}>
                 Salva nota
               </button>
-              <p className="text-xs text-gray-400 mt-2">Salvato nella sessione corrente.</p>
             </div>
           ) : (
             <p className="text-sm text-gray-800 leading-relaxed">
@@ -550,15 +556,14 @@ export default function SchedaCliente({ clienteId, seed, onBack }: Props) {
               {anagraficaEdit ? 'Chiudi' : 'Modifica'}
             </button>
           </div>
-
           <div className="grid grid-cols-2 gap-4 mb-6">
             {[
               { label: 'Nome cliente', value: cliente.nome },
-              { label: 'Stato', value: cliente.stato },
+              { label: 'Tipo contratto', value: isPPL ? 'PPL' : 'Progetto' },
               { label: 'Referente Wave', value: referente?.nome ?? '—' },
               { label: 'Commerciale', value: commerciale?.nome ?? '—' },
-              { label: 'Tipo contratto', value: cliente.tipo_contratto === 'ppl' ? 'PPL' : 'Progetto' },
               { label: 'Scadenza contratto', value: formatDate(cliente.scadenza_contratto) },
+              { label: 'Rinnovo previsto', value: formatDate(cliente.rinnovo_previsto) },
             ].map(field => (
               <div key={field.label}>
                 <p className="text-xs text-gray-400 mb-1">{field.label}</p>
@@ -573,8 +578,10 @@ export default function SchedaCliente({ clienteId, seed, onBack }: Props) {
           </div>
 
           <p className="text-xs text-gray-400 uppercase tracking-wide font-medium mb-3">Contatti</p>
-          <div className="space-y-3">
-            {contatti.map(c => (
+          <div className="space-y-2">
+            {contatti.length === 0 ? (
+              <p className="text-sm text-gray-400">Nessun contatto inserito.</p>
+            ) : contatti.map(c => (
               <div key={c.id} className="flex items-start gap-3 p-3 rounded-lg"
                 style={{ background: c.principale ? '#F0FDFB' : '#F8F9FA' }}>
                 <div className="flex-1">
@@ -590,27 +597,7 @@ export default function SchedaCliente({ clienteId, seed, onBack }: Props) {
                 </div>
               </div>
             ))}
-            {contatti.length === 0 && (
-              <p className="text-sm text-gray-400">Nessun contatto inserito.</p>
-            )}
           </div>
-
-          {anagraficaEdit && (
-            <div className="mt-4 pt-4 border-t border-gray-100">
-              <button
-                onClick={() => {
-                  if (Object.keys(anagraficaFields).length > 0) {
-                    updateCliente(clienteId, anagraficaFields as any)
-                  }
-                  setAnagraficaEdit(false)
-                }}
-                className="text-sm px-3 py-1.5 rounded-lg font-medium"
-                style={{ background: '#7DF5DF', color: '#1A1A2E' }}>
-                Salva modifiche
-              </button>
-              <p className="text-xs text-gray-400 mt-2">Salvato nella sessione corrente — con Supabase sara permanente.</p>
-            </div>
-          )}
         </div>
       )}
     </div>
