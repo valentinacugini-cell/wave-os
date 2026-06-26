@@ -87,12 +87,12 @@ export default function SchedaCliente({ clienteId, seed, onBack }: Props) {
     ? scadenzeCliente.filter(s => !s.progetto_id || s.progetto_id === progettoAttivo.id)
     : scadenzeCliente
 
-  const contattiBase = (seed.contatti as Contatto[]).filter(c => c.cliente === clienteId)
+  const contattiBase = ((seed.contatti ?? []) as Contatto[]).filter(c => c.cliente === clienteId)
   const contatti = getContatti(clienteId, contattiBase)
   const noteRinnovoBase = seed.note_rinnovo?.find(n => n.cliente === clienteId)
   const noteRinnovoText = getNoteRinnovo(clienteId, noteRinnovoBase?.note)
 
-  const allocazioni = seed.allocazioni.filter(a => a.cliente === clienteId)
+  const allocazioni = (seed.allocazioni ?? []).filter(a => a.cliente === clienteId)
 
   if (!cliente) return <div className="p-8 text-gray-500">Cliente non trovato</div>
 
