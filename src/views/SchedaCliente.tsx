@@ -493,7 +493,7 @@ export default function SchedaCliente({ clienteId, seed, onBack }: Props) {
                           return next
                         })}
                         className="w-3.5 h-3.5 rounded flex-shrink-0 cursor-pointer accent-teal-500" />
-                      <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ background: PRIO[t.priorita].dot }} />
+                      <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ background: (PRIO[t.priorita] ?? PRIO['media']).dot }} />
                       <div className="flex-1 min-w-0">
                         <span className="text-sm font-medium text-gray-900">{t.titolo}</span>
                         <span className="text-xs text-gray-400 ml-2">{t.area}</span>
@@ -517,12 +517,12 @@ export default function SchedaCliente({ clienteId, seed, onBack }: Props) {
                         })}
                       </div>
                       <span className="text-xs px-1.5 py-0.5 rounded font-medium flex-shrink-0"
-                        style={{ background: PRIO[t.priorita].bg, color: PRIO[t.priorita].color }}>
-                        {PRIO[t.priorita].label}
+                        style={{ background: (PRIO[t.priorita] ?? PRIO['media']).bg, color: (PRIO[t.priorita] ?? PRIO['media']).color }}>
+                        {(PRIO[t.priorita] ?? PRIO['media']).label}
                       </span>
                       <span className="text-xs px-1.5 py-0.5 rounded flex-shrink-0"
-                        style={{ background: STATI_LABEL[t.stato].bg, color: STATI_LABEL[t.stato].color }}>
-                        {STATI_LABEL[t.stato].label}
+                        style={{ background: (STATI_LABEL[t.stato] ?? STATI_LABEL['da_fare']).bg, color: (STATI_LABEL[t.stato] ?? STATI_LABEL['da_fare']).color }}>
+                        {(STATI_LABEL[t.stato] ?? STATI_LABEL['da_fare']).label}
                       </span>
                       <button onClick={() => setExpandedTask(isExp ? null : t.id)}
                         className="text-xs px-1.5 py-0.5 rounded border flex-shrink-0"
