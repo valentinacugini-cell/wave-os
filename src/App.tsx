@@ -48,7 +48,7 @@ export default function App() {
           <div className="max-w-6xl mx-auto px-8 py-8">
             {currentView === 'home' && <HomeView seed={seed} currentUser={currentUser} onClienteClick={handleClienteClick} />}
             {currentView === 'carico' && <CaricoView seed={seed} />}
-            {currentView === 'scadenze' && <ScadenzeView seed={seed} />}
+            {currentView === 'scadenze' && <ScadenzeView seed={seed} onClienteClick={handleClienteClick} />}
             {currentView === 'operativita' && <OperativitaView seed={seed} onClienteClick={handleClienteClick} />}
             {currentView === 'cliente' && selectedCliente && <SchedaCliente clienteId={selectedCliente} seed={seed} onBack={handleBack} />}
             {currentView === 'forecast' && <ForecastView />}
