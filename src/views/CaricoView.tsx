@@ -6,7 +6,7 @@ interface CaricoProps {
   seed: Seed
 }
 
-const MESI_LABEL = ['Giu', 'Lug', 'Ago', 'Set', 'Ott', 'Nov', 'Dic']
+const MESI_LABEL = ['Gen', 'Feb', 'Mar', 'Apr', 'Mag', 'Giu', 'Lug', 'Ago', 'Set', 'Ott', 'Nov', 'Dic']
 
 function PersonaLoadBar({ persona, pianificate, capacita, consuntivate }: {
   persona: Persona
