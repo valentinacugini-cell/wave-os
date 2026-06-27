@@ -256,24 +256,29 @@ export default function CaricoView({ seed }: CaricoProps) {
 
   const pianificateByPersona = useMemo(() => {
     const m: Record<string, number[]> = {}
-    // Legge ore_pianificate dal seed (dal piano operativo)
-    const op = (seed as any).ore_pianificate
-    if (Array.isArray(op)) {
-      op.forEach((r: any) => {
-        const v = Array.isArray(r.valori) ? r.valori.map(Number) : new Array(12).fill(0)
-        // ore_pianificate ha 12 valori (piano operativo Giu-Dic + 5 mesi precedenti a 0)
-        m[r.persona] = v.length === 12 ? v : [...new Array(12 - v.length).fill(0), ...v]
-      })
-    }
+    // Legge ore_pianificate direttamente dal team
+    seed.team.filter(p => p.tipo === 'operativo').forEach(p => {
+      const op = (p as any).ore_pianificate
+      if (Array.isArray(op) && op.length > 0) {
+        // ore_pianificate dal DB ha 7 valori (Giu-Dic) — espandiamo a 12
+        const valori = op.map(Number)
+        m[p.id] = valori.length === 12 ? valori : [...new Array(12 - valori.length).fill(0), ...valori]
+      } else {
+        m[p.id] = new Array(12).fill(0)
+      }
+    })
     return m
-  }, [(seed as any).ore_pianificate])
+  }, [seed.team])
 
   const consuntivateByPersona = useMemo(() => {
     const m: Record<string, number[]> = {}
-    const oc = (seed as any).ore_consuntivate
-    if (Array.isArray(oc)) oc.forEach((r: any) => { m[r.persona] = r.valori })
+    // Legge ore_effettive_mensili direttamente dal team
+    seed.team.filter(p => p.tipo === 'operativo').forEach(p => {
+      const oe = (p as any).ore_effettive_mensili
+      m[p.id] = Array.isArray(oe) && oe.length > 0 ? oe.map(Number) : new Array(12).fill(0)
+    })
     return m
-  }, [(seed as any).ore_consuntivate])
+  }, [seed.team])
 
   const personaById = useMemo(() => {
     const m: Record<string, Persona> = {}
