@@ -52,6 +52,7 @@ export default function SchedaCliente({ clienteId, seed, onBack }: Props) {
   const [anagraficaFields, setAnagraficaFields] = useState<Record<string,any>>({})
   const [contrattoEdit, setContrattoEdit] = useState(false)
   const [showNuovoProgetto, setShowNuovoProgetto] = useState(false)
+  const [progettoInModifica, setProgettoInModifica] = useState<string | null>(null)
   const [progettiLocali, setProgettiLocali] = useState<any[]>([])
   const [showNuovaScadenza, setShowNuovaScadenza] = useState(false)
   const [showNuovoTask, setShowNuovoTask] = useState(false)
@@ -152,11 +153,15 @@ export default function SchedaCliente({ clienteId, seed, onBack }: Props) {
   const mesiLabel = ['Gen','Feb','Mar','Apr','Mag','Giu','Lug','Ago','Set','Ott','Nov','Dic']
   const annoCorrente = new Date().getFullYear()
   // Ore effettive per mese (da Supabase via timesheet) — array Gen-Dic
-  const oreEffettiveMesi = (cliente as any).ore_effettive_mesi_2026 ?? new Array(12).fill(0)
+  const oreEffettiveMesi: number[] = (() => {
+    const raw = (cliente as any).ore_effettive_mesi_2026
+    if (Array.isArray(raw) && raw.length > 0) return raw.map(Number)
+    return new Array(12).fill(0)
+  })()
   const barData = mesiLabel.map((mese, mi) => {
     const effettive = oreEffettiveMesi[mi] ?? 0
     return { mese, effettive, contratto: Math.round(oreContratto / 12) }
-  }).filter(d => d.effettive > 0 || d.contratto > 0)
+  }).filter(d => d.effettive > 0 || d.contratto > 0)  // mostra solo mesi con dati
 
   // Torta ore per risorsa
   const pieDataRisorsa = risorseUniche.map(pid => {
@@ -916,10 +921,16 @@ export default function SchedaCliente({ clienteId, seed, onBack }: Props) {
                         <p className="text-xs text-gray-400 mt-0.5">{formatDate(p.data_inizio)} → {formatDate(p.data_fine)}</p>
                       )}
                     </div>
-                    <button onClick={() => { setProgettoSelezionato(p.id); setActiveTab('attivita') }}
-                      className="text-xs px-2 py-1 rounded border border-gray-200 text-gray-500 hover:bg-gray-100 transition-colors flex-shrink-0">
-                      Vai →
-                    </button>
+                    <div className="flex gap-2 flex-shrink-0">
+                      <button onClick={() => setProgettoInModifica(p.id)}
+                        className="text-xs px-2 py-1 rounded border border-gray-200 text-gray-500 hover:bg-gray-100 transition-colors">
+                        Modifica
+                      </button>
+                      <button onClick={() => { setProgettoSelezionato(p.id); setActiveTab('attivita') }}
+                        className="text-xs px-2 py-1 rounded border border-gray-200 text-gray-500 hover:bg-gray-100 transition-colors">
+                        Vai →
+                      </button>
+                    </div>
                   </div>
                 ))}
               </div>
@@ -1433,6 +1444,97 @@ function NuovoTaskForm({ clienteId, progettoAttivoId, progetti, personaById, onC
           className="text-sm px-4 py-2 rounded-lg font-medium disabled:opacity-50"
           style={{ background: '#7DF5DF', color: '#1A1A2E' }}>
           {saving ? 'Salvataggio...' : 'Crea task'}
+        </button>
+      </div>
+    </div>
+  )
+}
+
+// ── Form modifica progetto ────────────────────────────────────────────────
+
+function ModificaProgettoForm({ progetto, onClose, onSaved }: {
+  progetto: any
+  onClose: () => void
+  onSaved: (p: any) => void
+}) {
+  const [form, setForm] = useState({
+    nome: progetto.nome ?? '',
+    anno: progetto.anno ?? new Date().getFullYear(),
+    ore_contratto: String(progetto.ore_contratto ?? ''),
+    data_inizio: progetto.data_inizio ?? '',
+    data_fine: progetto.data_fine ?? '',
+    stato: progetto.stato ?? 'attivo',
+  })
+  const [saving, setSaving] = useState(false)
+
+  async function handleSalva() {
+    setSaving(true)
+    const updates = {
+      nome: form.nome.trim(),
+      anno: Number(form.anno),
+      ore_contratto: Number(form.ore_contratto) || 0,
+      data_inizio: form.data_inizio || null,
+      data_fine: form.data_fine || null,
+      stato: form.stato,
+    }
+    try {
+      await sbPatch('progetti', progetto.id, updates)
+    } catch(e) { console.error('Modifica progetto:', e) }
+    setSaving(false)
+    onSaved({ ...progetto, ...updates })
+  }
+
+  return (
+    <div className="mt-3 p-4 rounded-xl border border-teal-200 space-y-3" style={{ background: '#F0FDFB' }}>
+      <p className="text-xs font-semibold text-teal-700 uppercase tracking-wide">Modifica progetto</p>
+
+      <div>
+        <label className="text-xs text-gray-400 block mb-1">Nome</label>
+        <input value={form.nome} onChange={e => setForm(f => ({ ...f, nome: e.target.value }))}
+          className="w-full text-sm px-3 py-2 rounded-lg border border-gray-200 outline-none focus:border-teal-400" />
+      </div>
+
+      <div className="grid grid-cols-3 gap-3">
+        <div>
+          <label className="text-xs text-gray-400 block mb-1">Anno</label>
+          <input type="number" value={form.anno} onChange={e => setForm(f => ({ ...f, anno: Number(e.target.value) }))}
+            className="w-full text-sm px-3 py-2 rounded-lg border border-gray-200 outline-none" />
+        </div>
+        <div>
+          <label className="text-xs text-gray-400 block mb-1">Ore contratto</label>
+          <input type="number" value={form.ore_contratto} onChange={e => setForm(f => ({ ...f, ore_contratto: e.target.value }))}
+            className="w-full text-sm px-3 py-2 rounded-lg border border-gray-200 outline-none" />
+        </div>
+        <div>
+          <label className="text-xs text-gray-400 block mb-1">Stato</label>
+          <select value={form.stato} onChange={e => setForm(f => ({ ...f, stato: e.target.value }))}
+            className="w-full text-sm px-3 py-2 rounded-lg border border-gray-200 bg-white outline-none">
+            <option value="attivo">Attivo</option>
+            <option value="concluso">Concluso</option>
+            <option value="sospeso">Sospeso</option>
+          </select>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 gap-3">
+        <div>
+          <label className="text-xs text-gray-400 block mb-1">Data inizio</label>
+          <input type="date" value={form.data_inizio} onChange={e => setForm(f => ({ ...f, data_inizio: e.target.value }))}
+            className="w-full text-sm px-3 py-2 rounded-lg border border-gray-200 outline-none" />
+        </div>
+        <div>
+          <label className="text-xs text-gray-400 block mb-1">Data fine</label>
+          <input type="date" value={form.data_fine} onChange={e => setForm(f => ({ ...f, data_fine: e.target.value }))}
+            className="w-full text-sm px-3 py-2 rounded-lg border border-gray-200 outline-none" />
+        </div>
+      </div>
+
+      <div className="flex gap-2 pt-1">
+        <button onClick={onClose} className="text-sm px-4 py-2 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-100">Annulla</button>
+        <button onClick={handleSalva} disabled={saving}
+          className="text-sm px-4 py-2 rounded-lg font-medium disabled:opacity-50"
+          style={{ background: '#7DF5DF', color: '#1A1A2E' }}>
+          {saving ? 'Salvataggio...' : 'Salva modifiche'}
         </button>
       </div>
     </div>
