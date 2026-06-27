@@ -149,11 +149,14 @@ export default function SchedaCliente({ clienteId, seed, onBack }: Props) {
   const oreSaldo = oreContratto - oreAllocateTotali
 
   // Dati grafico a barre mensile
-  const mesiLabel = seed.mesi_label
+  const mesiLabel = ['Gen','Feb','Mar','Apr','Mag','Giu','Lug','Ago','Set','Ott','Nov','Dic']
+  const annoCorrente = new Date().getFullYear()
+  // Ore effettive per mese (da Supabase via timesheet) — array Gen-Dic
+  const oreEffettiveMesi = (cliente as any).ore_effettive_mesi_2026 ?? new Array(12).fill(0)
   const barData = mesiLabel.map((mese, mi) => {
-    const allocate = allocazioni.reduce((s, a) => s + (a.valori[mi] ?? 0), 0)
-    return { mese, allocate, contratto: Math.round(oreContratto / 7) }
-  }).filter(d => d.allocate > 0 || d.contratto > 0)
+    const effettive = oreEffettiveMesi[mi] ?? 0
+    return { mese, effettive, contratto: Math.round(oreContratto / 12) }
+  }).filter(d => d.effettive > 0 || d.contratto > 0)
 
   // Torta ore per risorsa
   const pieDataRisorsa = risorseUniche.map(pid => {
@@ -416,7 +419,7 @@ export default function SchedaCliente({ clienteId, seed, onBack }: Props) {
                 <YAxis tick={{ fontSize: 10 }} />
                 <Tooltip />
                 <Bar dataKey="contratto" name="Contratto" fill="#E0E0E0" radius={[2,2,0,0]} />
-                <Bar dataKey="allocate" name="Allocate" fill="#7DF5DF" opacity={0.8} radius={[2,2,0,0]} />
+                <Bar dataKey="effettive" name="Effettive" fill="#7DF5DF" opacity={0.8} radius={[2,2,0,0]} />
               </BarChart>
             </ResponsiveContainer>
           ) : <p className="text-xs text-gray-400 text-center py-8">Nessun dato</p>}
