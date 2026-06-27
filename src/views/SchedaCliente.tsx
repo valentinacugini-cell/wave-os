@@ -62,7 +62,7 @@ export default function SchedaCliente({ clienteId, seed, onBack }: Props) {
   const [taskImportati, setTaskImportati] = useState<any[]>([])
   const [selezione, setSelezione] = useState<Set<string>>(new Set())
 
-  const { getTask, updateTask, eliminaTask, isEliminato } = useTaskContext()
+  const { getTask, updateTask, eliminaTask, isEliminato, addTask } = useTaskContext()
 
   async function handleSalvaContratto() {
     const updates: any = {}
@@ -206,8 +206,14 @@ export default function SchedaCliente({ clienteId, seed, onBack }: Props) {
           personaById={personaById}
           clienteId={clienteId}
           onClose={() => setShowImport(false)}
-          onImport={(nuoviTask) => {
-            setTaskImportati(prev => [...prev, ...nuoviTask.map((t, i) => ({ ...t, id: `imp_${Date.now()}_${i}` }))])
+          onImport={async (nuoviTask) => {
+            const saved: any[] = []
+            for (let i = 0; i < nuoviTask.length; i++) {
+              const t = nuoviTask[i]
+              const id = await addTask({ ...t, id: `imp_${Date.now()}_${i}` })
+              saved.push({ ...t, id })
+            }
+            setTaskImportati(prev => [...prev, ...saved])
             setShowImport(false)
           }}
         />
