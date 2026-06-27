@@ -49,10 +49,12 @@ export default function SchedaCliente({ clienteId, seed, onBack }: Props) {
   const [activeTaskModal, setActiveTaskModal] = useState<Task | null>(null)
   const [notaEdit, setNotaEdit] = useState<string | null>(null)
   const [anagraficaEdit, setAnagraficaEdit] = useState(false)
+  const [anagraficaFields, setAnagraficaFields] = useState<Record<string,any>>({})
   const [contrattoEdit, setContrattoEdit] = useState(false)
   const [showNuovoProgetto, setShowNuovoProgetto] = useState(false)
   const [progettiLocali, setProgettiLocali] = useState<any[]>([])
   const [showNuovaScadenza, setShowNuovaScadenza] = useState(false)
+  const [showNuovoTask, setShowNuovoTask] = useState(false)
   const [scadenzeLocali, setScadenzeLocali] = useState<any[]>([])
   const [showNuovoContatto, setShowNuovoContatto] = useState(false)
   const [showImport, setShowImport] = useState(false)
@@ -537,6 +539,10 @@ export default function SchedaCliente({ clienteId, seed, onBack }: Props) {
                   {selezione.size === tasksFiltrati.length ? 'Deseleziona tutti' : 'Seleziona tutti'}
                 </button>
               )}
+              <button onClick={() => setShowNuovoTask(true)}
+                className="text-sm px-3 py-1.5 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-100 transition-colors">
+                + Task
+              </button>
               <button onClick={() => setShowImport(true)}
                 className="text-sm px-3 py-1.5 rounded-lg font-medium flex items-center gap-1.5 transition-colors"
                 style={{ background: '#1A1A2E', color: '#7DF5DF' }}>
@@ -544,6 +550,16 @@ export default function SchedaCliente({ clienteId, seed, onBack }: Props) {
               </button>
             </div>
           </div>
+          {showNuovoTask && (
+            <NuovoTaskForm
+              clienteId={clienteId}
+              progettoAttivoId={progettoAttivo?.id ?? null}
+              progetti={progetti}
+              personaById={personaById}
+              onClose={() => setShowNuovoTask(false)}
+              onSaved={(t) => { setTaskImportati(prev => [...prev, t]); setShowNuovoTask(false) }}
+            />
+          )}
           {tasksFiltrati.length === 0 ? (
             <p className="text-sm text-gray-400 py-8 text-center">Nessun task</p>
           ) : (
@@ -649,13 +665,22 @@ export default function SchedaCliente({ clienteId, seed, onBack }: Props) {
                   <p className="font-semibold text-sm text-gray-900">{s.titolo}</p>
                   {s.note && <p className="text-xs text-gray-400 mt-1 italic">{s.note}</p>}
                 </div>
-                <div className="text-right flex-shrink-0">
-                  <p className="text-sm font-semibold text-gray-900">{formatDate(s.data)}</p>
-                  {days !== null && (
-                    <p className="text-xs" style={{ color: days < 0 ? '#9CA3AF' : days <= 30 ? '#C62828' : '#6B7280' }}>
-                      {days < 0 ? `${Math.abs(days)}gg fa` : days === 0 ? 'Oggi' : `tra ${days}gg`}
-                    </p>
-                  )}
+                <div className="text-right flex-shrink-0 flex flex-col items-end gap-2">
+                  <div>
+                    <p className="text-sm font-semibold text-gray-900">{formatDate(s.data)}</p>
+                    {days !== null && (
+                      <p className="text-xs" style={{ color: days < 0 ? '#9CA3AF' : days <= 30 ? '#C62828' : '#6B7280' }}>
+                        {days < 0 ? `${Math.abs(days)}gg fa` : days === 0 ? 'Oggi' : `tra ${days}gg`}
+                      </p>
+                    )}
+                  </div>
+                  <button onClick={async () => {
+                    try { await sbPatch('scadenze', s.id, { stato: 'chiuso' }) } catch(e) {}
+                    setScadenzeLocali(prev => prev.filter(x => x.id !== s.id))
+                  }}
+                    className="text-xs px-2 py-1 rounded border border-gray-200 text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors">
+                    Chiudi
+                  </button>
                 </div>
               </div>
             )
@@ -717,27 +742,67 @@ export default function SchedaCliente({ clienteId, seed, onBack }: Props) {
               <button onClick={() => setAnagraficaEdit(!anagraficaEdit)}
                 className="text-xs px-2 py-1 rounded border transition-colors"
                 style={{ borderColor: anagraficaEdit ? '#3DD4BE' : '#E0E0E0', color: anagraficaEdit ? '#3DD4BE' : '#999' }}>
-                {anagraficaEdit ? 'Chiudi' : 'Modifica'}
+                {anagraficaEdit ? 'Annulla' : 'Modifica'}
               </button>
             </div>
             <div className="grid grid-cols-2 gap-4">
-              {[
-                { label: 'Nome cliente', value: cliente.nome },
-                { label: 'Referente Wave', value: referente?.nome ?? '—' },
-                { label: 'Commerciale', value: commerciale?.nome ?? '—' },
-                { label: 'Tipo contratto', value: isPPL ? 'PPL' : 'Progetto' },
-              ].map(field => (
-                <div key={field.label}>
-                  <p className="text-xs text-gray-400 mb-1">{field.label}</p>
-                  {anagraficaEdit ? (
-                    <input defaultValue={field.value}
+              <div>
+                <p className="text-xs text-gray-400 mb-1">Nome cliente</p>
+                {anagraficaEdit
+                  ? <input value={anagraficaFields.nome ?? cliente.nome}
+                      onChange={e => setAnagraficaFields(f => ({ ...f, nome: e.target.value }))}
                       className="w-full text-sm px-2 py-1.5 rounded border border-gray-200 bg-white outline-none focus:border-teal-400" />
-                  ) : (
-                    <p className="text-sm font-medium text-gray-900">{field.value}</p>
-                  )}
-                </div>
-              ))}
+                  : <p className="text-sm font-medium text-gray-900">{cliente.nome}</p>}
+              </div>
+              <div>
+                <p className="text-xs text-gray-400 mb-1">Referente Wave</p>
+                {anagraficaEdit
+                  ? <select value={anagraficaFields.referente ?? cliente.referente ?? ''}
+                      onChange={e => setAnagraficaFields(f => ({ ...f, referente: e.target.value }))}
+                      className="w-full text-sm px-2 py-1.5 rounded border border-gray-200 bg-white outline-none">
+                      {seed.team.filter((p: any) => p.tipo === 'operativo').map((p: any) => (
+                        <option key={p.id} value={p.id}>{p.nome}</option>
+                      ))}
+                    </select>
+                  : <p className="text-sm font-medium text-gray-900">{referente?.nome ?? '—'}</p>}
+              </div>
+              <div>
+                <p className="text-xs text-gray-400 mb-1">Commerciale</p>
+                {anagraficaEdit
+                  ? <select value={anagraficaFields.commerciale ?? cliente.commerciale ?? ''}
+                      onChange={e => setAnagraficaFields(f => ({ ...f, commerciale: e.target.value }))}
+                      className="w-full text-sm px-2 py-1.5 rounded border border-gray-200 bg-white outline-none">
+                      {seed.team.filter((p: any) => p.tipo === 'commerciale').map((p: any) => (
+                        <option key={p.id} value={p.id}>{p.nome}</option>
+                      ))}
+                    </select>
+                  : <p className="text-sm font-medium text-gray-900">{commerciale?.nome ?? '—'}</p>}
+              </div>
+              <div>
+                <p className="text-xs text-gray-400 mb-1">Tipo contratto</p>
+                <p className="text-sm font-medium text-gray-900">{isPPL ? 'PPL' : 'Progetto'}</p>
+              </div>
             </div>
+            {anagraficaEdit && (
+              <div className="mt-4 pt-4 border-t border-gray-100 flex items-center gap-3">
+                <button onClick={async () => {
+                  if (Object.keys(anagraficaFields).length === 0) { setAnagraficaEdit(false); return }
+                  try {
+                    await sbPatch('clienti', clienteId, anagraficaFields)
+                    updateCliente(clienteId, anagraficaFields)
+                  } catch(e) {
+                    updateCliente(clienteId, anagraficaFields)
+                  }
+                  setAnagraficaFields({})
+                  setAnagraficaEdit(false)
+                }}
+                  className="text-sm px-4 py-2 rounded-lg font-medium"
+                  style={{ background: '#7DF5DF', color: '#1A1A2E' }}>
+                  Salva modifiche
+                </button>
+                <p className="text-xs text-gray-400">Salvato su database</p>
+              </div>
+            )}
           </div>
 
           {/* Contratto */}
@@ -1200,6 +1265,171 @@ function NuovaScadenzaForm({ clienteId, progetti, progettoAttivoId, referentiTea
           className="text-sm px-4 py-2 rounded-lg font-medium disabled:opacity-50"
           style={{ background: '#7DF5DF', color: '#1A1A2E' }}>
           {saving ? 'Salvataggio...' : 'Salva scadenza'}
+        </button>
+      </div>
+    </div>
+  )
+}
+
+// ── Form nuovo task singolo ───────────────────────────────────────────────
+
+function NuovoTaskForm({ clienteId, progettoAttivoId, progetti, personaById, onClose, onSaved }: {
+  clienteId: string
+  progettoAttivoId: string | null
+  progetti: any[]
+  personaById: Record<string, any>
+  onClose: () => void
+  onSaved: (t: any) => void
+}) {
+  const [form, setForm] = useState({
+    titolo: '',
+    area: 'Web',
+    milestone: '',
+    priorita: 'media' as TaskPriorita,
+    stato: 'da_fare' as TaskStato,
+    ore_stimate: '',
+    data_inizio: '',
+    data_fine: '',
+    assegnatari: [] as string[],
+    progetto_id: progettoAttivoId ?? '',
+    ricorrente: false,
+    note: '',
+  })
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState('')
+
+  const operativi = Object.values(personaById).filter((p: any) => p.tipo === 'operativo')
+
+  async function handleSalva() {
+    if (!form.titolo.trim()) { setError('Titolo obbligatorio'); return }
+    if (!form.data_fine) { setError('Data fine obbligatoria'); return }
+    setSaving(true)
+    const task = {
+      id: `task_${clienteId}_${Date.now()}`,
+      cliente: clienteId,
+      progetto_id: form.progetto_id || null,
+      area: form.area,
+      milestone: form.milestone || null,
+      titolo: form.titolo.trim(),
+      assegnatari: form.assegnatari,
+      ore_stimate: Number(form.ore_stimate) || 0,
+      data_inizio: form.data_inizio || form.data_fine,
+      data_fine: form.data_fine,
+      priorita: form.priorita,
+      stato: form.stato,
+      ricorrente: form.ricorrente,
+      note: form.note || null,
+    }
+    try {
+      await sbPost('tasks', task)
+    } catch(e) { console.error('Salva task:', e) }
+    setSaving(false)
+    onSaved(task)
+  }
+
+  return (
+    <div className="bg-white rounded-xl border border-gray-200 p-5 mb-4 space-y-4">
+      <p className="text-xs text-gray-500 font-semibold uppercase tracking-wide">Nuovo task</p>
+      {error && <p className="text-xs text-red-600 px-3 py-2 rounded-lg" style={{ background: '#FFEBEE' }}>{error}</p>}
+
+      <div>
+        <label className="text-xs text-gray-400 block mb-1">Titolo *</label>
+        <input value={form.titolo} onChange={e => setForm(f => ({ ...f, titolo: e.target.value }))}
+          placeholder="Descrizione del task"
+          className="w-full text-sm px-3 py-2 rounded-lg border border-gray-200 outline-none focus:border-teal-400" />
+      </div>
+
+      <div className="grid grid-cols-3 gap-3">
+        <div>
+          <label className="text-xs text-gray-400 block mb-1">Area</label>
+          <select value={form.area} onChange={e => setForm(f => ({ ...f, area: e.target.value }))}
+            className="w-full text-sm px-3 py-2 rounded-lg border border-gray-200 bg-white outline-none">
+            {['Web', 'ADV', 'Content', 'Strategia', 'Grafica', 'Gestione'].map(a => (
+              <option key={a} value={a}>{a}</option>
+            ))}
+          </select>
+        </div>
+        <div>
+          <label className="text-xs text-gray-400 block mb-1">Priorità</label>
+          <select value={form.priorita} onChange={e => setForm(f => ({ ...f, priorita: e.target.value as TaskPriorita }))}
+            className="w-full text-sm px-3 py-2 rounded-lg border border-gray-200 bg-white outline-none">
+            <option value="alta">Alta</option>
+            <option value="media">Media</option>
+            <option value="bassa">Bassa</option>
+          </select>
+        </div>
+        <div>
+          <label className="text-xs text-gray-400 block mb-1">Stato</label>
+          <select value={form.stato} onChange={e => setForm(f => ({ ...f, stato: e.target.value as TaskStato }))}
+            className="w-full text-sm px-3 py-2 rounded-lg border border-gray-200 bg-white outline-none">
+            <option value="da_fare">Da fare</option>
+            <option value="in_corso">In corso</option>
+            <option value="completato">Completato</option>
+            <option value="bloccato">Bloccato</option>
+            <option value="in_attesa_materiali">Attesa materiali</option>
+          </select>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-3 gap-3">
+        <div>
+          <label className="text-xs text-gray-400 block mb-1">Data inizio</label>
+          <input type="date" value={form.data_inizio} onChange={e => setForm(f => ({ ...f, data_inizio: e.target.value }))}
+            className="w-full text-sm px-3 py-2 rounded-lg border border-gray-200 outline-none" />
+        </div>
+        <div>
+          <label className="text-xs text-gray-400 block mb-1">Data fine *</label>
+          <input type="date" value={form.data_fine} onChange={e => setForm(f => ({ ...f, data_fine: e.target.value }))}
+            className="w-full text-sm px-3 py-2 rounded-lg border border-gray-200 outline-none focus:border-teal-400" />
+        </div>
+        <div>
+          <label className="text-xs text-gray-400 block mb-1">Ore stimate</label>
+          <input type="number" value={form.ore_stimate} onChange={e => setForm(f => ({ ...f, ore_stimate: e.target.value }))}
+            placeholder="es. 4"
+            className="w-full text-sm px-3 py-2 rounded-lg border border-gray-200 outline-none" />
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 gap-3">
+        <div>
+          <label className="text-xs text-gray-400 block mb-1">Assegnatari</label>
+          <div className="flex gap-2 flex-wrap">
+            {operativi.map((p: any) => (
+              <label key={p.id} className="flex items-center gap-1.5 cursor-pointer">
+                <input type="checkbox"
+                  checked={form.assegnatari.includes(p.id)}
+                  onChange={e => setForm(f => ({
+                    ...f,
+                    assegnatari: e.target.checked
+                      ? [...f.assegnatari, p.id]
+                      : f.assegnatari.filter(id => id !== p.id)
+                  }))}
+                  className="rounded accent-teal-500" />
+                <span className="text-xs text-gray-700">{p.nome.split(' ')[0]}</span>
+              </label>
+            ))}
+          </div>
+        </div>
+        {progetti.length > 0 && (
+          <div>
+            <label className="text-xs text-gray-400 block mb-1">Progetto</label>
+            <select value={form.progetto_id} onChange={e => setForm(f => ({ ...f, progetto_id: e.target.value }))}
+              className="w-full text-sm px-3 py-2 rounded-lg border border-gray-200 bg-white outline-none">
+              <option value="">Nessun progetto</option>
+              {progetti.map(p => <option key={p.id} value={p.id}>{p.nome}</option>)}
+            </select>
+          </div>
+        )}
+      </div>
+
+      <div className="flex items-center justify-end gap-2 pt-2 border-t border-gray-100">
+        <button onClick={onClose} className="text-sm px-4 py-2 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-100">
+          Annulla
+        </button>
+        <button onClick={handleSalva} disabled={saving}
+          className="text-sm px-4 py-2 rounded-lg font-medium disabled:opacity-50"
+          style={{ background: '#7DF5DF', color: '#1A1A2E' }}>
+          {saving ? 'Salvataggio...' : 'Crea task'}
         </button>
       </div>
     </div>
