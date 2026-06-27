@@ -160,8 +160,9 @@ export default function SchedaCliente({ clienteId, seed, onBack }: Props) {
   })()
   const barData = mesiLabel.map((mese, mi) => {
     const effettive = oreEffettiveMesi[mi] ?? 0
-    return { mese, effettive, contratto: Math.round(oreContratto / 12) }
-  }).filter(d => d.effettive > 0 || d.contratto > 0)  // mostra solo mesi con dati
+    const pianificate = Math.round(oreContratto / 12)
+    return { mese, effettive, pianificate }
+  }).filter(d => d.effettive > 0 || d.pianificate > 0)
 
   // Torta ore per risorsa
   const pieDataRisorsa = risorseUniche.map(pid => {
@@ -384,19 +385,22 @@ export default function SchedaCliente({ clienteId, seed, onBack }: Props) {
           <>
             {/* Ore contratto vs allocate */}
             <div className="bg-white rounded-xl border border-gray-200 p-4">
-              <p className="text-xs text-gray-400 mb-1">Ore contratto</p>
+              <p className="text-xs text-gray-400 mb-1">Ore progetto</p>
               <p className="text-2xl font-bold text-gray-900">{oreContratto}</p>
             </div>
             <div className="bg-white rounded-xl border border-gray-200 p-4">
-              <p className="text-xs text-gray-400 mb-1">Ore allocate</p>
-              <p className="text-2xl font-bold text-gray-900">{oreAllocateTotali}</p>
+              <p className="text-xs text-gray-400 mb-1">Ore effettive YTD</p>
+              <p className="text-2xl font-bold text-gray-900">{Math.round((cliente as any).ore_effettive_ytd_2026 ?? 0)}</p>
             </div>
             <div className="bg-white rounded-xl border border-gray-200 p-4"
-              style={{ borderLeft: oreSaldo < 0 ? '4px solid #E24B4A' : '4px solid #1D9E75' }}>
+              style={{ borderLeft: ((cliente as any).ore_effettive_ytd_2026 ?? 0) > oreContratto ? '4px solid #E24B4A' : '4px solid #1D9E75' }}>
               <p className="text-xs text-gray-400 mb-1">Saldo ore</p>
-              <p className="text-2xl font-bold" style={{ color: oreSaldo < 0 ? '#E24B4A' : '#1D9E75' }}>
-                {oreSaldo >= 0 ? `+${oreSaldo}` : oreSaldo}
-              </p>
+              {(() => {
+                const saldo = oreContratto - Math.round((cliente as any).ore_effettive_ytd_2026 ?? 0)
+                return <p className="text-2xl font-bold" style={{ color: saldo < 0 ? '#E24B4A' : '#1D9E75' }}>
+                  {saldo >= 0 ? `+${saldo}` : saldo}
+                </p>
+              })()}
             </div>
             <div className="bg-white rounded-xl border border-gray-200 p-4">
               <p className="text-xs text-gray-400 mb-2">Task</p>
@@ -423,7 +427,7 @@ export default function SchedaCliente({ clienteId, seed, onBack }: Props) {
                 <XAxis dataKey="mese" tick={{ fontSize: 10 }} />
                 <YAxis tick={{ fontSize: 10 }} />
                 <Tooltip />
-                <Bar dataKey="contratto" name="Contratto" fill="#E0E0E0" radius={[2,2,0,0]} />
+                <Bar dataKey="pianificate" name="Pianificate" fill="#E0E0E0" radius={[2,2,0,0]} />
                 <Bar dataKey="effettive" name="Effettive" fill="#7DF5DF" opacity={0.8} radius={[2,2,0,0]} />
               </BarChart>
             </ResponsiveContainer>
@@ -1501,7 +1505,7 @@ function ModificaProgettoForm({ progetto, onClose, onSaved }: {
             className="w-full text-sm px-3 py-2 rounded-lg border border-gray-200 outline-none" />
         </div>
         <div>
-          <label className="text-xs text-gray-400 block mb-1">Ore contratto</label>
+          <label className="text-xs text-gray-400 block mb-1">Ore progetto</label>
           <input type="number" value={form.ore_contratto} onChange={e => setForm(f => ({ ...f, ore_contratto: e.target.value }))}
             className="w-full text-sm px-3 py-2 rounded-lg border border-gray-200 outline-none" />
         </div>
