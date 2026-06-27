@@ -300,10 +300,18 @@ export default function CaricoView({ seed }: CaricoProps) {
     <div>
       <SectionHeader title="Carico Team" />
 
+      {/* DEBUG temporaneo */}
+      <div className="mb-4 p-3 rounded bg-yellow-50 border border-yellow-200 text-xs font-mono">
+        <p>operativi: {operativi.length}</p>
+        {operativi.map(p => (
+          <p key={p.id}>{p.id}: cap={JSON.stringify(capacitaByPersona[p.id]?.slice(0,6))} plan={JSON.stringify(pianificateByPersona[p.id]?.slice(0,6))} cons={JSON.stringify(consuntivateByPersona[p.id]?.slice(0,6))}</p>
+        ))}
+      </div>
+
       {/* Barre */}
       <div className="mb-8">
         <h2 className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-4">
-          Carico mensile — Giu–Dic 2026
+          Carico mensile — Gen–Dic 2026
         </h2>
         {operativi.map(p => (
           <PersonaLoadBar key={p.id} persona={p}
