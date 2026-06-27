@@ -80,14 +80,6 @@ export async function loadSeed() {
 
   const mesi_label = ['Giu', 'Lug', 'Ago', 'Set', 'Ott', 'Nov', 'Dic']
 
-  // Log per debug
-  console.log('TEAM RAW dal DB:', team.map((p: any) => ({
-    id: p.id,
-    keys: Object.keys(p),
-    ore_pianificate: p.ore_pianificate,
-    ore_effettive_mensili: p.ore_effettive_mensili
-  })))
-
   const teamNorm = team.map((p: any) => ({
     id: p.id, nome: p.nome, ruolo: p.ruolo, tipo: p.tipo, colore: p.colore,
     capacita_mensile: p.capacita_mensile ?? [],
