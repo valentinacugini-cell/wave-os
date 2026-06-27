@@ -50,7 +50,7 @@ function normalizeSeed(raw: any): any {
     note_rinnovo:    arr(raw?.note_rinnovo),
     capacita:        arr(raw?.capacita),
     ore_pianificate: arr(raw?.ore_pianificate),
-    ore_consuntivate:arr(raw?.ore_consuntivate),
+    ore_consuntivate: Array.isArray(raw?.ore_consuntivate) ? raw.ore_consuntivate : [],
     mesi_label:      arr(raw?.mesi_label).length > 0 ? raw.mesi_label : ['Giu','Lug','Ago','Set','Ott','Nov','Dic'],
     team: arr(raw?.team).map((p: any) => ({
       ...p,
