@@ -5,7 +5,7 @@ import { formatDate, daysUntil, getAlertLevel, getProssimaScadenza } from '../ut
 import { BadgeTipo, BadgeAlert, BadgeScadenzaTipo } from '../components/UI'
 import { useTaskContext } from '../context/TaskContext'
 import { useClienteContext } from '../context/ClienteContext'
-import { sbPatch, sbPost } from '../lib/supabase'
+import { sbPatch, sbPost, sbUpsert } from '../lib/supabase'
 import TaskModal from '../components/TaskModal'
 import ImportTaskModal from '../components/ImportTaskModal'
 
@@ -651,7 +651,14 @@ export default function SchedaCliente({ clienteId, seed, onBack }: Props) {
               <textarea value={notaEdit} onChange={e => setNotaEdit(e.target.value)}
                 className="w-full text-sm text-gray-800 border border-gray-200 rounded-lg p-3 outline-none resize-none"
                 style={{ minHeight: 120, lineHeight: 1.6 }} />
-              <button onClick={() => { updateNoteRinnovo(clienteId, notaEdit ?? ''); setNotaEdit(null) }}
+              <button onClick={async () => {
+                const nota = notaEdit ?? ''
+                updateNoteRinnovo(clienteId, nota)
+                setNotaEdit(null)
+                try {
+                  await sbUpsert('note_rinnovo', { id: `note_${clienteId}`, cliente: clienteId, note: nota })
+                } catch(e) { console.error('Salva nota:', e) }
+              }}
                 className="mt-3 text-sm px-3 py-1.5 rounded-lg font-medium"
                 style={{ background: '#7DF5DF', color: '#1A1A2E' }}>
                 Salva nota
