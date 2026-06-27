@@ -188,6 +188,23 @@ function safeNum(v: any): number {
   return isNaN(n) ? 0 : n
 }
 
+export async function debugTimesheetNomi(): Promise<string[]> {
+  const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=Controllo`
+  try {
+    const res = await fetch(url)
+    const csv = await res.text()
+    const rows = csv.split('\n')
+    const nomi: string[] = []
+    for (const row of rows) {
+      const first = row.split(',')[0]?.replace(/^"|"$/g, '').trim() ?? ''
+      if (first && first.length > 1 && first !== 'NaN') nomi.push(first)
+    }
+    return nomi.slice(0, 80) // prime 80 righe non vuote
+  } catch(e) {
+    return ['Errore: ' + String(e)]
+  }
+}
+
 export async function fetchOreEffettive(): Promise<Record<string, { ytd: number; mesi: number[] }>> {
   const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=Controllo`
   try {
