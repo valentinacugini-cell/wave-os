@@ -166,43 +166,54 @@ const SHEET_ID = '1UUIohuV202zvnB909QrAJyrLpqDQwsLkj16vYiZvgak'
 
 // Mappa nome cliente nel timesheet → id Supabase
 const TIMESHEET_CLIENTE_MAP: Record<string, string> = {
-  'Accuracy': 'accuracy', 'AGRIBRIANZA': 'agribrianza', 'Alimeco': 'alimeco',
-  'ASILETTO': 'asiletto', 'BEFLUIDICA': 'befluidica', 'CARBOTERMO': 'carbotermo',
-  'CDO COMO': 'cdo_como', 'CDO MILANO': 'cdo_milano', 'CDO MONZA E BRIANZA': 'cdo_monza',
-  'CL SCRITTI': 'cl_scritti', 'COGEFIM': 'cogefim', "COLLEZIONI D'ARTE": 'collezioni_arte',
-  'COMUNE DI SONDRIO': 'comune_sondrio', 'CTL GROUP': 'ctl_group', 'DIEMME': 'diemme',
-  'FERRARI': 'ferrari', 'FIU': 'fiu', 'FOTORENT': 'fotorent', 'G&B': 'gb_group',
-  'GIARDINIA': 'giardinia', 'GRUPPODIGIT': 'gruppodigit', 'INFOR-MA': 'informa',
-  'MAINARDI SISTEMI': 'mainardi', 'MECH-I-TRONIC': 'mech_i_tronic', 'MIL SERVICE': 'mil_service',
-  'NASTRI BRIZZOLARI': 'brizzolari', 'NATURAL CLIMA': 'natural_clima', 'NEW': 'new_srl',
-  'OLTRE IMPACT': 'oltre_impact', 'ON ENERGY': 'on_energy', 'RB': 'rb',
-  'RL - VIRGONET': 'virgonet', 'SCS': 'scs', 'Shoptime': 'shoptime',
-  'SILVAUTO': 'silvauto', 'SOGEMA': 'sogema', 'TECNODATA': 'tecnodata',
-  'TELPRO': 'telpro', 'TOP FILM': 'topfilm', 'TRECCANI': 'treccani',
-  'WIC': 'wic', 'CDO': 'cdo',
+  'Accuracy': 'accuracy',
+  'AGRIBRIANZA': 'agribrianza',
+  'Alimeco': 'alimeco',
+  'ASILETTO': 'asiletto',
+  'BEFLUIDICA': 'befluidica',
+  'CDO': 'cdo',
+  'CARBOTERMO': 'carbotermo',
+  'CDO MILANO': 'cdo_milano',
+  'CDO COMO': 'cdo_como',
+  'CDO MONZA E BRIANZA': 'cdo_monza',
+  'CL SCRITTI': 'cl_scritti',
+  'COMUNE DI SONDRIO': 'comune_sondrio',
+  'CTL GROUP': 'ctl_group',
+  'COGEFIM': 'cogefim',
+  "COLLEZIONI D'ARTE": 'collezioni_arte',
+  'DIEMME': 'diemme',
+  'FERRARI': 'ferrari',
+  'FIU': 'fiu',
+  'FOTORENT': 'fotorent',
+  'G&B': 'gb_group',
+  'GIARDINIA': 'giardinia',
+  'GRUPPODIGIT': 'gruppodigit',
+  'INFOR-MA': 'informa',
+  'MAINARDI SISTEMI': 'mainardi',
+  'MIL SERVICE': 'mil_service',
+  'MECH-I-TRONIC': 'mech_i_tronic',
+  'NASTRI BRIZZOLARI': 'brizzolari',
+  'NATURAL CLIMA': 'natural_clima',
+  'NEW': 'new_srl',
+  'OLTRE IMPACT': 'oltre_impact',
+  'ON ENERGY': 'on_energy',
+  'RB': 'rb',
+  'RL - VIRGONET': 'virgonet',
+  'SCS': 'scs',
+  'Shoptime': 'shoptime',
+  'SILVAUTO': 'silvauto',
+  'SOGEMA': 'sogema',
+  'TECNODATA': 'tecnodata',
+  'TELPRO': 'telpro',
+  'TOP FILM': 'topfilm',
+  'TRECCANI': 'treccani',
+  'WIT IN CLOUD': 'wic',
 }
 
 function safeNum(v: any): number {
   if (v === null || v === undefined || v === '') return 0
   const n = parseFloat(String(v).replace(',', '.'))
   return isNaN(n) ? 0 : n
-}
-
-export async function debugTimesheetNomi(): Promise<string[]> {
-  const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=Controllo`
-  try {
-    const res = await fetch(url)
-    const csv = await res.text()
-    const rows = csv.split('\n')
-    const nomi: string[] = []
-    for (const row of rows) {
-      const first = row.split(',')[0]?.replace(/^"|"$/g, '').trim() ?? ''
-      if (first && first.length > 1 && first !== 'NaN') nomi.push(first)
-    }
-    return nomi.slice(0, 80) // prime 80 righe non vuote
-  } catch(e) {
-    return ['Errore: ' + String(e)]
-  }
 }
 
 export async function fetchOreEffettive(): Promise<Record<string, { ytd: number; mesi: number[] }>> {
