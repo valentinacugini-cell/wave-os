@@ -91,7 +91,7 @@ export async function loadSeed() {
 
   const ore_pianificate = teamNorm
     .filter((p: any) => p.tipo === 'operativo')
-    .map((p: any) => ({ persona: p.id, valori: new Array(7).fill(0) }))
+    .map((p: any) => ({ persona: p.id, valori: Array.isArray(p.ore_pianificate) && p.ore_pianificate.length > 0 ? p.ore_pianificate : new Array(7).fill(0) }))
 
   // Assicuro che tutti gli array siano sempre array validi
   const safeSeed = {
