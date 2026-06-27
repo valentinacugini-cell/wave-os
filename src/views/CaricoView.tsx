@@ -39,7 +39,7 @@ function PersonaLoadBar({ persona, pianificate, capacita, consuntivate }: {
           </span>
           <span className="flex items-center gap-1.5">
             <span className="w-3 h-3 rounded-sm inline-block" style={{ background: persona.colore }} />
-            Consuntivate
+            Effettive
           </span>
           <span className="flex items-center gap-1.5">
             <span className="w-3 h-3 rounded-sm inline-block bg-red-400" />
@@ -53,11 +53,11 @@ function PersonaLoadBar({ persona, pianificate, capacita, consuntivate }: {
           const cap = capacita[i] ?? 0
           const plan = pianificate[i] ?? 0
           const cons = consuntivate[i] ?? 0
-          const isOver = plan > cap
+          const isOver = cons > cap
           const maxVal = Math.max(cap, plan, cons, 1)
           const planH = Math.min((plan / maxVal) * maxH, maxH + 20)
           const consH = Math.min((cons / maxVal) * maxH, maxH)
-          const delta = plan - cap
+          const delta = cons - cap
 
           return (
             <div key={mese} className="flex-1 flex flex-col items-center gap-1 relative"
@@ -70,10 +70,10 @@ function PersonaLoadBar({ persona, pianificate, capacita, consuntivate }: {
                   style={{ bottom: maxH + 40 }}>
                   <p className="font-semibold mb-1">{mese} 2026</p>
                   <p>Capacità: <strong>{cap}h</strong></p>
-                  <p>Pianificate: <strong style={{ color: isOver ? '#FCA5A5' : '#7DF5DF' }}>{plan}h</strong></p>
-                  {cons > 0 && <p>Consuntivate: <strong style={{ color: '#7DF5DF' }}>{cons}h</strong></p>}
-                  {isOver && <p style={{ color: '#FCA5A5' }}>Surplus: <strong>−{delta}h</strong></p>}
-                  {!isOver && <p style={{ color: '#86EFAC' }}>Libere: <strong>+{cap - plan}h</strong></p>}
+                  {plan > 0 && <p>Pianificate: <strong style={{ color: '#94A3B8' }}>{Math.round(plan)}h</strong></p>}
+                  <p>Effettive: <strong style={{ color: '#4F86C6' }}>{Math.round(cons)}h</strong></p>
+                  {isOver && <p style={{ color: '#FCA5A5' }}>Sovraccarico: <strong>+{Math.round(Math.abs(delta))}h</strong></p>}
+                  {!isOver && <p style={{ color: '#86EFAC' }}>Saldo: <strong>+{Math.round(cap - cons)}h</strong></p>}
                 </div>
               )}
 
@@ -256,17 +256,11 @@ export default function CaricoView({ seed }: CaricoProps) {
   }, [JSON.stringify(seed.team)])
 
   const pianificateByPersona = useMemo(() => {
+    // Le ore pianificate derivano dai task importati — per ora sono a 0
+    // Verranno calcolate automaticamente quando i task saranno caricati
     const m: Record<string, number[]> = {}
-    // Legge ore_pianificate direttamente dal team
     seed.team.filter(p => p.tipo === 'operativo').forEach(p => {
-      const op = (p as any).ore_pianificate
-      if (Array.isArray(op) && op.length > 0) {
-        // ore_pianificate dal DB ha 7 valori (Giu-Dic) — espandiamo a 12
-        const valori = op.map(Number)
-        m[p.id] = valori.length === 12 ? valori : [...new Array(12 - valori.length).fill(0), ...valori]
-      } else {
-        m[p.id] = new Array(12).fill(0)
-      }
+      m[p.id] = new Array(12).fill(0)
     })
     return m
   // eslint-disable-next-line react-hooks/exhaustive-deps
