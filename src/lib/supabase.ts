@@ -91,7 +91,11 @@ export async function loadSeed() {
 
   const ore_pianificate = teamNorm
     .filter((p: any) => p.tipo === 'operativo')
-    .map((p: any) => ({ persona: p.id, valori: Array.isArray(p.ore_pianificate) && p.ore_pianificate.length > 0 ? p.ore_pianificate : new Array(7).fill(0) }))
+    .map((p: any) => ({ persona: p.id, valori: Array.isArray(p.ore_pianificate) && p.ore_pianificate.length > 0 ? p.ore_pianificate : new Array(12).fill(0) }))
+
+  const ore_consuntivate = teamNorm
+    .filter((p: any) => p.tipo === 'operativo')
+    .map((p: any) => ({ persona: p.id, valori: Array.isArray(p.ore_effettive_mensili) && p.ore_effettive_mensili.length > 0 ? p.ore_effettive_mensili.map(Number) : new Array(12).fill(0) }))
 
   // Assicuro che tutti gli array siano sempre array validi
   const safeSeed = {
@@ -131,6 +135,7 @@ export async function loadSeed() {
     mesi_label: mesi_label ?? ['Giu','Lug','Ago','Set','Ott','Nov','Dic'],
     capacita: capacita ?? [],
     ore_pianificate: ore_pianificate ?? [],
+    ore_consuntivate: ore_consuntivate ?? [],
   }
 
   // Patch difensiva completa
@@ -273,9 +278,13 @@ export async function fetchOreEffettive(): Promise<Record<string, { ytd: number;
 }
 
 export async function syncOreEffettive(): Promise<number> {
-  const ore = await fetchOreEffettive()
+  const [ore, oreRisorsa] = await Promise.all([
+    fetchOreEffettive(),
+    fetchOreEffettivePerRisorsa(),
+  ])
   let aggiornati = 0
 
+  // Aggiorna ore clienti
   for (const [clienteId, dati] of Object.entries(ore)) {
     if (dati.ytd === 0 && dati.mesi.every(v => v === 0)) continue
     try {
@@ -289,5 +298,59 @@ export async function syncOreEffettive(): Promise<number> {
     }
   }
 
+  // Aggiorna ore effettive mensili per risorsa nel team
+  for (const [risorsaId, mesi] of Object.entries(oreRisorsa)) {
+    try {
+      await sbPatch('team', risorsaId, { ore_effettive_mensili: mesi })
+    } catch (e) {
+      console.error(`syncOreRisorsa ${risorsaId}:`, e)
+    }
+  }
+
   return aggiornati
+}
+
+async function fetchOreEffettivePerRisorsa(): Promise<Record<string, number[]>> {
+  const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=Controllo`
+  const RISORSE_MAP: Record<string, string> = {
+    'Valentina': 'valentina', 'Ivana': 'ivana', 'Giulia': 'giulia', 'Gloria': 'gloria'
+  }
+  const result: Record<string, number[]> = {
+    valentina: new Array(12).fill(0), ivana: new Array(12).fill(0),
+    giulia: new Array(12).fill(0), gloria: new Array(12).fill(0),
+  }
+  try {
+    const res = await fetch(url)
+    if (!res.ok) return result
+    const csv = await res.text()
+
+    const rows: string[][] = []
+    let row: string[] = [], cell = '', inQuote = false
+    for (let i = 0; i < csv.length; i++) {
+      const ch = csv[i], next = csv[i+1]
+      if (ch === '"') { if (inQuote && next === '"') { cell += '"'; i++ } else inQuote = !inQuote }
+      else if (ch === ',' && !inQuote) { row.push(cell.trim()); cell = '' }
+      else if ((ch === '\n' || ch === '\r') && !inQuote) {
+        if (ch === '\r' && next === '\n') i++
+        row.push(cell.trim()); rows.push(row); row = []; cell = ''
+      } else cell += ch
+    }
+    if (cell || row.length) { row.push(cell.trim()); rows.push(row) }
+
+    let inCliente = false
+    for (const row of rows) {
+      const col0 = row[0]?.replace(/^"|"$/g, '').trim() ?? ''
+      if (TIMESHEET_CLIENTE_MAP[col0]) { inCliente = true; continue }
+      if (!inCliente) continue
+      const risorsaId = RISORSE_MAP[col0]
+      if (!risorsaId) continue
+      for (let m = 0; m < 12; m++) {
+        result[risorsaId][m] += safeNum(row[46 + m])
+      }
+    }
+    return result
+  } catch(e) {
+    console.error('fetchOreEffettivePerRisorsa:', e)
+    return result
+  }
 }
