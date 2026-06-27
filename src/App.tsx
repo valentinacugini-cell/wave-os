@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react'
 import seedData from './data/seed.json'
-import { loadSeed, syncOreEffettive } from './lib/supabase'
+import { loadSeed, syncOreEffettive, debugTimesheetNomi } from './lib/supabase'
 import { Seed, Persona, View } from './types'
 import { TaskProvider } from './context/TaskContext'
 import { ClienteProvider } from './context/ClienteContext'
@@ -167,6 +167,15 @@ export default function App() {
                     {syncing ? 'Sincronizzazione...' : '↻ Aggiorna ore timesheet'}
                   </button>
                   {syncMsg && <p className="text-xs" style={{ color: syncMsg.startsWith('Errore') ? '#E24B4A' : '#1D9E75' }}>{syncMsg}</p>}
+                </div>
+                <div className="mt-4 pt-4 border-t border-gray-100">
+                  <button onClick={async () => {
+                    const nomi = await debugTimesheetNomi()
+                    alert('Nomi trovati nel timesheet:\n' + nomi.join('\n'))
+                  }}
+                    className="text-xs px-3 py-1.5 rounded-lg border border-gray-200 text-gray-500 hover:bg-gray-100">
+                    Debug: mostra nomi clienti nel file
+                  </button>
                 </div>
               </div>
             </div>
