@@ -223,21 +223,35 @@ export async function fetchOreEffettive(): Promise<Record<string, { ytd: number;
     if (!res.ok) throw new Error(`HTTP ${res.status}`)
     const csv = await res.text()
 
-    // Parse CSV manuale
-    const rows = csv.split('\n').map(line => {
-      const cells: string[] = []
-      let inQuote = false, cell = ''
-      for (const ch of line) {
-        if (ch === '"') { inQuote = !inQuote }
-        else if (ch === ',' && !inQuote) { cells.push(cell.trim()); cell = '' }
-        else { cell += ch }
-      }
-      cells.push(cell.trim())
-      return cells
-    })
+    // Parser CSV robusto che gestisce celle multiriga con newline interni
+    const rows: string[][] = []
+    let row: string[] = []
+    let cell = ''
+    let inQuote = false
 
-    // Trova riga intestazione per localizzare colonne mesi
-    // Struttura attesa: col 0=nome, col 44=YTD, col 46-57=GEN-DIC
+    for (let i = 0; i < csv.length; i++) {
+      const ch = csv[i]
+      const next = csv[i + 1]
+
+      if (ch === '"') {
+        if (inQuote && next === '"') { cell += '"'; i++ }
+        else { inQuote = !inQuote }
+      } else if (ch === ',' && !inQuote) {
+        row.push(cell.trim())
+        cell = ''
+      } else if ((ch === '\n' || ch === '\r') && !inQuote) {
+        if (ch === '\r' && next === '\n') i++
+        row.push(cell.trim())
+        rows.push(row)
+        row = []
+        cell = ''
+      } else {
+        cell += ch
+      }
+    }
+    if (cell || row.length) { row.push(cell.trim()); rows.push(row) }
+
+    // col 44=YTD 2026, col 46-57=GEN-DIC 2026
     const result: Record<string, { ytd: number; mesi: number[] }> = {}
 
     for (const row of rows) {
