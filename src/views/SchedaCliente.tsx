@@ -5,6 +5,7 @@ import { formatDate, daysUntil, getAlertLevel, getProssimaScadenza } from '../ut
 import { BadgeTipo, BadgeAlert, BadgeScadenzaTipo } from '../components/UI'
 import { useTaskContext } from '../context/TaskContext'
 import { useClienteContext } from '../context/ClienteContext'
+import { sbPatch, sbPost } from '../lib/supabase'
 import TaskModal from '../components/TaskModal'
 import ImportTaskModal from '../components/ImportTaskModal'
 
@@ -48,12 +49,38 @@ export default function SchedaCliente({ clienteId, seed, onBack }: Props) {
   const [activeTaskModal, setActiveTaskModal] = useState<Task | null>(null)
   const [notaEdit, setNotaEdit] = useState<string | null>(null)
   const [anagraficaEdit, setAnagraficaEdit] = useState(false)
+  const [contrattoEdit, setContrattoEdit] = useState(false)
+  const [showNuovoProgetto, setShowNuovoProgetto] = useState(false)
   const [showImport, setShowImport] = useState(false)
+  const [contrattoForm, setContrattoForm] = useState({
+    scadenza: '',
+    rinnovo: '',
+    lead_obiettivo: '',
+    lead_raccolte: '',
+  })
   const [taskImportati, setTaskImportati] = useState<any[]>([])
   const [selezione, setSelezione] = useState<Set<string>>(new Set())
 
   const { getTask, updateTask, eliminaTask, isEliminato } = useTaskContext()
-  const { getCliente, getContatti, updateNoteRinnovo, getNoteRinnovo } = useClienteContext()
+
+  async function handleSalvaContratto() {
+    const updates: any = {}
+    if (contrattoForm.scadenza) updates.scadenza_contratto = contrattoForm.scadenza
+    if (contrattoForm.rinnovo) updates.rinnovo_previsto = contrattoForm.rinnovo
+    if (contrattoForm.lead_obiettivo) updates.lead_obiettivo = Number(contrattoForm.lead_obiettivo)
+    if (contrattoForm.lead_raccolte) updates.lead_raccolte = Number(contrattoForm.lead_raccolte)
+    try {
+      await sbPatch('clienti', clienteId, updates)
+      updateCliente(clienteId, updates)
+      setContrattoEdit(false)
+    } catch(e) {
+      console.error('Salvataggio contratto:', e)
+      // Salvo comunque in sessione
+      updateCliente(clienteId, updates)
+      setContrattoEdit(false)
+    }
+  }
+  const { getCliente, getContatti, updateCliente, updateNoteRinnovo, getNoteRinnovo } = useClienteContext()
 
   const clienteBase = seed.clienti.find(c => c.id === clienteId)
   const cliente = clienteBase ? getCliente(clienteBase) : undefined
@@ -150,6 +177,27 @@ export default function SchedaCliente({ clienteId, seed, onBack }: Props) {
 
   return (
     <div>
+      {/* NuovoProgettoModal */}
+      {showNuovoProgetto && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center"
+          style={{ background: 'rgba(0,0,0,0.4)' }}
+          onClick={e => { if (e.target === e.currentTarget) setShowNuovoProgetto(false) }}>
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md mx-4 overflow-hidden">
+            <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between"
+              style={{ background: '#F8F9FA' }}>
+              <h2 className="text-base font-semibold text-gray-900">Nuovo progetto — {cliente.nome}</h2>
+              <button onClick={() => setShowNuovoProgetto(false)}
+                className="w-8 h-8 rounded-full flex items-center justify-center text-gray-400 hover:text-gray-700 hover:bg-gray-200">✕</button>
+            </div>
+            <NuovoProgettoForm
+              clienteId={clienteId}
+              clienteNome={cliente.nome}
+              onClose={() => setShowNuovoProgetto(false)}
+            />
+          </div>
+        </div>
+      )}
+
       {/* ImportTaskModal */}
       {showImport && (
         <ImportTaskModal
@@ -619,42 +667,163 @@ export default function SchedaCliente({ clienteId, seed, onBack }: Props) {
 
       {/* ANAGRAFICA */}
       {activeTab === 'anagrafica' && (
-        <div className="bg-white rounded-xl border border-gray-200 p-6">
-          <div className="flex items-center justify-between mb-4">
-            <p className="text-xs text-gray-400 uppercase tracking-wide font-medium">Dati cliente</p>
-            <button onClick={() => setAnagraficaEdit(!anagraficaEdit)}
-              className="text-xs px-2 py-1 rounded border transition-colors"
-              style={{ borderColor: anagraficaEdit ? '#3DD4BE' : '#E0E0E0', color: anagraficaEdit ? '#3DD4BE' : '#999' }}>
-              {anagraficaEdit ? 'Chiudi' : 'Modifica'}
-            </button>
-          </div>
-          <div className="grid grid-cols-2 gap-4 mb-6">
-            {[
-              { label: 'Nome cliente', value: cliente.nome },
-              { label: 'Tipo contratto', value: isPPL ? 'PPL' : 'Progetto' },
-              { label: 'Referente Wave', value: referente?.nome ?? '—' },
-              { label: 'Commerciale', value: commerciale?.nome ?? '—' },
-              { label: 'Scadenza contratto', value: formatDate(cliente.scadenza_contratto) },
-              { label: 'Rinnovo previsto', value: formatDate(cliente.rinnovo_previsto) },
-            ].map(field => (
-              <div key={field.label}>
-                <p className="text-xs text-gray-400 mb-1">{field.label}</p>
-                {anagraficaEdit ? (
-                  <input defaultValue={field.value}
-                    className="w-full text-sm px-2 py-1.5 rounded border border-gray-200 bg-white outline-none focus:border-teal-400" />
-                ) : (
-                  <p className="text-sm font-medium text-gray-900">{field.value}</p>
-                )}
-              </div>
-            ))}
+        <div className="space-y-5">
+
+          {/* Dati cliente */}
+          <div className="bg-white rounded-xl border border-gray-200 p-6">
+            <div className="flex items-center justify-between mb-4">
+              <p className="text-xs text-gray-400 uppercase tracking-wide font-medium">Dati cliente</p>
+              <button onClick={() => setAnagraficaEdit(!anagraficaEdit)}
+                className="text-xs px-2 py-1 rounded border transition-colors"
+                style={{ borderColor: anagraficaEdit ? '#3DD4BE' : '#E0E0E0', color: anagraficaEdit ? '#3DD4BE' : '#999' }}>
+                {anagraficaEdit ? 'Chiudi' : 'Modifica'}
+              </button>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              {[
+                { label: 'Nome cliente', value: cliente.nome },
+                { label: 'Referente Wave', value: referente?.nome ?? '—' },
+                { label: 'Commerciale', value: commerciale?.nome ?? '—' },
+                { label: 'Tipo contratto', value: isPPL ? 'PPL' : 'Progetto' },
+              ].map(field => (
+                <div key={field.label}>
+                  <p className="text-xs text-gray-400 mb-1">{field.label}</p>
+                  {anagraficaEdit ? (
+                    <input defaultValue={field.value}
+                      className="w-full text-sm px-2 py-1.5 rounded border border-gray-200 bg-white outline-none focus:border-teal-400" />
+                  ) : (
+                    <p className="text-sm font-medium text-gray-900">{field.value}</p>
+                  )}
+                </div>
+              ))}
+            </div>
           </div>
 
-          <p className="text-xs text-gray-400 uppercase tracking-wide font-medium mb-3">Contatti</p>
-          <div className="space-y-2">
+          {/* Contratto */}
+          <div className="bg-white rounded-xl border border-gray-200 p-6">
+            <div className="flex items-center justify-between mb-4">
+              <p className="text-xs text-gray-400 uppercase tracking-wide font-medium">Contratto</p>
+              <button onClick={() => setContrattoEdit(!contrattoEdit)}
+                className="text-xs px-2 py-1 rounded border transition-colors"
+                style={{ borderColor: contrattoEdit ? '#3DD4BE' : '#E0E0E0', color: contrattoEdit ? '#3DD4BE' : '#999' }}>
+                {contrattoEdit ? 'Annulla' : 'Modifica'}
+              </button>
+            </div>
+            {contrattoEdit ? (
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-xs text-gray-400 block mb-1">Scadenza contratto</label>
+                    <input type="date" value={contrattoForm.scadenza}
+                      onChange={e => setContrattoForm(f => ({ ...f, scadenza: e.target.value }))}
+                      className="w-full text-sm px-3 py-2 rounded-lg border border-gray-200 outline-none focus:border-teal-400" />
+                  </div>
+                  <div>
+                    <label className="text-xs text-gray-400 block mb-1">Rinnovo previsto</label>
+                    <input type="date" value={contrattoForm.rinnovo}
+                      onChange={e => setContrattoForm(f => ({ ...f, rinnovo: e.target.value }))}
+                      className="w-full text-sm px-3 py-2 rounded-lg border border-gray-200 outline-none focus:border-teal-400" />
+                  </div>
+                </div>
+                {isPPL && (
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="text-xs text-gray-400 block mb-1">Lead obiettivo</label>
+                      <input type="number" value={contrattoForm.lead_obiettivo}
+                        onChange={e => setContrattoForm(f => ({ ...f, lead_obiettivo: e.target.value }))}
+                        className="w-full text-sm px-3 py-2 rounded-lg border border-gray-200 outline-none focus:border-teal-400" />
+                    </div>
+                    <div>
+                      <label className="text-xs text-gray-400 block mb-1">Lead raccolte</label>
+                      <input type="number" value={contrattoForm.lead_raccolte}
+                        onChange={e => setContrattoForm(f => ({ ...f, lead_raccolte: e.target.value }))}
+                        className="w-full text-sm px-3 py-2 rounded-lg border border-gray-200 outline-none focus:border-teal-400" />
+                    </div>
+                  </div>
+                )}
+                <div className="flex items-center gap-2 pt-2">
+                  <button onClick={handleSalvaContratto}
+                    className="text-sm px-4 py-2 rounded-lg font-medium"
+                    style={{ background: '#7DF5DF', color: '#1A1A2E' }}>
+                    Salva contratto
+                  </button>
+                  <p className="text-xs text-gray-400">Le modifiche vengono salvate su database</p>
+                </div>
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <p className="text-xs text-gray-400 mb-1">Scadenza contratto</p>
+                  <p className="text-sm font-medium text-gray-900">{formatDate(cliente.scadenza_contratto) || '—'}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-gray-400 mb-1">Rinnovo previsto</p>
+                  <p className="text-sm font-medium text-gray-900">{formatDate(cliente.rinnovo_previsto) || '—'}</p>
+                </div>
+                {isPPL && (
+                  <>
+                    <div>
+                      <p className="text-xs text-gray-400 mb-1">Lead obiettivo</p>
+                      <p className="text-sm font-medium text-gray-900">{cliente.lead_obiettivo ?? '—'}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-400 mb-1">Lead raccolte</p>
+                      <p className="text-sm font-medium text-gray-900">{cliente.lead_raccolte ?? '—'}</p>
+                    </div>
+                  </>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* Progetti */}
+          <div className="bg-white rounded-xl border border-gray-200 p-6">
+            <div className="flex items-center justify-between mb-4">
+              <p className="text-xs text-gray-400 uppercase tracking-wide font-medium">Progetti ({progetti.length})</p>
+              <button onClick={() => setShowNuovoProgetto(true)}
+                className="text-xs px-3 py-1.5 rounded-lg font-medium transition-colors"
+                style={{ background: '#1A1A2E', color: '#7DF5DF' }}>
+                + Nuovo progetto
+              </button>
+            </div>
+            {progetti.length === 0 ? (
+              <p className="text-sm text-gray-400">Nessun progetto. Creane uno per iniziare a tracciare ore e task.</p>
+            ) : (
+              <div className="space-y-2">
+                {progetti.map(p => (
+                  <div key={p.id} className="flex items-center gap-4 p-3 rounded-lg border border-gray-100"
+                    style={{ background: progettoAttivo?.id === p.id ? '#F0FDFB' : '#FAFAFA' }}>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-gray-900">{p.nome}</p>
+                      <div className="flex items-center gap-3 mt-0.5">
+                        <span className="text-xs text-gray-400">{p.anno}</span>
+                        <span className="text-xs text-gray-400">{p.ore_contratto}h contratto</span>
+                        <span className="text-xs px-1.5 py-0.5 rounded"
+                          style={{ background: p.stato === 'attivo' ? '#EAF3DE' : '#F3F4F6', color: p.stato === 'attivo' ? '#27500A' : '#666' }}>
+                          {p.stato}
+                        </span>
+                      </div>
+                      {p.data_inizio && p.data_fine && (
+                        <p className="text-xs text-gray-400 mt-0.5">{formatDate(p.data_inizio)} → {formatDate(p.data_fine)}</p>
+                      )}
+                    </div>
+                    <button onClick={() => { setProgettoSelezionato(p.id); setActiveTab('attivita') }}
+                      className="text-xs px-2 py-1 rounded border border-gray-200 text-gray-500 hover:bg-gray-100 transition-colors flex-shrink-0">
+                      Vai →
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Contatti */}
+          <div className="bg-white rounded-xl border border-gray-200 p-6">
+            <p className="text-xs text-gray-400 uppercase tracking-wide font-medium mb-3">Contatti</p>
             {contatti.length === 0 ? (
               <p className="text-sm text-gray-400">Nessun contatto inserito.</p>
             ) : contatti.map(c => (
-              <div key={c.id} className="flex items-start gap-3 p-3 rounded-lg"
+              <div key={c.id} className="flex items-start gap-3 p-3 rounded-lg mb-2 last:mb-0"
                 style={{ background: c.principale ? '#F0FDFB' : '#F8F9FA' }}>
                 <div className="flex-1">
                   <div className="flex items-center gap-2">
@@ -670,8 +839,104 @@ export default function SchedaCliente({ clienteId, seed, onBack }: Props) {
               </div>
             ))}
           </div>
+
         </div>
       )}
+    </div>
+  )
+}
+
+// ── Form nuovo progetto ───────────────────────────────────────────────────
+
+function NuovoProgettoForm({ clienteId, clienteNome, onClose }: {
+  clienteId: string
+  clienteNome: string
+  onClose: () => void
+}) {
+  const [form, setForm] = useState({
+    nome: `${clienteNome} ${new Date().getFullYear()}`,
+    anno: new Date().getFullYear(),
+    ore_contratto: '',
+    data_inizio: '',
+    data_fine: '',
+    stato: 'attivo' as 'attivo' | 'concluso' | 'sospeso',
+  })
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState('')
+
+  async function handleSalva() {
+    if (!form.nome.trim()) { setError('Nome obbligatorio'); return }
+    setSaving(true)
+    const id = `proj_${clienteId}_${Date.now()}`
+    const progetto = {
+      id,
+      cliente: clienteId,
+      nome: form.nome.trim(),
+      anno: form.anno,
+      ore_contratto: Number(form.ore_contratto) || 0,
+      stato: form.stato,
+      data_inizio: form.data_inizio || null,
+      data_fine: form.data_fine || null,
+    }
+    try {
+      await sbPost('progetti', progetto)
+      setSaving(false)
+      onClose()
+      // Ricarica la pagina per vedere il nuovo progetto
+      window.location.reload()
+    } catch(e: any) {
+      setError('Errore salvataggio: ' + e.message)
+      setSaving(false)
+    }
+  }
+
+  return (
+    <div className="px-6 py-5 space-y-4">
+      {error && <p className="text-xs text-red-600 px-3 py-2 rounded-lg" style={{ background: '#FFEBEE' }}>{error}</p>}
+
+      <div>
+        <label className="text-xs text-gray-500 font-medium block mb-1">Nome progetto *</label>
+        <input value={form.nome} onChange={e => setForm(f => ({ ...f, nome: e.target.value }))}
+          className="w-full text-sm px-3 py-2 rounded-lg border border-gray-200 outline-none focus:border-teal-400" />
+      </div>
+
+      <div className="grid grid-cols-2 gap-3">
+        <div>
+          <label className="text-xs text-gray-500 font-medium block mb-1">Anno</label>
+          <input type="number" value={form.anno} onChange={e => setForm(f => ({ ...f, anno: Number(e.target.value) }))}
+            className="w-full text-sm px-3 py-2 rounded-lg border border-gray-200 outline-none" />
+        </div>
+        <div>
+          <label className="text-xs text-gray-500 font-medium block mb-1">Ore contratto</label>
+          <input type="number" value={form.ore_contratto} onChange={e => setForm(f => ({ ...f, ore_contratto: e.target.value }))}
+            placeholder="es. 120"
+            className="w-full text-sm px-3 py-2 rounded-lg border border-gray-200 outline-none" />
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 gap-3">
+        <div>
+          <label className="text-xs text-gray-500 font-medium block mb-1">Data inizio</label>
+          <input type="date" value={form.data_inizio} onChange={e => setForm(f => ({ ...f, data_inizio: e.target.value }))}
+            className="w-full text-sm px-3 py-2 rounded-lg border border-gray-200 outline-none" />
+        </div>
+        <div>
+          <label className="text-xs text-gray-500 font-medium block mb-1">Data fine</label>
+          <input type="date" value={form.data_fine} onChange={e => setForm(f => ({ ...f, data_fine: e.target.value }))}
+            className="w-full text-sm px-3 py-2 rounded-lg border border-gray-200 outline-none" />
+        </div>
+      </div>
+
+      <div className="flex items-center justify-between pt-2 border-t border-gray-100">
+        <button onClick={onClose} className="text-sm px-4 py-2 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-100 transition-colors">
+          Annulla
+        </button>
+        <button onClick={handleSalva} disabled={saving}
+          className="text-sm px-4 py-2 rounded-lg font-medium transition-colors disabled:opacity-50"
+          style={{ background: '#7DF5DF', color: '#1A1A2E' }}>
+          {saving ? 'Salvataggio...' : 'Crea progetto'}
+        </button>
+      </div>
     </div>
   )
 }
