@@ -317,6 +317,7 @@ async function fetchOreEffettivePerRisorsa(): Promise<Record<string, number[]>> 
   const RISORSE_MAP: Record<string, string> = {
     'Valentina': 'valentina', 'Ivana': 'ivana', 'Giulia': 'giulia', 'Gloria': 'gloria'
   }
+  const ESCLUSI = new Set(['Wave', 'WAVE']) // ore interne escluse dal calcolo
   const result: Record<string, number[]> = {
     valentina: new Array(12).fill(0), ivana: new Array(12).fill(0),
     giulia: new Array(12).fill(0), gloria: new Array(12).fill(0),
@@ -342,7 +343,13 @@ async function fetchOreEffettivePerRisorsa(): Promise<Record<string, number[]>> 
     let inCliente = false
     for (const row of rows) {
       const col0 = row[0]?.replace(/^"|"$/g, '').trim() ?? ''
+      // Cliente valido → attiva lettura
       if (TIMESHEET_CLIENTE_MAP[col0]) { inCliente = true; continue }
+      // Cliente escluso (Wave) o cliente sconosciuto → disattiva lettura
+      if (col0 && !RISORSE_MAP[col0] && !['web','social','adv','email','meeting',''].includes(col0.toLowerCase())) {
+        inCliente = false
+        continue
+      }
       if (!inCliente) continue
       const risorsaId = RISORSE_MAP[col0]
       if (!risorsaId) continue
