@@ -69,7 +69,7 @@ export async function sbDelete(table: string, id: string) {
 
 export async function loadSeed() {
   const [team, clienti, progetti, tasks, scadenze, contatti, noteRinnovo] = await Promise.all([
-    sb('team', 'select=*&order=tipo,nome'),
+    sb('team', 'select=id,nome,ruolo,tipo,colore,capacita_mensile,ore_pianificate,ore_effettive_mensili&order=tipo,nome'),
     sb('clienti', 'select=*&order=nome'),
     sb('progetti', 'select=*&order=nome'),
     sb('tasks', 'select=*&order=data_fine'),
