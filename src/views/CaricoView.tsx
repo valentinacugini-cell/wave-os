@@ -54,8 +54,9 @@ function PersonaLoadBar({ persona, pianificate, capacita, consuntivate }: {
           const plan = pianificate[i] ?? 0
           const cons = consuntivate[i] ?? 0
           const isOver = plan > cap
-          const planH = cap > 0 ? Math.min((plan / cap) * maxH, maxH + 20) : 0
-          const consH = cap > 0 ? Math.min((cons / cap) * maxH, maxH) : 0
+          const maxVal = Math.max(cap, plan, cons, 1)
+          const planH = Math.min((plan / maxVal) * maxH, maxH + 20)
+          const consH = Math.min((cons / maxVal) * maxH, maxH)
           const delta = plan - cap
 
           return (
@@ -137,7 +138,7 @@ function AllocazioniTabella({ allocazioni, personaById, clienteById, pianificate
   const perCliente = useMemo(() => {
     const m: Record<string, { totali: number[]; righe: any[] }> = {}
     allocazioni.forEach(a => {
-      if (!m[a.cliente]) m[a.cliente] = { totali: new Array(7).fill(0), righe: [] }
+      if (!m[a.cliente]) m[a.cliente] = { totali: new Array(12).fill(0), righe: [] }
       m[a.cliente].righe.push(a)
       a.valori.forEach((v: number, i: number) => { m[a.cliente].totali[i] += v })
     })
@@ -294,9 +295,9 @@ export default function CaricoView({ seed }: CaricoProps) {
         </h2>
         {operativi.map(p => (
           <PersonaLoadBar key={p.id} persona={p}
-            pianificate={pianificateByPersona[p.id] ?? new Array(7).fill(0)}
-            capacita={capacitaByPersona[p.id] ?? new Array(7).fill(0)}
-            consuntivate={consuntivateByPersona[p.id] ?? new Array(7).fill(0)}
+            pianificate={pianificateByPersona[p.id] ?? new Array(12).fill(0)}
+            capacita={capacitaByPersona[p.id] ?? new Array(12).fill(0)}
+            consuntivate={consuntivateByPersona[p.id] ?? new Array(12).fill(0)}
           />
         ))}
       </div>
