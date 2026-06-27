@@ -159,3 +159,93 @@ export async function loadSeed() {
 
   return safeSeed
 }
+
+// ── Lettura ore effettive dal timesheet Google Sheets ─────────────────────
+
+const SHEET_ID = '1UUIohuV202zvnB909QrAJyrLpqDQwsLkj16vYiZvgak'
+
+// Mappa nome cliente nel timesheet → id Supabase
+const TIMESHEET_CLIENTE_MAP: Record<string, string> = {
+  'Accuracy': 'accuracy', 'AGRIBRIANZA': 'agribrianza', 'Alimeco': 'alimeco',
+  'ASILETTO': 'asiletto', 'BEFLUIDICA': 'befluidica', 'CARBOTERMO': 'carbotermo',
+  'CDO COMO': 'cdo_como', 'CDO MILANO': 'cdo_milano', 'CDO MONZA E BRIANZA': 'cdo_monza',
+  'CL SCRITTI': 'cl_scritti', 'COGEFIM': 'cogefim', "COLLEZIONI D'ARTE": 'collezioni_arte',
+  'COMUNE DI SONDRIO': 'comune_sondrio', 'CTL GROUP': 'ctl_group', 'DIEMME': 'diemme',
+  'FERRARI': 'ferrari', 'FIU': 'fiu', 'FOTORENT': 'fotorent', 'G&B': 'gb_group',
+  'GIARDINIA': 'giardinia', 'GRUPPODIGIT': 'gruppodigit', 'INFOR-MA': 'informa',
+  'MAINARDI SISTEMI': 'mainardi', 'MECH-I-TRONIC': 'mech_i_tronic', 'MIL SERVICE': 'mil_service',
+  'NASTRI BRIZZOLARI': 'brizzolari', 'NATURAL CLIMA': 'natural_clima', 'NEW': 'new_srl',
+  'OLTRE IMPACT': 'oltre_impact', 'ON ENERGY': 'on_energy', 'RB': 'rb',
+  'RL - VIRGONET': 'virgonet', 'SCS': 'scs', 'Shoptime': 'shoptime',
+  'SILVAUTO': 'silvauto', 'SOGEMA': 'sogema', 'TECNODATA': 'tecnodata',
+  'TELPRO': 'telpro', 'TOP FILM': 'topfilm', 'TRECCANI': 'treccani',
+  'WIC': 'wic', 'CDO': 'cdo',
+}
+
+function safeNum(v: any): number {
+  if (v === null || v === undefined || v === '') return 0
+  const n = parseFloat(String(v).replace(',', '.'))
+  return isNaN(n) ? 0 : n
+}
+
+export async function fetchOreEffettive(): Promise<Record<string, { ytd: number; mesi: number[] }>> {
+  const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=Controllo`
+  try {
+    const res = await fetch(url)
+    if (!res.ok) throw new Error(`HTTP ${res.status}`)
+    const csv = await res.text()
+
+    // Parse CSV manuale
+    const rows = csv.split('\n').map(line => {
+      const cells: string[] = []
+      let inQuote = false, cell = ''
+      for (const ch of line) {
+        if (ch === '"') { inQuote = !inQuote }
+        else if (ch === ',' && !inQuote) { cells.push(cell.trim()); cell = '' }
+        else { cell += ch }
+      }
+      cells.push(cell.trim())
+      return cells
+    })
+
+    // Trova riga intestazione per localizzare colonne mesi
+    // Struttura attesa: col 0=nome, col 44=YTD, col 46-57=GEN-DIC
+    const result: Record<string, { ytd: number; mesi: number[] }> = {}
+
+    for (const row of rows) {
+      const nome = row[0]?.replace(/^"|"$/g, '').trim() ?? ''
+      if (!nome || !TIMESHEET_CLIENTE_MAP[nome]) continue
+
+      const clienteId = TIMESHEET_CLIENTE_MAP[nome]
+      const ytd = safeNum(row[44])
+      const mesi = Array.from({ length: 12 }, (_, i) => safeNum(row[46 + i]))
+
+      result[clienteId] = { ytd, mesi }
+    }
+
+    return result
+  } catch (e) {
+    console.error('fetchOreEffettive:', e)
+    return {}
+  }
+}
+
+export async function syncOreEffettive(): Promise<number> {
+  const ore = await fetchOreEffettive()
+  let aggiornati = 0
+
+  for (const [clienteId, dati] of Object.entries(ore)) {
+    if (dati.ytd === 0 && dati.mesi.every(v => v === 0)) continue
+    try {
+      await sbPatch('clienti', clienteId, {
+        ore_effettive_ytd_2026: dati.ytd,
+        ore_effettive_mesi_2026: dati.mesi,
+      })
+      aggiornati++
+    } catch (e) {
+      console.error(`syncOreEffettive ${clienteId}:`, e)
+    }
+  }
+
+  return aggiornati
+}
