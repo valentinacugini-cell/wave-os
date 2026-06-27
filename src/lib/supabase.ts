@@ -42,6 +42,20 @@ export async function sbPatch(table: string, id: string, data: any) {
   if (!res.ok) throw new Error(`Supabase error ${res.status}: ${await res.text()}`)
 }
 
+export async function sbUpsert(table: string, data: any) {
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/${table}`, {
+    method: 'POST',
+    headers: {
+      'apikey': SUPABASE_KEY,
+      'Authorization': `Bearer ${SUPABASE_KEY}`,
+      'Content-Type': 'application/json',
+      'Prefer': 'resolution=merge-duplicates,return=minimal'
+    },
+    body: JSON.stringify(data)
+  })
+  if (!res.ok) throw new Error(`Supabase error ${res.status}: ${await res.text()}`)
+}
+
 export async function sbDelete(table: string, id: string) {
   const res = await fetch(`${SUPABASE_URL}/rest/v1/${table}?id=eq.${encodeURIComponent(id)}`, {
     method: 'DELETE',
