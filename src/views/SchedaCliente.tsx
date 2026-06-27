@@ -52,6 +52,8 @@ export default function SchedaCliente({ clienteId, seed, onBack }: Props) {
   const [contrattoEdit, setContrattoEdit] = useState(false)
   const [showNuovoProgetto, setShowNuovoProgetto] = useState(false)
   const [progettiLocali, setProgettiLocali] = useState<any[]>([])
+  const [showNuovaScadenza, setShowNuovaScadenza] = useState(false)
+  const [scadenzeLocali, setScadenzeLocali] = useState<any[]>([])
   const [showNuovoContatto, setShowNuovoContatto] = useState(false)
   const [showImport, setShowImport] = useState(false)
   const [contrattoForm, setContrattoForm] = useState({
@@ -614,9 +616,29 @@ export default function SchedaCliente({ clienteId, seed, onBack }: Props) {
       {/* SCADENZE */}
       {activeTab === 'scadenze' && (
         <div className="space-y-3">
-          {scadenze.length === 0 ? (
-            <p className="text-sm text-gray-400 py-8 text-center">Nessuna scadenza</p>
-          ) : scadenze.sort((a, b) => new Date(a.data).getTime() - new Date(b.data).getTime()).map(s => {
+          <div className="flex items-center justify-between mb-1">
+            <span className="text-xs text-gray-400">{scadenze.length + scadenzeLocali.length} scadenze</span>
+            <button onClick={() => setShowNuovaScadenza(!showNuovaScadenza)}
+              className="text-xs px-3 py-1.5 rounded-lg font-medium transition-colors"
+              style={{ background: '#1A1A2E', color: '#7DF5DF' }}>
+              {showNuovaScadenza ? 'Annulla' : '+ Nuova scadenza'}
+            </button>
+          </div>
+
+          {showNuovaScadenza && (
+            <NuovaScadenzaForm
+              clienteId={clienteId}
+              progetti={progetti}
+              progettoAttivoId={progettoAttivo?.id ?? null}
+              referentiTeam={seed.team}
+              onClose={() => setShowNuovaScadenza(false)}
+              onSaved={(s) => { setScadenzeLocali(prev => [...prev, s]); setShowNuovaScadenza(false) }}
+            />
+          )}
+
+          {[...scadenze, ...scadenzeLocali].length === 0 ? (
+            <p className="text-sm text-gray-400 py-8 text-center">Nessuna scadenza. Aggiungine una.</p>
+          ) : [...scadenze, ...scadenzeLocali].sort((a, b) => new Date(a.data).getTime() - new Date(b.data).getTime()).map(s => {
             const days = daysUntil(s.data)
             return (
               <div key={s.id}
@@ -640,7 +662,6 @@ export default function SchedaCliente({ clienteId, seed, onBack }: Props) {
           })}
         </div>
       )}
-
       {/* NOTE RINNOVO */}
       {activeTab === 'rinnovo' && (
         <div className="bg-white rounded-xl border border-gray-200 p-6">
@@ -1048,6 +1069,137 @@ function NuovoContattoForm({ clienteId, onClose, onSaved }: {
           className="text-xs px-3 py-1.5 rounded-lg font-medium disabled:opacity-50"
           style={{ background: '#7DF5DF', color: '#1A1A2E' }}>
           {saving ? 'Salvataggio...' : 'Aggiungi'}
+        </button>
+      </div>
+    </div>
+  )
+}
+
+// ── Form nuova scadenza ───────────────────────────────────────────────────
+
+function NuovaScadenzaForm({ clienteId, progetti, progettoAttivoId, referentiTeam, onClose, onSaved }: {
+  clienteId: string
+  progetti: any[]
+  progettoAttivoId: string | null
+  referentiTeam: any[]
+  onClose: () => void
+  onSaved: (s: any) => void
+}) {
+  const [form, setForm] = useState({
+    titolo: '',
+    tipo: 'rinnovo' as 'rinnovo' | 'rilascio' | 'riunione_cliente' | 'interno' | 'checkpoint',
+    urgenza: 'normale' as 'critica' | 'alta' | 'normale',
+    data: '',
+    progetto_id: progettoAttivoId ?? '',
+    referente: referentiTeam.find(p => p.tipo === 'operativo')?.id ?? '',
+    note: '',
+  })
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState('')
+
+  async function handleSalva() {
+    if (!form.titolo.trim()) { setError('Titolo obbligatorio'); return }
+    if (!form.data) { setError('Data obbligatoria'); return }
+    setSaving(true)
+    const scadenza = {
+      id: `scad_${clienteId}_${Date.now()}`,
+      cliente: clienteId,
+      progetto_id: form.progetto_id || null,
+      titolo: form.titolo.trim(),
+      tipo: form.tipo,
+      urgenza: form.urgenza,
+      data: form.data,
+      stato: 'aperto',
+      referente: form.referente || null,
+      note: form.note.trim() || null,
+    }
+    try {
+      await sbPost('scadenze', scadenza)
+    } catch(e) {
+      console.error('Salva scadenza:', e)
+    }
+    setSaving(false)
+    onSaved(scadenza)
+  }
+
+  return (
+    <div className="bg-white rounded-xl border border-gray-200 p-5 space-y-4">
+      <p className="text-xs text-gray-500 font-semibold uppercase tracking-wide">Nuova scadenza</p>
+      {error && <p className="text-xs text-red-600 px-3 py-2 rounded-lg" style={{ background: '#FFEBEE' }}>{error}</p>}
+
+      <div>
+        <label className="text-xs text-gray-400 block mb-1">Titolo *</label>
+        <input value={form.titolo} onChange={e => setForm(f => ({ ...f, titolo: e.target.value }))}
+          placeholder="es. Rinnovo contratto 2027"
+          className="w-full text-sm px-3 py-2 rounded-lg border border-gray-200 outline-none focus:border-teal-400" />
+      </div>
+
+      <div className="grid grid-cols-3 gap-3">
+        <div>
+          <label className="text-xs text-gray-400 block mb-1">Tipo</label>
+          <select value={form.tipo} onChange={e => setForm(f => ({ ...f, tipo: e.target.value as any }))}
+            className="w-full text-sm px-3 py-2 rounded-lg border border-gray-200 bg-white outline-none">
+            <option value="rinnovo">Rinnovo</option>
+            <option value="rilascio">Rilascio</option>
+            <option value="riunione_cliente">Riunione cliente</option>
+            <option value="interno">Interno</option>
+            <option value="checkpoint">Checkpoint</option>
+          </select>
+        </div>
+        <div>
+          <label className="text-xs text-gray-400 block mb-1">Urgenza</label>
+          <select value={form.urgenza} onChange={e => setForm(f => ({ ...f, urgenza: e.target.value as any }))}
+            className="w-full text-sm px-3 py-2 rounded-lg border border-gray-200 bg-white outline-none">
+            <option value="normale">Normale</option>
+            <option value="alta">Alta</option>
+            <option value="critica">Critica</option>
+          </select>
+        </div>
+        <div>
+          <label className="text-xs text-gray-400 block mb-1">Data *</label>
+          <input type="date" value={form.data} onChange={e => setForm(f => ({ ...f, data: e.target.value }))}
+            className="w-full text-sm px-3 py-2 rounded-lg border border-gray-200 outline-none focus:border-teal-400" />
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 gap-3">
+        {progetti.length > 0 && (
+          <div>
+            <label className="text-xs text-gray-400 block mb-1">Progetto</label>
+            <select value={form.progetto_id} onChange={e => setForm(f => ({ ...f, progetto_id: e.target.value }))}
+              className="w-full text-sm px-3 py-2 rounded-lg border border-gray-200 bg-white outline-none">
+              <option value="">Nessun progetto</option>
+              {progetti.map(p => <option key={p.id} value={p.id}>{p.nome}</option>)}
+            </select>
+          </div>
+        )}
+        <div>
+          <label className="text-xs text-gray-400 block mb-1">Referente</label>
+          <select value={form.referente} onChange={e => setForm(f => ({ ...f, referente: e.target.value }))}
+            className="w-full text-sm px-3 py-2 rounded-lg border border-gray-200 bg-white outline-none">
+            <option value="">Nessuno</option>
+            {referentiTeam.filter(p => p.tipo === 'operativo').map(p => (
+              <option key={p.id} value={p.id}>{p.nome}</option>
+            ))}
+          </select>
+        </div>
+      </div>
+
+      <div>
+        <label className="text-xs text-gray-400 block mb-1">Note</label>
+        <input value={form.note} onChange={e => setForm(f => ({ ...f, note: e.target.value }))}
+          placeholder="Note opzionali"
+          className="w-full text-sm px-3 py-2 rounded-lg border border-gray-200 outline-none" />
+      </div>
+
+      <div className="flex items-center justify-end gap-2 pt-2 border-t border-gray-100">
+        <button onClick={onClose} className="text-sm px-4 py-2 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-100">
+          Annulla
+        </button>
+        <button onClick={handleSalva} disabled={saving}
+          className="text-sm px-4 py-2 rounded-lg font-medium disabled:opacity-50"
+          style={{ background: '#7DF5DF', color: '#1A1A2E' }}>
+          {saving ? 'Salvataggio...' : 'Salva scadenza'}
         </button>
       </div>
     </div>
