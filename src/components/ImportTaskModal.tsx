@@ -285,18 +285,24 @@ export default function ImportTaskModal({ progetti, personaById, clienteId, onCl
           {/* STEP 1: UPLOAD */}
           {step === 'upload' && (
             <div>
-              {/* Progetto default */}
-              {progetti.length > 1 && (
-                <div className="mb-5">
-                  <label className="text-xs text-gray-500 font-medium block mb-1">
-                    Progetto di destinazione (default se non specificato nel file)
-                  </label>
+              {/* Progetto di destinazione */}
+              <div className="mb-5">
+                <label className="text-xs text-gray-500 font-medium block mb-1">
+                  Progetto di destinazione
+                </label>
+                {progetti.length === 0 ? (
+                  <div className="px-3 py-2 rounded-lg border border-orange-200 text-xs text-orange-600"
+                    style={{ background: '#FFF7ED' }}>
+                    Nessun progetto creato. Vai su Anagrafica → + Nuovo progetto, poi torna qui.
+                  </div>
+                ) : (
                   <select value={progettoDefault} onChange={e => setProgettoDefault(e.target.value)}
                     className="text-sm px-3 py-2 rounded-lg border border-gray-200 bg-white outline-none w-full max-w-md">
+                    <option value="">Seleziona progetto...</option>
                     {progetti.map(p => <option key={p.id} value={p.id}>{p.nome}</option>)}
                   </select>
-                </div>
-              )}
+                )}
+              </div>
 
               {/* Drop zone */}
               <div
