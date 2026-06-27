@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react'
 import seedData from './data/seed.json'
-import { loadSeed } from './lib/supabase'
+import { loadSeed, syncOreEffettive } from './lib/supabase'
 import { Seed, Persona, View } from './types'
 import { TaskProvider } from './context/TaskContext'
 import { ClienteProvider } from './context/ClienteContext'
@@ -74,6 +74,24 @@ export default function App() {
   const [seed, setSeed] = React.useState<any>(normalizeSeed(seedData))
   const [loading, setLoading] = React.useState(true)
   const [dbError, setDbError] = React.useState<string | null>(null)
+  const [syncing, setSyncing] = React.useState(false)
+  const [syncMsg, setSyncMsg] = React.useState<string | null>(null)
+
+  async function handleSyncTimesheet() {
+    setSyncing(true)
+    setSyncMsg(null)
+    try {
+      const n = await syncOreEffettive()
+      // Ricarica i dati aggiornati
+      const data = await loadSeed()
+      setSeed(normalizeSeed(data))
+      setSyncMsg(`Aggiornate ore per ${n} clienti`)
+    } catch(e: any) {
+      setSyncMsg('Errore: ' + e.message)
+    }
+    setSyncing(false)
+    setTimeout(() => setSyncMsg(null), 4000)
+  }
 
   React.useEffect(() => {
     loadSeed()
@@ -136,6 +154,23 @@ export default function App() {
                 {currentView === 'operativita' && <OperativitaView seed={seed} onClienteClick={handleClienteClick} />}
                 {currentView === 'cliente' && selectedCliente && <SchedaCliente clienteId={selectedCliente} seed={seed} onBack={handleBack} />}
                 {currentView === 'forecast' && <ForecastView />}
+          {currentView === 'impostazioni' && (
+            <div className="max-w-lg">
+              <h2 className="text-xl font-semibold text-gray-900 mb-6">Impostazioni</h2>
+              <div className="bg-white rounded-xl border border-gray-200 p-6">
+                <p className="text-sm font-medium text-gray-900 mb-1">Sincronizza ore da timesheet</p>
+                <p className="text-xs text-gray-400 mb-4">Legge le ore effettive aggiornate dal file Google Sheets del team e aggiorna il database.</p>
+                <div className="flex items-center gap-3">
+                  <button onClick={handleSyncTimesheet} disabled={syncing}
+                    className="text-sm px-4 py-2 rounded-lg font-medium disabled:opacity-50 transition-colors"
+                    style={{ background: '#1A1A2E', color: '#7DF5DF' }}>
+                    {syncing ? 'Sincronizzazione...' : '↻ Aggiorna ore timesheet'}
+                  </button>
+                  {syncMsg && <p className="text-xs" style={{ color: syncMsg.startsWith('Errore') ? '#E24B4A' : '#1D9E75' }}>{syncMsg}</p>}
+                </div>
+              </div>
+            </div>
+          )}
               </div>
             </main>
           </div>
