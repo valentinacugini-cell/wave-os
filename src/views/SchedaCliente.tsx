@@ -51,6 +51,7 @@ export default function SchedaCliente({ clienteId, seed, onBack }: Props) {
   const [anagraficaEdit, setAnagraficaEdit] = useState(false)
   const [contrattoEdit, setContrattoEdit] = useState(false)
   const [showNuovoProgetto, setShowNuovoProgetto] = useState(false)
+  const [progettiLocali, setProgettiLocali] = useState<any[]>([])
   const [showNuovoContatto, setShowNuovoContatto] = useState(false)
   const [showImport, setShowImport] = useState(false)
   const [contrattoForm, setContrattoForm] = useState({
@@ -194,6 +195,11 @@ export default function SchedaCliente({ clienteId, seed, onBack }: Props) {
               clienteId={clienteId}
               clienteNome={cliente.nome}
               onClose={() => setShowNuovoProgetto(false)}
+              onSaved={(p) => {
+                setProgettiLocali(prev => [...prev, p])
+                setProgettoSelezionato(p.id)
+                setActiveTab('attivita')
+              }}
             />
           </div>
         </div>
@@ -876,10 +882,11 @@ export default function SchedaCliente({ clienteId, seed, onBack }: Props) {
 
 // ── Form nuovo progetto ───────────────────────────────────────────────────
 
-function NuovoProgettoForm({ clienteId, clienteNome, onClose }: {
+function NuovoProgettoForm({ clienteId, clienteNome, onClose, onSaved }: {
   clienteId: string
   clienteNome: string
   onClose: () => void
+  onSaved?: (progetto: any) => void
 }) {
   const [form, setForm] = useState({
     nome: `${clienteNome} ${new Date().getFullYear()}`,
@@ -909,9 +916,8 @@ function NuovoProgettoForm({ clienteId, clienteNome, onClose }: {
     try {
       await sbPost('progetti', progetto)
       setSaving(false)
+      onSaved?.(progetto)
       onClose()
-      // Ricarica la pagina per vedere il nuovo progetto
-      window.location.reload()
     } catch(e: any) {
       setError('Errore salvataggio: ' + e.message)
       setSaving(false)
