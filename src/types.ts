@@ -124,4 +124,4 @@ export interface Seed {
 }
 
 export type AlertLevel = 'critica' | 'attenzione' | 'ok' | 'in_attesa'
-export type View = 'home' | 'carico' | 'scadenze' | 'operativita' | 'cliente' | 'forecast'
+export type View = 'home' | 'carico' | 'scadenze' | 'operativita' | 'cliente' | 'forecast' | 'impostazioni'
