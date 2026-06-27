@@ -255,23 +255,12 @@ export default function CaricoView({ seed }: CaricoProps) {
     return m
   }, [seed.ore_pianificate])
 
-  // Ore effettive per risorsa = somma ore effettive dei clienti che ha come referente
   const consuntivateByPersona = useMemo(() => {
     const m: Record<string, number[]> = {}
-    seed.team.filter(p => p.tipo === 'operativo').forEach(p => {
-      m[p.id] = new Array(12).fill(0)
-    })
-    // Somma ore effettive mensili per referente
-    ;(seed.clienti ?? []).forEach((c: any) => {
-      const mesi = Array.isArray(c.ore_effettive_mesi_2026) ? c.ore_effettive_mesi_2026 : []
-      if (c.referente && m[c.referente]) {
-        mesi.forEach((v: number, i: number) => {
-          m[c.referente][i] = (m[c.referente][i] ?? 0) + (Number(v) || 0)
-        })
-      }
-    })
+    const oc = (seed as any).ore_consuntivate
+    if (Array.isArray(oc)) oc.forEach((r: any) => { m[r.persona] = r.valori })
     return m
-  }, [seed.clienti, seed.team])
+  }, [(seed as any).ore_consuntivate])
 
   const personaById = useMemo(() => {
     const m: Record<string, Persona> = {}
