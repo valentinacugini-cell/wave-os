@@ -246,15 +246,27 @@ export default function CaricoView({ seed }: CaricoProps) {
 
   const capacitaByPersona = useMemo(() => {
     const m: Record<string, number[]> = {}
-    if (seed.capacita) seed.capacita.forEach((r: any) => { m[r.persona] = r.valori })
+    // Legge capacita_mensile direttamente dal team (12 mesi Gen-Dic)
+    seed.team.filter(p => p.tipo === 'operativo').forEach(p => {
+      const cap = (p as any).capacita_mensile
+      m[p.id] = Array.isArray(cap) && cap.length === 12 ? cap.map(Number) : new Array(12).fill(0)
+    })
     return m
-  }, [seed.capacita])
+  }, [seed.team])
 
   const pianificateByPersona = useMemo(() => {
     const m: Record<string, number[]> = {}
-    if (seed.ore_pianificate) seed.ore_pianificate.forEach((r: any) => { m[r.persona] = r.valori })
+    // Legge ore_pianificate dal seed (dal piano operativo)
+    const op = (seed as any).ore_pianificate
+    if (Array.isArray(op)) {
+      op.forEach((r: any) => {
+        const v = Array.isArray(r.valori) ? r.valori.map(Number) : new Array(12).fill(0)
+        // ore_pianificate ha 12 valori (piano operativo Giu-Dic + 5 mesi precedenti a 0)
+        m[r.persona] = v.length === 12 ? v : [...new Array(12 - v.length).fill(0), ...v]
+      })
+    }
     return m
-  }, [seed.ore_pianificate])
+  }, [(seed as any).ore_pianificate])
 
   const consuntivateByPersona = useMemo(() => {
     const m: Record<string, number[]> = {}
