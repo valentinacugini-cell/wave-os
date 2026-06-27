@@ -51,6 +51,7 @@ export default function SchedaCliente({ clienteId, seed, onBack }: Props) {
   const [anagraficaEdit, setAnagraficaEdit] = useState(false)
   const [contrattoEdit, setContrattoEdit] = useState(false)
   const [showNuovoProgetto, setShowNuovoProgetto] = useState(false)
+  const [showNuovoContatto, setShowNuovoContatto] = useState(false)
   const [showImport, setShowImport] = useState(false)
   const [contrattoForm, setContrattoForm] = useState({
     scadenza: '',
@@ -80,7 +81,7 @@ export default function SchedaCliente({ clienteId, seed, onBack }: Props) {
       setContrattoEdit(false)
     }
   }
-  const { getCliente, getContatti, updateCliente, updateNoteRinnovo, getNoteRinnovo } = useClienteContext()
+  const { getCliente, getContatti, updateCliente, updateContatti, updateNoteRinnovo, getNoteRinnovo } = useClienteContext()
 
   const clienteBase = seed.clienti.find(c => c.id === clienteId)
   const cliente = clienteBase ? getCliente(clienteBase) : undefined
@@ -262,7 +263,7 @@ export default function SchedaCliente({ clienteId, seed, onBack }: Props) {
             <div>
               <h1 className="text-xl font-semibold text-gray-900">{cliente.nome}</h1>
               <div className="flex items-center gap-2 mt-1 flex-wrap">
-                <BadgeTipo tipo={cliente.tipo} />
+
                 {isPPL && (
                   <span className="text-xs px-2 py-0.5 rounded font-medium"
                     style={{ background: '#F5F3FF', color: '#6D28D9' }}>
@@ -819,7 +820,14 @@ export default function SchedaCliente({ clienteId, seed, onBack }: Props) {
 
           {/* Contatti */}
           <div className="bg-white rounded-xl border border-gray-200 p-6">
-            <p className="text-xs text-gray-400 uppercase tracking-wide font-medium mb-3">Contatti</p>
+            <div className="flex items-center justify-between mb-4">
+              <p className="text-xs text-gray-400 uppercase tracking-wide font-medium">Contatti</p>
+              <button onClick={() => setShowNuovoContatto(true)}
+                className="text-xs px-3 py-1.5 rounded-lg font-medium transition-colors"
+                style={{ background: '#1A1A2E', color: '#7DF5DF' }}>
+                + Aggiungi contatto
+              </button>
+            </div>
             {contatti.length === 0 ? (
               <p className="text-sm text-gray-400">Nessun contatto inserito.</p>
             ) : contatti.map(c => (
@@ -838,6 +846,13 @@ export default function SchedaCliente({ clienteId, seed, onBack }: Props) {
                 </div>
               </div>
             ))}
+            {showNuovoContatto && (
+              <NuovoContattoForm
+                clienteId={clienteId}
+                onClose={() => setShowNuovoContatto(false)}
+                onSaved={(c) => { updateContatti(clienteId, [...contatti, c]); setShowNuovoContatto(false) }}
+              />
+            )}
           </div>
 
         </div>
@@ -935,6 +950,85 @@ function NuovoProgettoForm({ clienteId, clienteNome, onClose }: {
           className="text-sm px-4 py-2 rounded-lg font-medium transition-colors disabled:opacity-50"
           style={{ background: '#7DF5DF', color: '#1A1A2E' }}>
           {saving ? 'Salvataggio...' : 'Crea progetto'}
+        </button>
+      </div>
+    </div>
+  )
+}
+
+// ── Form nuovo contatto ───────────────────────────────────────────────────
+
+function NuovoContattoForm({ clienteId, onClose, onSaved }: {
+  clienteId: string
+  onClose: () => void
+  onSaved: (c: any) => void
+}) {
+  const [form, setForm] = useState({
+    nome: '', ruolo: '', email: '', telefono: '', principale: false
+  })
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState('')
+
+  async function handleSalva() {
+    if (!form.nome.trim()) { setError('Nome obbligatorio'); return }
+    setSaving(true)
+    const contatto = {
+      id: `cont_${clienteId}_${Date.now()}`,
+      cliente: clienteId,
+      nome: form.nome.trim(),
+      ruolo: form.ruolo.trim() || null,
+      email: form.email.trim() || null,
+      telefono: form.telefono.trim() || null,
+      principale: form.principale,
+    }
+    try {
+      await sbPost('contatti', contatto)
+      onSaved(contatto)
+    } catch(e: any) {
+      // Salvo comunque in sessione
+      onSaved(contatto)
+    }
+    setSaving(false)
+  }
+
+  return (
+    <div className="mt-4 pt-4 border-t border-gray-100 space-y-3">
+      <p className="text-xs text-gray-500 font-medium">Nuovo contatto</p>
+      {error && <p className="text-xs text-red-600">{error}</p>}
+      <div className="grid grid-cols-2 gap-3">
+        <div>
+          <label className="text-xs text-gray-400 block mb-1">Nome *</label>
+          <input value={form.nome} onChange={e => setForm(f => ({ ...f, nome: e.target.value }))}
+            className="w-full text-sm px-3 py-1.5 rounded-lg border border-gray-200 outline-none focus:border-teal-400" />
+        </div>
+        <div>
+          <label className="text-xs text-gray-400 block mb-1">Ruolo</label>
+          <input value={form.ruolo} onChange={e => setForm(f => ({ ...f, ruolo: e.target.value }))}
+            placeholder="es. Responsabile Marketing"
+            className="w-full text-sm px-3 py-1.5 rounded-lg border border-gray-200 outline-none" />
+        </div>
+        <div>
+          <label className="text-xs text-gray-400 block mb-1">Email</label>
+          <input type="email" value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))}
+            className="w-full text-sm px-3 py-1.5 rounded-lg border border-gray-200 outline-none" />
+        </div>
+        <div>
+          <label className="text-xs text-gray-400 block mb-1">Telefono</label>
+          <input value={form.telefono} onChange={e => setForm(f => ({ ...f, telefono: e.target.value }))}
+            className="w-full text-sm px-3 py-1.5 rounded-lg border border-gray-200 outline-none" />
+        </div>
+      </div>
+      <label className="flex items-center gap-2 cursor-pointer">
+        <input type="checkbox" checked={form.principale} onChange={e => setForm(f => ({ ...f, principale: e.target.checked }))}
+          className="rounded accent-teal-500" />
+        <span className="text-xs text-gray-600">Contatto principale</span>
+      </label>
+      <div className="flex gap-2 pt-1">
+        <button onClick={onClose} className="text-xs px-3 py-1.5 rounded-lg border border-gray-200 text-gray-500">Annulla</button>
+        <button onClick={handleSalva} disabled={saving}
+          className="text-xs px-3 py-1.5 rounded-lg font-medium disabled:opacity-50"
+          style={{ background: '#7DF5DF', color: '#1A1A2E' }}>
+          {saving ? 'Salvataggio...' : 'Aggiungi'}
         </button>
       </div>
     </div>
