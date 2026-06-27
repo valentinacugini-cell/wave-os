@@ -306,10 +306,12 @@ export default function CaricoView({ seed }: CaricoProps) {
       <SectionHeader title="Carico Team" />
 
       {/* DEBUG temporaneo */}
-      <div className="mb-4 p-3 rounded bg-yellow-50 border border-yellow-200 text-xs font-mono">
+      <div className="mb-4 p-3 rounded bg-yellow-50 border border-yellow-200 text-xs font-mono overflow-auto max-h-48">
         <p>operativi: {operativi.length}</p>
         {operativi.map(p => (
-          <p key={p.id}>{p.id}: cap={JSON.stringify(capacitaByPersona[p.id]?.slice(0,6))} plan={JSON.stringify(pianificateByPersona[p.id]?.slice(0,6))} cons={JSON.stringify(consuntivateByPersona[p.id]?.slice(0,6))}</p>
+          <div key={p.id} className="mb-1">
+            <p>{p.id}: cap={JSON.stringify((p as any).capacita_mensile?.slice(0,6))} plan={JSON.stringify((p as any).ore_pianificate?.slice(0,6))} cons={JSON.stringify((p as any).ore_effettive_mensili?.slice(0,6))}</p>
+          </div>
         ))}
       </div>
 
