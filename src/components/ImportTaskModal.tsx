@@ -7,7 +7,7 @@ interface ImportTaskModalProps {
   personaById: Record<string, Persona>
   clienteId: string
   onClose: () => void
-  onImport: (tasks: Omit<Task, 'id'>[]) => void
+  onImport: (tasks: Omit<Task, 'id'>[]) => Promise<void>
 }
 
 interface RigaImport {
