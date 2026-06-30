@@ -42,6 +42,20 @@ export async function sbPatch(table: string, id: string, data: any) {
   if (!res.ok) throw new Error(`Supabase error ${res.status}: ${await res.text()}`)
 }
 
+export async function sbUpsert(table: string, data: any) {
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/${table}`, {
+    method: 'POST',
+    headers: {
+      'apikey': SUPABASE_KEY,
+      'Authorization': `Bearer ${SUPABASE_KEY}`,
+      'Content-Type': 'application/json',
+      'Prefer': 'resolution=merge-duplicates,return=minimal'
+    },
+    body: JSON.stringify(data)
+  })
+  if (!res.ok) throw new Error(`Supabase error ${res.status}: ${await res.text()}`)
+}
+
 export async function sbDelete(table: string, id: string) {
   const res = await fetch(`${SUPABASE_URL}/rest/v1/${table}?id=eq.${encodeURIComponent(id)}`, {
     method: 'DELETE',
@@ -55,7 +69,7 @@ export async function sbDelete(table: string, id: string) {
 
 export async function loadSeed() {
   const [team, clienti, progetti, tasks, scadenze, contatti, noteRinnovo] = await Promise.all([
-    sb('team', 'select=*&order=tipo,nome'),
+    sb('team', 'select=id,nome,ruolo,tipo,colore,capacita_mensile,ore_pianificate,ore_effettive_mensili&order=tipo,nome'),
     sb('clienti', 'select=*&order=nome'),
     sb('progetti', 'select=*&order=nome'),
     sb('tasks', 'select=*&order=data_fine'),
@@ -69,6 +83,8 @@ export async function loadSeed() {
   const teamNorm = team.map((p: any) => ({
     id: p.id, nome: p.nome, ruolo: p.ruolo, tipo: p.tipo, colore: p.colore,
     capacita_mensile: p.capacita_mensile ?? [],
+    ore_pianificate: p.ore_pianificate ?? [],
+    ore_effettive_mensili: p.ore_effettive_mensili ?? [],
   }))
 
   const capacita = teamNorm
@@ -77,7 +93,11 @@ export async function loadSeed() {
 
   const ore_pianificate = teamNorm
     .filter((p: any) => p.tipo === 'operativo')
-    .map((p: any) => ({ persona: p.id, valori: new Array(7).fill(0) }))
+    .map((p: any) => ({ persona: p.id, valori: Array.isArray(p.ore_pianificate) && p.ore_pianificate.length > 0 ? p.ore_pianificate : new Array(12).fill(0) }))
+
+  const ore_consuntivate = teamNorm
+    .filter((p: any) => p.tipo === 'operativo')
+    .map((p: any) => ({ persona: p.id, valori: Array.isArray(p.ore_effettive_mensili) && p.ore_effettive_mensili.length > 0 ? p.ore_effettive_mensili.map(Number) : new Array(12).fill(0) }))
 
   // Assicuro che tutti gli array siano sempre array validi
   const safeSeed = {
@@ -93,7 +113,10 @@ export async function loadSeed() {
     progetti: progetti.map((p: any) => ({
       id: p.id, cliente: p.cliente, nome: p.nome, anno: p.anno,
       ore_contratto: p.ore_contratto ?? 0, stato: p.stato,
-      data_inizio: p.data_inizio, data_fine: p.data_fine,
+      data_inizio: p.data_inizio ?? null, data_fine: p.data_fine ?? null,
+      importo_contratto: p.importo_contratto ?? 0,
+      note_commerciali: p.note_commerciali ?? null,
+      rinnovo_previsto: p.rinnovo_previsto ?? null,
     })),
     tasks: tasks.map((t: any) => ({
       id: t.id, cliente: t.cliente, progetto_id: t.progetto_id,
@@ -117,6 +140,7 @@ export async function loadSeed() {
     mesi_label: mesi_label ?? ['Giu','Lug','Ago','Set','Ott','Nov','Dic'],
     capacita: capacita ?? [],
     ore_pianificate: ore_pianificate ?? [],
+    ore_consuntivate: ore_consuntivate ?? [],
   }
 
   // Patch difensiva completa
@@ -144,4 +168,288 @@ export async function loadSeed() {
   ;(safeSeed as any).ore_pianificate = Array.isArray(safeSeed.ore_pianificate) ? safeSeed.ore_pianificate : []
 
   return safeSeed
+}
+
+// ── Lettura ore effettive dal timesheet Google Sheets ─────────────────────
+
+const SHEET_ID = '1UUIohuV202zvnB909QrAJyrLpqDQwsLkj16vYiZvgak'
+
+// Mappa nome cliente nel timesheet → id Supabase
+const TIMESHEET_CLIENTE_MAP: Record<string, string> = {
+  'Accuracy': 'accuracy',
+  'AGRIBRIANZA': 'agribrianza',
+  'Alimeco': 'alimeco',
+  'ASILETTO': 'asiletto',
+  'BEFLUIDICA': 'befluidica',
+  'CDO': 'cdo',
+  'CARBOTERMO': 'carbotermo',
+  'CDO MILANO': 'cdo_milano',
+  'CDO COMO': 'cdo_como',
+  'CDO MONZA E BRIANZA': 'cdo_monza',
+  'CL SCRITTI': 'cl_scritti',
+  'COMUNE DI SONDRIO': 'comune_sondrio',
+  'CTL GROUP': 'ctl_group',
+  'COGEFIM': 'cogefim',
+  "COLLEZIONI D'ARTE": 'collezioni_arte',
+  'DIEMME': 'diemme',
+  'FERRARI': 'ferrari',
+  'FIU': 'fiu',
+  'FOTORENT': 'fotorent',
+  'G&B': 'gb_group',
+  'GIARDINIA': 'giardinia',
+  'GRUPPODIGIT': 'gruppodigit',
+  'INFOR-MA': 'informa',
+  'MAINARDI SISTEMI': 'mainardi',
+  'MIL SERVICE': 'mil_service',
+  'MECH-I-TRONIC': 'mech_i_tronic',
+  'NASTRI BRIZZOLARI': 'brizzolari',
+  'NATURAL CLIMA': 'natural_clima',
+  'NEW': 'new_srl',
+  'OLTRE IMPACT': 'oltre_impact',
+  'ON ENERGY': 'on_energy',
+  'RB': 'rb',
+  'RL - VIRGONET': 'virgonet',
+  'SCS': 'scs',
+  'Shoptime': 'shoptime',
+  'SILVAUTO': 'silvauto',
+  'SOGEMA': 'sogema',
+  'TECNODATA': 'tecnodata',
+  'TELPRO': 'telpro',
+  'TOP FILM': 'topfilm',
+  'TRECCANI': 'treccani',
+  'WIT IN CLOUD': 'wic',
+}
+
+function safeNum(v: any): number {
+  if (v === null || v === undefined || v === '') return 0
+  const n = parseFloat(String(v).replace(',', '.'))
+  return isNaN(n) ? 0 : n
+}
+
+export async function fetchOreEffettive(): Promise<Record<string, { ytd: number; mesi: number[] }>> {
+  const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=Controllo`
+  try {
+    const res = await fetch(url)
+    if (!res.ok) throw new Error(`HTTP ${res.status}`)
+    const csv = await res.text()
+
+    // Parser CSV robusto che gestisce celle multiriga con newline interni
+    const rows: string[][] = []
+    let row: string[] = []
+    let cell = ''
+    let inQuote = false
+
+    for (let i = 0; i < csv.length; i++) {
+      const ch = csv[i]
+      const next = csv[i + 1]
+
+      if (ch === '"') {
+        if (inQuote && next === '"') { cell += '"'; i++ }
+        else { inQuote = !inQuote }
+      } else if (ch === ',' && !inQuote) {
+        row.push(cell.trim())
+        cell = ''
+      } else if ((ch === '\n' || ch === '\r') && !inQuote) {
+        if (ch === '\r' && next === '\n') i++
+        row.push(cell.trim())
+        rows.push(row)
+        row = []
+        cell = ''
+      } else {
+        cell += ch
+      }
+    }
+    if (cell || row.length) { row.push(cell.trim()); rows.push(row) }
+
+    // col 44=YTD 2026, col 46-57=GEN-DIC 2026
+    const result: Record<string, { ytd: number; mesi: number[] }> = {}
+
+    for (const row of rows) {
+      const nome = row[0]?.replace(/^"|"$/g, '').trim() ?? ''
+      if (!nome || !TIMESHEET_CLIENTE_MAP[nome]) continue
+
+      const clienteId = TIMESHEET_CLIENTE_MAP[nome]
+      const ytd = safeNum(row[44])
+      const mesi = Array.from({ length: 12 }, (_, i) => safeNum(row[46 + i]))
+
+      result[clienteId] = { ytd, mesi }
+    }
+
+    return result
+  } catch (e) {
+    console.error('fetchOreEffettive:', e)
+    return {}
+  }
+}
+
+async function fetchDettaglioAreaClienti(): Promise<{cliente: string, risorsa: string, area: string, mesi: number[]}[]> {
+  const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=Controllo`
+  const RISORSE_MAP: Record<string, string> = {
+    'Valentina': 'valentina', 'Ivana': 'ivana', 'Giulia': 'giulia', 'Gloria': 'gloria'
+  }
+  const AREE = new Set(['web', 'social', 'adv', 'email', 'meeting'])
+  // Nomi che indicano una riga che NON appartiene a un cliente — reset del cliente corrente
+  const NON_CLIENTE = new Set([
+    ...Object.keys(RISORSE_MAP),
+    'Valentina file presenze', 'Ivana file presenze', 'Giulia file presenze', 'Gloria file presenze',
+    'web', 'social', 'adv', 'email', 'meeting', '', 'Wave', 'WAVE'
+  ])
+  const result: {cliente: string, risorsa: string, area: string, mesi: number[]}[] = []
+
+  try {
+    const res = await fetch(url)
+    if (!res.ok) return result
+    const csv = await res.text()
+
+    const rows: string[][] = []
+    let row: string[] = [], cell = '', inQuote = false
+    for (let i = 0; i < csv.length; i++) {
+      const ch = csv[i], next = csv[i+1]
+      if (ch === '"') { if (inQuote && next === '"') { cell += '"'; i++ } else inQuote = !inQuote }
+      else if (ch === ',' && !inQuote) { row.push(cell.trim()); cell = '' }
+      else if ((ch === '\n' || ch === '\r') && !inQuote) {
+        if (ch === '\r' && next === '\n') i++
+        row.push(cell.trim()); rows.push(row); row = []; cell = ''
+      } else cell += ch
+    }
+    if (cell || row.length) { row.push(cell.trim()); rows.push(row) }
+
+    let clienteCorrente: string | null = null
+    let risorsaCorrente: string | null = null
+
+    for (const row of rows) {
+      const col0 = row[0]?.replace(/^"|"$/g, '').trim() ?? ''
+      const col0Low = col0.toLowerCase()
+
+      // Nuovo cliente valido
+      if (TIMESHEET_CLIENTE_MAP[col0]) {
+        clienteCorrente = TIMESHEET_CLIENTE_MAP[col0]
+        risorsaCorrente = null
+        continue
+      }
+
+      // Stringa che non è né area né risorsa né vuota = fine del blocco cliente
+      if (col0 && !AREE.has(col0Low) && !RISORSE_MAP[col0] && !NON_CLIENTE.has(col0)) {
+        clienteCorrente = null
+        risorsaCorrente = null
+        continue
+      }
+
+      if (!clienteCorrente) continue
+
+      // Riga risorsa
+      if (RISORSE_MAP[col0]) { risorsaCorrente = RISORSE_MAP[col0]; continue }
+
+      // Riga area
+      if (AREE.has(col0Low) && risorsaCorrente) {
+        const mesi = Array.from({ length: 12 }, (_, i) => safeNum(row[46 + i]))
+        if (mesi.some(v => v > 0)) {
+          result.push({ cliente: clienteCorrente, risorsa: risorsaCorrente, area: col0Low, mesi })
+        }
+      }
+    }
+    return result
+  } catch(e) {
+    console.error('fetchDettaglioAreaClienti:', e)
+    return result
+  }
+}
+
+export async function syncOreEffettive(): Promise<number> {
+  const [ore, oreRisorsa] = await Promise.all([
+    fetchOreEffettive(),
+    fetchOreEffettivePerRisorsa(),
+  ])
+  let aggiornati = 0
+
+  // Aggiorna ore clienti
+  for (const [clienteId, dati] of Object.entries(ore)) {
+    if (dati.ytd === 0 && dati.mesi.every(v => v === 0)) continue
+    try {
+      await sbPatch('clienti', clienteId, {
+        ore_effettive_ytd_2026: dati.ytd,
+        ore_effettive_mesi_2026: dati.mesi,
+      })
+      aggiornati++
+    } catch (e) {
+      console.error(`syncOreEffettive ${clienteId}:`, e)
+    }
+  }
+
+  // Aggiorna ore effettive mensili per risorsa nel team
+  for (const [risorsaId, mesi] of Object.entries(oreRisorsa)) {
+    try {
+      await sbPatch('team', risorsaId, { ore_effettive_mensili: mesi })
+    } catch (e) {
+      console.error(`syncOreRisorsa ${risorsaId}:`, e)
+    }
+  }
+
+  // Aggiorna dettaglio area per cliente
+  const dettaglio = await fetchDettaglioAreaClienti()
+  for (const d of dettaglio) {
+    // ID deterministico uguale per caricamento manuale e sync
+    const id = `det_${d.cliente}_${d.risorsa}_${d.area}`
+    try {
+      await sbUpsert('ore_effettive_dettaglio', {
+        id, cliente: d.cliente, risorsa: d.risorsa, area: d.area, mesi: d.mesi
+      })
+    } catch(e) {
+      console.error(`dettaglio upsert ${id}:`, e)
+    }
+  }
+
+  return aggiornati
+}
+
+async function fetchOreEffettivePerRisorsa(): Promise<Record<string, number[]>> {
+  const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=Controllo`
+  const RISORSE_MAP: Record<string, string> = {
+    'Valentina': 'valentina', 'Ivana': 'ivana', 'Giulia': 'giulia', 'Gloria': 'gloria'
+  }
+  const ESCLUSI = new Set(['Wave', 'WAVE']) // ore interne escluse dal calcolo
+  const result: Record<string, number[]> = {
+    valentina: new Array(12).fill(0), ivana: new Array(12).fill(0),
+    giulia: new Array(12).fill(0), gloria: new Array(12).fill(0),
+  }
+  try {
+    const res = await fetch(url)
+    if (!res.ok) return result
+    const csv = await res.text()
+
+    const rows: string[][] = []
+    let row: string[] = [], cell = '', inQuote = false
+    for (let i = 0; i < csv.length; i++) {
+      const ch = csv[i], next = csv[i+1]
+      if (ch === '"') { if (inQuote && next === '"') { cell += '"'; i++ } else inQuote = !inQuote }
+      else if (ch === ',' && !inQuote) { row.push(cell.trim()); cell = '' }
+      else if ((ch === '\n' || ch === '\r') && !inQuote) {
+        if (ch === '\r' && next === '\n') i++
+        row.push(cell.trim()); rows.push(row); row = []; cell = ''
+      } else cell += ch
+    }
+    if (cell || row.length) { row.push(cell.trim()); rows.push(row) }
+
+    let inCliente = false
+    for (const row of rows) {
+      const col0 = row[0]?.replace(/^"|"$/g, '').trim() ?? ''
+      // Cliente valido → attiva lettura
+      if (TIMESHEET_CLIENTE_MAP[col0]) { inCliente = true; continue }
+      // Cliente escluso (Wave) o cliente sconosciuto → disattiva lettura
+      if (col0 && !RISORSE_MAP[col0] && !['web','social','adv','email','meeting',''].includes(col0.toLowerCase())) {
+        inCliente = false
+        continue
+      }
+      if (!inCliente) continue
+      const risorsaId = RISORSE_MAP[col0]
+      if (!risorsaId) continue
+      for (let m = 0; m < 12; m++) {
+        result[risorsaId][m] += safeNum(row[46 + m])
+      }
+    }
+    return result
+  } catch(e) {
+    console.error('fetchOreEffettivePerRisorsa:', e)
+    return result
+  }
 }

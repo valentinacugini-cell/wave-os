@@ -40,6 +40,15 @@ function CalendarioView({ seed, onClienteClick }: { seed: Seed; onClienteClick?:
     return m
   }, [seed.progetti])
 
+  // Progetto attivo per cliente (1 progetto attivo per cliente)
+  const progettoAttivoByCliente = useMemo(() => {
+    const m: Record<string, any> = {}
+    ;(seed.progetti ?? []).forEach(p => {
+      if (p.stato === 'attivo' && !m[p.cliente]) m[p.cliente] = p
+    })
+    return m
+  }, [seed.progetti])
+
   // Anno minimo = anno corrente, anno massimo = anno più lontano nei dati
   const annoMin = oggi.getFullYear()
   const annoMax = oggi.getFullYear() + 5 // Navigazione libera fino a 5 anni avanti
@@ -86,15 +95,16 @@ function CalendarioView({ seed, onClienteClick }: { seed: Seed; onClienteClick?:
   const clientiAnno = useMemo(() => {
     return seed.clienti.filter(c => {
       if (c.stato === 'concluso') return false
-      // Ha contratto che copre l'anno selezionato
-      const scad = c.scadenza_contratto ? new Date(c.scadenza_contratto) : null
+      const progetto = progettoAttivoByCliente[c.id]
+      // Ha progetto con scadenza che copre l'anno selezionato
+      const scad = progetto?.data_fine ? new Date(progetto.data_fine) : null
       if (scad && scad.getFullYear() >= annoSelezionato) return true
       if (!scad && c.stato === 'attivo') return true
       // Ha scadenze nell'anno selezionato
       const scadenzeCliente = scadenzePerCliente[c.id] ?? []
       return scadenzeCliente.some(s => new Date(s.data).getFullYear() === annoSelezionato)
     })
-  }, [seed.clienti, annoSelezionato, scadenzePerCliente])
+  }, [seed.clienti, annoSelezionato, scadenzePerCliente, progettoAttivoByCliente])
 
   const tipoTabs = [
     { id: 'tutte', label: 'Tutte' },
@@ -149,6 +159,14 @@ function CalendarioView({ seed, onClienteClick }: { seed: Seed; onClienteClick?:
               {label}
             </span>
           ))}
+          <span className="flex items-center gap-1 text-xs text-gray-400 ml-2 pl-2" style={{ borderLeft: '1px solid #E0E0E0' }}>
+            <span className="w-2.5 h-2.5 rotate-45 inline-block" style={{ background: '#E53935' }} />
+            Scadenza contratto
+          </span>
+          <span className="flex items-center gap-1 text-xs text-gray-400">
+            <span className="w-2.5 h-2.5 rotate-45 inline-block" style={{ background: '#F9A825' }} />
+            Rinnovo previsto
+          </span>
           {oggiPct >= 0 && (
             <span className="flex items-center gap-1 text-xs text-gray-400">
               <span className="w-4 border-t-2 border-dashed inline-block" style={{ borderColor: '#1D9E75' }} />
@@ -178,10 +196,17 @@ function CalendarioView({ seed, onClienteClick }: { seed: Seed; onClienteClick?:
           const referente = personaById[cliente.referente]
           const scadenze = scadenzePerCliente[cliente.id] ?? []
           const isHovered = hoveredCliente === cliente.id
+          const progetto = progettoAttivoByCliente[cliente.id]
 
-          const contrEnd = cliente.scadenza_contratto ? new Date(cliente.scadenza_contratto) : rangeEnd
-          const barLeft = 0
-          const barRight = pct(contrEnd)
+          const progInizio = progetto?.data_inizio ? new Date(progetto.data_inizio) : null
+          const progFine = progetto?.data_fine ? new Date(progetto.data_fine) : null
+          const rinnovoRaw = progetto?.rinnovo_previsto
+          const rinnovo = rinnovoRaw
+            ? new Date(rinnovoRaw)
+            : (progFine ? new Date(progFine.getTime() - 30*24*60*60*1000) : null)
+
+          const barLeft = progInizio ? pct(progInizio) : 0
+          const barRight = progFine ? pct(progFine) : pct(rangeEnd)
           const barColor = referente?.colore ?? '#7DF5DF'
 
           return (
@@ -219,19 +244,59 @@ function CalendarioView({ seed, onClienteClick }: { seed: Seed; onClienteClick?:
                     style={{ left: `${oggiPct}%`, borderLeft: '2px dashed #1D9E75', opacity: 0.6 }} />
                 )}
 
-                {/* Barra contratto */}
-                <div className="absolute rounded cursor-pointer hover:opacity-90 transition-opacity"
-                  style={{
-                    left: `${barLeft}%`,
-                    width: `${Math.max(Math.min(barRight, 100) - barLeft, 1)}%`,
-                    top: '50%',
-                    transform: 'translateY(-50%)',
-                    height: 14,
-                    background: barColor + '25',
-                    border: `1.5px solid ${barColor}60`,
-                  }}
-                  onClick={() => onClienteClick?.(cliente.id)}
-                />
+                {/* Barra progetto (periodo contrattuale) */}
+                {progetto && (
+                  <div className="absolute rounded cursor-pointer hover:opacity-90 transition-opacity group"
+                    style={{
+                      left: `${barLeft}%`,
+                      width: `${Math.max(Math.min(barRight, 100) - barLeft, 1)}%`,
+                      top: '50%',
+                      transform: 'translateY(-50%)',
+                      height: 14,
+                      background: barColor + '25',
+                      border: `1.5px solid ${barColor}60`,
+                    }}
+                    onClick={() => onClienteClick?.(cliente.id)}>
+                    <div className="absolute z-30 bg-gray-900 text-white text-xs rounded-lg px-2 py-1.5 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap"
+                      style={{ bottom: '140%', left: '50%', transform: 'translateX(-50%)' }}>
+                      <p className="font-semibold">{progetto.nome}</p>
+                      {progInizio && progFine && (
+                        <p className="text-white/70 text-xs mt-0.5">
+                          {progInizio.toLocaleDateString('it-IT')} → {progFine.toLocaleDateString('it-IT')}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* Milestone: scadenza contratto */}
+                {progFine && progFine >= rangeStart && progFine <= rangeEnd && (
+                  <div className="absolute z-20 cursor-pointer group"
+                    style={{ left: `${pct(progFine)}%`, top: '50%', transform: 'translate(-50%, -50%)' }}
+                    onClick={() => onClienteClick?.(cliente.id)}>
+                    <div className="w-3 h-3 rotate-45 transition-transform group-hover:scale-150"
+                      style={{ background: '#E53935', border: '1.5px solid white', boxShadow: '0 0 0 1.5px #E53935' }} />
+                    <div className="absolute z-30 bg-gray-900 text-white text-xs rounded-lg px-2 py-1 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap"
+                      style={{ bottom: '140%', left: '50%', transform: 'translateX(-50%)' }}>
+                      <p className="font-semibold">Scadenza contratto</p>
+                    </div>
+                  </div>
+                )}
+
+                {/* Milestone: rinnovo previsto */}
+                {rinnovo && rinnovo >= rangeStart && rinnovo <= rangeEnd && (
+                  <div className="absolute z-20 cursor-pointer group"
+                    style={{ left: `${pct(rinnovo)}%`, top: '50%', transform: 'translate(-50%, -50%)' }}
+                    onClick={() => onClienteClick?.(cliente.id)}>
+                    <div className="w-3 h-3 rotate-45 transition-transform group-hover:scale-150"
+                      style={{ background: '#F9A825', border: '1.5px solid white', boxShadow: '0 0 0 1.5px #F9A825' }} />
+                    <div className="absolute z-30 bg-gray-900 text-white text-xs rounded-lg px-2 py-1 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap"
+                      style={{ bottom: '140%', left: '50%', transform: 'translateX(-50%)' }}>
+                      <p className="font-semibold">Rinnovo previsto</p>
+                      {!rinnovoRaw && <p className="text-white/60 text-xs mt-0.5">stimato, -30gg</p>}
+                    </div>
+                  </div>
+                )}
 
                 {/* Marker scadenze */}
                 {scadenze.map(s => {
@@ -289,6 +354,15 @@ function ListaView({ seed }: { seed: Seed }) {
   const progettoById = useMemo(() => {
     const m: Record<string, string> = {}
     ;(seed.progetti ?? []).forEach(p => { m[p.id] = p.nome })
+    return m
+  }, [seed.progetti])
+
+  // Progetto attivo per cliente (1 progetto attivo per cliente)
+  const progettoAttivoByCliente = useMemo(() => {
+    const m: Record<string, any> = {}
+    ;(seed.progetti ?? []).forEach(p => {
+      if (p.stato === 'attivo' && !m[p.cliente]) m[p.cliente] = p
+    })
     return m
   }, [seed.progetti])
 

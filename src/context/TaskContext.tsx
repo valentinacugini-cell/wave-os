@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, ReactNode } from 'react'
 import { Task } from '../types'
+import { sbPost, sbPatch, sbDelete } from '../lib/supabase'
 
 interface TaskContextValue {
   taskEdits: Record<string, Partial<Task>>
@@ -8,6 +9,7 @@ interface TaskContextValue {
   eliminaTask: (ids: string[]) => void
   getTask: (task: Task) => Task
   isEliminato: (id: string) => boolean
+  addTask: (task: Omit<Task, 'id'> & { id?: string }) => Promise<string>
 }
 
 const TaskContext = createContext<TaskContextValue | null>(null)
@@ -16,16 +18,42 @@ export function TaskProvider({ children }: { children: ReactNode }) {
   const [taskEdits, setTaskEdits] = useState<Record<string, Partial<Task>>>({})
   const [taskEliminati, setTaskEliminati] = useState<Set<string>>(new Set())
 
-  function updateTask(id: string, updates: Partial<Task>) {
+  async function updateTask(id: string, updates: Partial<Task>) {
+    // Aggiorna stato locale immediatamente
     setTaskEdits(prev => ({ ...prev, [id]: { ...(prev[id] ?? {}), ...updates } }))
+    // Scrive su Supabase in background
+    try {
+      await sbPatch('tasks', id, updates)
+    } catch(e) {
+      console.error('updateTask Supabase:', e)
+    }
   }
 
-  function eliminaTask(ids: string[]) {
+  async function eliminaTask(ids: string[]) {
     setTaskEliminati(prev => {
       const next = new Set(prev)
       ids.forEach(id => next.add(id))
       return next
     })
+    // Elimina su Supabase in background
+    for (const id of ids) {
+      try {
+        await sbDelete('tasks', id)
+      } catch(e) {
+        console.error('eliminaTask Supabase:', e)
+      }
+    }
+  }
+
+  async function addTask(taskData: Omit<Task, 'id'> & { id?: string }): Promise<string> {
+    const id = taskData.id ?? `task_${Date.now()}_${Math.random().toString(36).slice(2,7)}`
+    const task = { ...taskData, id }
+    try {
+      await sbPost('tasks', task)
+    } catch(e) {
+      console.error('addTask Supabase:', e)
+    }
+    return id
   }
 
   function getTask(task: Task): Task {
@@ -37,7 +65,9 @@ export function TaskProvider({ children }: { children: ReactNode }) {
   }
 
   return (
-    <TaskContext.Provider value={{ taskEdits, taskEliminati, updateTask, eliminaTask, getTask, isEliminato }}>
+    <TaskContext.Provider value={{
+      taskEdits, taskEliminati, updateTask, eliminaTask, getTask, isEliminato, addTask
+    }}>
       {children}
     </TaskContext.Provider>
   )

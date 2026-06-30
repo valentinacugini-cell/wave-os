@@ -1,12 +1,14 @@
 import React, { useState, useMemo } from 'react'
 import { Seed, Persona } from '../types'
 import { SectionHeader } from '../components/UI'
+import { useTaskContext } from '../context/TaskContext'
+import { oreTaskNelPeriodo } from '../utils'
 
 interface CaricoProps {
   seed: Seed
 }
 
-const MESI_LABEL = ['Giu', 'Lug', 'Ago', 'Set', 'Ott', 'Nov', 'Dic']
+const MESI_LABEL = ['Gen', 'Feb', 'Mar', 'Apr', 'Mag', 'Giu', 'Lug', 'Ago', 'Set', 'Ott', 'Nov', 'Dic']
 
 function PersonaLoadBar({ persona, pianificate, capacita, consuntivate }: {
   persona: Persona
@@ -39,7 +41,7 @@ function PersonaLoadBar({ persona, pianificate, capacita, consuntivate }: {
           </span>
           <span className="flex items-center gap-1.5">
             <span className="w-3 h-3 rounded-sm inline-block" style={{ background: persona.colore }} />
-            Consuntivate
+            Effettive
           </span>
           <span className="flex items-center gap-1.5">
             <span className="w-3 h-3 rounded-sm inline-block bg-red-400" />
@@ -53,10 +55,11 @@ function PersonaLoadBar({ persona, pianificate, capacita, consuntivate }: {
           const cap = capacita[i] ?? 0
           const plan = pianificate[i] ?? 0
           const cons = consuntivate[i] ?? 0
-          const isOver = plan > cap
-          const planH = cap > 0 ? Math.min((plan / cap) * maxH, maxH + 20) : 0
-          const consH = cap > 0 ? Math.min((cons / cap) * maxH, maxH) : 0
-          const delta = plan - cap
+          const isOver = cons > cap
+          const maxVal = Math.max(cap, plan, cons, 1)
+          const planH = Math.min((plan / maxVal) * maxH, maxH + 20)
+          const consH = Math.min((cons / maxVal) * maxH, maxH)
+          const delta = cons - cap
 
           return (
             <div key={mese} className="flex-1 flex flex-col items-center gap-1 relative"
@@ -69,10 +72,10 @@ function PersonaLoadBar({ persona, pianificate, capacita, consuntivate }: {
                   style={{ bottom: maxH + 40 }}>
                   <p className="font-semibold mb-1">{mese} 2026</p>
                   <p>Capacità: <strong>{cap}h</strong></p>
-                  <p>Pianificate: <strong style={{ color: isOver ? '#FCA5A5' : '#7DF5DF' }}>{plan}h</strong></p>
-                  {cons > 0 && <p>Consuntivate: <strong style={{ color: '#7DF5DF' }}>{cons}h</strong></p>}
-                  {isOver && <p style={{ color: '#FCA5A5' }}>Surplus: <strong>−{delta}h</strong></p>}
-                  {!isOver && <p style={{ color: '#86EFAC' }}>Libere: <strong>+{cap - plan}h</strong></p>}
+                  {plan > 0 && <p>Pianificate: <strong style={{ color: '#94A3B8' }}>{Math.round(plan)}h</strong></p>}
+                  <p>Effettive: <strong style={{ color: '#4F86C6' }}>{Math.round(cons)}h</strong></p>
+                  {isOver && <p style={{ color: '#FCA5A5' }}>Sovraccarico: <strong>+{Math.round(Math.abs(delta))}h</strong></p>}
+                  {!isOver && <p style={{ color: '#86EFAC' }}>Saldo: <strong>+{Math.round(cap - cons)}h</strong></p>}
                 </div>
               )}
 
@@ -137,7 +140,7 @@ function AllocazioniTabella({ allocazioni, personaById, clienteById, pianificate
   const perCliente = useMemo(() => {
     const m: Record<string, { totali: number[]; righe: any[] }> = {}
     allocazioni.forEach(a => {
-      if (!m[a.cliente]) m[a.cliente] = { totali: new Array(7).fill(0), righe: [] }
+      if (!m[a.cliente]) m[a.cliente] = { totali: new Array(12).fill(0), righe: [] }
       m[a.cliente].righe.push(a)
       a.valori.forEach((v: number, i: number) => { m[a.cliente].totali[i] += v })
     })
@@ -240,27 +243,63 @@ function AllocazioniTabella({ allocazioni, personaById, clienteById, pianificate
 export default function CaricoView({ seed }: CaricoProps) {
   const [filterPersona, setFilterPersona] = useState('tutti')
   const [filterCliente, setFilterCliente] = useState('tutti')
+  const { getTask, isEliminato } = useTaskContext()
 
   const operativi = seed.team.filter(p => p.tipo === 'operativo')
+  const anno = seed.anno ?? new Date().getFullYear()
+
+  const tasksAttivi = useMemo(
+    () => seed.tasks.filter(t => !isEliminato(t.id)).map(t => getTask(t)),
+    [seed.tasks, isEliminato, getTask]
+  )
+
+  // 12 mesi Gen-Dic dell'anno del seed, usati per distribuire le ore dei task
+  const mesiRange = useMemo(() => (
+    Array.from({ length: 12 }, (_, i) => ({
+      start: new Date(anno, i, 1),
+      end: new Date(anno, i + 1, 0),
+    }))
+  ), [anno])
 
   const capacitaByPersona = useMemo(() => {
     const m: Record<string, number[]> = {}
-    if (seed.capacita) seed.capacita.forEach((r: any) => { m[r.persona] = r.valori })
+    // Legge capacita_mensile direttamente dal team (12 mesi Gen-Dic)
+    seed.team.filter(p => p.tipo === 'operativo').forEach(p => {
+      const cap = (p as any).capacita_mensile
+      m[p.id] = Array.isArray(cap) && cap.length === 12 ? cap.map(Number) : new Array(12).fill(0)
+    })
     return m
-  }, [seed.capacita])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [JSON.stringify(seed.team)])
 
   const pianificateByPersona = useMemo(() => {
+    // Ore pianificate = somma delle ore stimate dei task assegnati, distribuite sui
+    // mesi in base a data_inizio/data_fine. Stessa logica usata in Operatività,
+    // così i due valori restano sempre coerenti tra le viste.
     const m: Record<string, number[]> = {}
-    if (seed.ore_pianificate) seed.ore_pianificate.forEach((r: any) => { m[r.persona] = r.valori })
+    operativi.forEach(p => { m[p.id] = new Array(12).fill(0) })
+    tasksAttivi.forEach(t => {
+      t.assegnatari.forEach(pid => {
+        if (!m[pid]) return
+        mesiRange.forEach((mese, mi) => {
+          m[pid][mi] += oreTaskNelPeriodo(t, mese.start, mese.end)
+        })
+      })
+    })
+    Object.keys(m).forEach(pid => { m[pid] = m[pid].map(v => Math.round(v)) })
     return m
-  }, [seed.ore_pianificate])
+  }, [tasksAttivi, operativi, mesiRange])
 
   const consuntivateByPersona = useMemo(() => {
     const m: Record<string, number[]> = {}
-    const oc = (seed as any).ore_consuntivate
-    if (Array.isArray(oc)) oc.forEach((r: any) => { m[r.persona] = r.valori })
+    // Legge ore_effettive_mensili direttamente dal team
+    seed.team.filter(p => p.tipo === 'operativo').forEach(p => {
+      const oe = (p as any).ore_effettive_mensili
+      m[p.id] = Array.isArray(oe) && oe.length > 0 ? oe.map(Number) : new Array(12).fill(0)
+    })
     return m
-  }, [(seed as any).ore_consuntivate])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [JSON.stringify(seed.team)])
 
   const personaById = useMemo(() => {
     const m: Record<string, Persona> = {}
@@ -274,12 +313,29 @@ export default function CaricoView({ seed }: CaricoProps) {
     return m
   }, [seed.clienti])
 
+  // Allocazioni per cliente/persona/area derivate dai task reali (per cliente/persona/area,
+  // ore distribuite sui 12 mesi). Sostituisce il vecchio campo seed.allocazioni, che non
+  // è più popolato da Supabase ed è sempre vuoto.
+  const allocazioniDaTasks = useMemo(() => {
+    const m: Record<string, { cliente: string; persona: string; area: string; valori: number[] }> = {}
+    tasksAttivi.forEach(t => {
+      t.assegnatari.forEach(pid => {
+        const key = `${t.cliente}|${pid}|${t.area}`
+        if (!m[key]) m[key] = { cliente: t.cliente, persona: pid, area: t.area, valori: new Array(12).fill(0) }
+        mesiRange.forEach((mese, mi) => {
+          m[key].valori[mi] += oreTaskNelPeriodo(t, mese.start, mese.end)
+        })
+      })
+    })
+    return Object.values(m).map(r => ({ ...r, valori: r.valori.map(v => Math.round(v)) }))
+  }, [tasksAttivi, mesiRange])
+
   const allocazioniFiltered = useMemo(() => {
-    let list = seed.allocazioni
+    let list = allocazioniDaTasks
     if (filterPersona !== 'tutti') list = list.filter(a => a.persona === filterPersona)
     if (filterCliente !== 'tutti') list = list.filter(a => a.cliente === filterCliente)
     return list.filter(a => a.valori.some(v => v > 0))
-  }, [seed.allocazioni, filterPersona, filterCliente])
+  }, [allocazioniDaTasks, filterPersona, filterCliente])
 
   const totaleRiga = (valori: number[]) => valori.reduce((s, v) => s + v, 0)
 
@@ -290,13 +346,13 @@ export default function CaricoView({ seed }: CaricoProps) {
       {/* Barre */}
       <div className="mb-8">
         <h2 className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-4">
-          Carico mensile — Giu–Dic 2026
+          Carico mensile — Gen–Dic 2026
         </h2>
         {operativi.map(p => (
           <PersonaLoadBar key={p.id} persona={p}
-            pianificate={pianificateByPersona[p.id] ?? new Array(7).fill(0)}
-            capacita={capacitaByPersona[p.id] ?? new Array(7).fill(0)}
-            consuntivate={consuntivateByPersona[p.id] ?? new Array(7).fill(0)}
+            pianificate={pianificateByPersona[p.id] ?? new Array(12).fill(0)}
+            capacita={capacitaByPersona[p.id] ?? new Array(12).fill(0)}
+            consuntivate={consuntivateByPersona[p.id] ?? new Array(12).fill(0)}
           />
         ))}
       </div>

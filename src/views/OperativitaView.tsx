@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react'
 import { Seed, Task, Persona, TaskStato, TaskPriorita, Progetto } from '../types'
-import { formatDate, parseDate, TODAY } from '../utils'
+import { formatDate, parseDate, TODAY, oreTaskNelPeriodo } from '../utils'
 import { Tabs, EmptyState } from '../components/UI'
 import TaskModal from '../components/TaskModal'
 import { useTaskContext } from '../context/TaskContext'
@@ -318,8 +318,8 @@ function Swimlane({ tasks, seed, onOpenTask }: {
   }
 
   function getOreDisponibili(personaId: string, colStart: Date): number {
-    const meseIdx = colStart.getMonth() - 5
-    if (meseIdx < 0 || meseIdx > 6) return 0
+    // seed.capacita è un array di 12 mesi Gen(0)–Dic(11): indicizziamo direttamente sul mese reale
+    const meseIdx = colStart.getMonth()
     const cap = capacitaByPersona[personaId]?.[meseIdx] ?? 0
     return Math.round(cap / 4.3)
   }
@@ -497,6 +497,7 @@ function Swimlane({ tasks, seed, onOpenTask }: {
 function VistaAnno({ seed }: { seed: Seed }) {
   const [annoSelezionato, setAnnoSelezionato] = useState(TODAY.getFullYear())
   const [filterTipo, setFilterTipo] = useState<'tutte' | 'rinnovo' | 'rilascio' | 'riunione_cliente'>('tutte')
+  const { getTask, isEliminato } = useTaskContext()
 
   const oggi = TODAY
   const annoMin = oggi.getFullYear()
@@ -559,39 +560,66 @@ function VistaAnno({ seed }: { seed: Seed }) {
     return m
   }, [scadenzeAnno])
 
+  // Progetto attivo per cliente
+  const progettoAttivoByCliente = useMemo(() => {
+    const m: Record<string, any> = {}
+    ;(seed.progetti ?? []).forEach(p => {
+      if (p.stato === 'attivo' && !m[p.cliente]) m[p.cliente] = p
+    })
+    return m
+  }, [seed.progetti])
+
   // Clienti attivi nell'anno
   const clientiAnno = seed.clienti.filter(c => {
     if (c.stato === 'concluso') return false
-    const scad = c.scadenza_contratto ? new Date(c.scadenza_contratto) : null
+    const progetto = progettoAttivoByCliente[c.id]
+    const scad = progetto?.data_fine ? new Date(progetto.data_fine) : null
     if (scad && scad.getFullYear() >= annoSelezionato) return true
     if (!scad && c.stato === 'attivo') return true
     return (scadenzePerCliente[c.id] ?? []).length > 0
   })
 
-  // Carico operativi per mese (indice = mese 0-11)
+  // Carico operativi per mese (indice = mese reale 0=Gen…11=Dic)
+  // seed.capacita arriva da team.capacita_mensile: array di 12 mesi Gen-Dic dell'anno
+  // per cui è configurata la capacità (seed.anno). Non esiste una dimensione "anno"
+  // per questo dato, quindi per anni diversi da seed.anno non abbiamo capacità di riferimento.
   const capacitaByPersona = useMemo(() => {
     const m: Record<string, number[]> = {}
     if (seed.capacita) seed.capacita.forEach((r: any) => { m[r.persona] = r.valori })
     return m
   }, [seed.capacita])
 
+  const annoCapacita = seed.anno ?? TODAY.getFullYear()
+  function getMeseIdx(meseAnno: number): number {
+    return annoSelezionato === annoCapacita ? meseAnno : -1
+  }
+
+  // Ore pianificate = somma delle ore stimate dei task assegnati, distribuite sui mesi
+  // in base alla loro durata (data_inizio → data_fine). Stessa logica usata per "ore
+  // allocate" nella vista settimanale, così i numeri restano coerenti tra le viste.
+  const tasksAttivi = useMemo(
+    () => seed.tasks.filter(t => !isEliminato(t.id)).map(t => getTask(t)),
+    [seed.tasks, isEliminato, getTask]
+  )
+
   const pianificateByPersona = useMemo(() => {
     const m: Record<string, number[]> = {}
-    if (seed.ore_pianificate) seed.ore_pianificate.forEach((r: any) => { m[r.persona] = r.valori })
+    operativi.forEach(p => { m[p.id] = new Array(12).fill(0) })
+    tasksAttivi.forEach(t => {
+      t.assegnatari.forEach(pid => {
+        if (!m[pid]) return
+        mesi.forEach((mese, mi) => {
+          m[pid][mi] += oreTaskNelPeriodo(t, mese.start, mese.end)
+        })
+      })
+    })
+    Object.keys(m).forEach(pid => { m[pid] = m[pid].map(v => Math.round(v)) })
     return m
-  }, [seed.ore_pianificate])
+  }, [tasksAttivi, operativi, mesi])
 
   const TIPO_COLOR: Record<string, string> = {
     rinnovo: '#E07B54', rilascio: '#4F86C6',
     riunione_cliente: '#1D9E75', interno: '#888780', checkpoint: '#A67DC6',
-  }
-
-  // Offset mesi per anno selezionato (seed ha giu-dic = indici 0-6)
-  // Per anno 2026: gen=N/A, feb=N/A ... giu=0, lug=1 ...
-  // Per anni futuri: tutti N/A (no data)
-  function getMeseIdx(meseAnno: number): number {
-    if (annoSelezionato === 2026) return meseAnno - 5 // giu=5→0, dic=11→6
-    return -1 // nessun dato per anni diversi
   }
 
   const tipoTabs = [
@@ -676,8 +704,15 @@ function VistaAnno({ seed }: { seed: Seed }) {
         ) : clientiAnno.map((cliente, ci) => {
           const referente = personaById[cliente.referente]
           const scadenze = scadenzePerCliente[cliente.id] ?? []
-          const contrEnd = cliente.scadenza_contratto ? new Date(cliente.scadenza_contratto) : rangeEnd
-          const barRight = pct(contrEnd)
+          const progetto = progettoAttivoByCliente[cliente.id]
+          const progInizio = progetto?.data_inizio ? new Date(progetto.data_inizio) : null
+          const progFine = progetto?.data_fine ? new Date(progetto.data_fine) : null
+          const rinnovoRaw = progetto?.rinnovo_previsto
+          const rinnovo = rinnovoRaw
+            ? new Date(rinnovoRaw)
+            : (progFine ? new Date(progFine.getTime() - 30*24*60*60*1000) : null)
+          const barLeft = progInizio ? pct(progInizio) : 0
+          const barRight = progFine ? pct(progFine) : pct(rangeEnd)
           const barColor = referente?.colore ?? '#7DF5DF'
 
           return (
@@ -703,8 +738,20 @@ function VistaAnno({ seed }: { seed: Seed }) {
                   <div className="absolute top-0 bottom-0 z-10"
                     style={{ left: `${oggiPct}%`, borderLeft: '2px dashed #1D9E75', opacity: 0.4 }} />
                 )}
-                <div className="absolute rounded"
-                  style={{ left: 0, width: `${Math.min(barRight, 100)}%`, top: '50%', transform: 'translateY(-50%)', height: 12, background: barColor + '20', border: `1.5px solid ${barColor}40` }} />
+                {progetto && (
+                  <div className="absolute rounded"
+                    style={{ left: `${barLeft}%`, width: `${Math.max(Math.min(barRight, 100) - barLeft, 1)}%`, top: '50%', transform: 'translateY(-50%)', height: 12, background: barColor + '20', border: `1.5px solid ${barColor}40` }} />
+                )}
+                {progFine && progFine >= rangeStart && progFine <= rangeEnd && (
+                  <div className="absolute z-20" style={{ left: `${pct(progFine)}%`, top: '50%', transform: 'translate(-50%, -50%)' }}>
+                    <div className="w-2.5 h-2.5 rotate-45" style={{ background: '#E53935', border: '1.5px solid white', boxShadow: '0 0 0 1.5px #E53935' }} />
+                  </div>
+                )}
+                {rinnovo && rinnovo >= rangeStart && rinnovo <= rangeEnd && (
+                  <div className="absolute z-20" style={{ left: `${pct(rinnovo)}%`, top: '50%', transform: 'translate(-50%, -50%)' }}>
+                    <div className="w-2.5 h-2.5 rotate-45" style={{ background: '#F9A825', border: '1.5px solid white', boxShadow: '0 0 0 1.5px #F9A825' }} />
+                  </div>
+                )}
                 {scadenze.map(s => {
                   const d = new Date(s.data)
                   if (d < rangeStart || d > rangeEnd) return null
@@ -759,7 +806,8 @@ function VistaAnno({ seed }: { seed: Seed }) {
               {mesi.map((m, i) => {
                 const seedIdx = getMeseIdx(m.index)
                 const cap = seedIdx >= 0 ? (capacitaByPersona[p.id]?.[seedIdx] ?? 0) : 0
-                const plan = seedIdx >= 0 ? (pianificateByPersona[p.id]?.[seedIdx] ?? 0) : 0
+                // Le pianificate derivano dai task (date reali), indipendenti dall'anno della capacità
+                const plan = pianificateByPersona[p.id]?.[m.index] ?? 0
                 const isOver = plan > cap && cap > 0
                 const pct2 = cap > 0 ? Math.min(Math.round((plan / cap) * 100), 100) : 0
 

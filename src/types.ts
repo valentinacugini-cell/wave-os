@@ -84,9 +84,12 @@ export interface Progetto {
   nome: string
   anno: number
   ore_contratto: number
+  importo_contratto?: number
+  note_commerciali?: string | null
+  rinnovo_previsto?: string | null
   stato: 'attivo' | 'concluso' | 'sospeso'
-  data_inizio: string
-  data_fine: string
+  data_inizio?: string | null
+  data_fine?: string | null
 }
 
 export interface Contatto {
@@ -124,4 +127,4 @@ export interface Seed {
 }
 
 export type AlertLevel = 'critica' | 'attenzione' | 'ok' | 'in_attesa'
-export type View = 'home' | 'carico' | 'scadenze' | 'operativita' | 'cliente' | 'forecast'
+export type View = 'home' | 'carico' | 'scadenze' | 'operativita' | 'cliente' | 'forecast' | 'impostazioni'

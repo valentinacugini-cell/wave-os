@@ -1,7 +1,17 @@
-import { AlertLevel, Cliente } from './types'
+import { AlertLevel, Cliente, Task } from './types'
 
-// Data di riferimento fissa per la demo — aggiornare per produzione
-export const TODAY = new Date('2026-06-24')
+// Data odierna, normalizzata a mezzanotte UTC come le date "solo giorno" (YYYY-MM-DD)
+// gestite da parseDate, così i confronti/calcoli di giorni restano coerenti
+// indipendentemente dall'ora e dal fuso orario in cui viene aperta l'app.
+function oggiDateOnly(): Date {
+  const now = new Date()
+  const yyyy = now.getFullYear()
+  const mm = String(now.getMonth() + 1).padStart(2, '0')
+  const dd = String(now.getDate()).padStart(2, '0')
+  return new Date(`${yyyy}-${mm}-${dd}`)
+}
+
+export const TODAY = oggiDateOnly()
 
 export function parseDate(dateStr: string | null): Date | null {
   if (!dateStr) return null
@@ -74,3 +84,30 @@ export function alertLevelOrder(level: AlertLevel): number {
 // Indice del mese corrente nel piano (0=giu, 1=lug, ...)
 export const MESI = ['giu', 'lug', 'ago', 'set', 'ott', 'nov', 'dic']
 export const MESE_CORRENTE_IDX = 0 // giugno 2026
+
+function giorniInclusivi(a: Date, b: Date): number {
+  return Math.max(1, Math.round((b.getTime() - a.getTime()) / (1000 * 60 * 60 * 24)) + 1)
+}
+
+// Distribuisce le ore stimate di un task sul periodo [periodoStart, periodoEnd]
+// in proporzione ai giorni di sovrapposizione con la durata del task.
+// Usata come unica sorgente di verità per "ore pianificate/allocate" derivate dai task,
+// così Carico, Operatività e Scheda cliente restano coerenti tra loro.
+export function oreTaskNelPeriodo(
+  task: Pick<Task, 'ore_stimate' | 'data_inizio' | 'data_fine'>,
+  periodoStart: Date,
+  periodoEnd: Date
+): number {
+  if (!task.ore_stimate || task.ore_stimate <= 0) return 0
+  const tStart = parseDate(task.data_inizio) ?? parseDate(task.data_fine)
+  const tEnd = parseDate(task.data_fine) ?? tStart
+  if (!tStart || !tEnd) return 0
+  if (tStart > periodoEnd || tEnd < periodoStart) return 0
+
+  const durataTask = giorniInclusivi(tStart, tEnd)
+  const overlapStart = tStart < periodoStart ? periodoStart : tStart
+  const overlapEnd = tEnd > periodoEnd ? periodoEnd : tEnd
+  const overlapGiorni = giorniInclusivi(overlapStart, overlapEnd)
+
+  return (task.ore_stimate * overlapGiorni) / durataTask
+}

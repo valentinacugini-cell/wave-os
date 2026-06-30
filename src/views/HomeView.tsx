@@ -35,7 +35,7 @@ export default function HomeView({ seed, currentUser, onClienteClick }: HomeProp
       const giorni = daysUntil(prossimaScadenza)
       return { ...c, alertLevel, prossimaScadenza, giorni }
     })
-  }, [seed.clienti])
+  }, [seed.clienti, nuoviClienti])
 
   function handleColClick(col: SortCol) {
     if (sortCol === col) setSortDir(d => d === 'asc' ? 'desc' : 'asc')

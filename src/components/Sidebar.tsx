@@ -7,6 +7,7 @@ const NAV_ITEMS: { id: View; label: string; icon: string }[] = [
   { id: 'carico',       label: 'Carico Team',    icon: '◫' },
   { id: 'scadenze',     label: 'Scadenze',       icon: '◷' },
   { id: 'forecast',     label: 'Forecast',       icon: '◎' },
+  { id: 'impostazioni', label: 'Impostazioni',   icon: '⚙' },
 ]
 
 interface SidebarProps {
@@ -80,4 +81,3 @@ export default function Sidebar({ currentView, onViewChange, currentUser, team, 
     </div>
   )
 }
-

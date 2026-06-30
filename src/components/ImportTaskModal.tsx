@@ -7,7 +7,7 @@ interface ImportTaskModalProps {
   personaById: Record<string, Persona>
   clienteId: string
   onClose: () => void
-  onImport: (tasks: Omit<Task, 'id'>[]) => void
+  onImport: (tasks: Omit<Task, 'id'>[]) => Promise<void>
 }
 
 interface RigaImport {
@@ -41,9 +41,14 @@ const AREE_VALIDE = ['web', 'adv', 'content', 'strategia', 'grafica', 'gestione'
 function normalizzaData(val: any): string {
   if (!val) return ''
   if (typeof val === 'number') {
-    // Excel serial date
-    const date = new Date(Math.round((val - 25569) * 86400 * 1000))
-    return date.toISOString().slice(0, 10)
+    // Excel serial date (giorni dal 1899-12-30) — costruita in UTC per evitare
+    // che il fuso orario locale faccia slittare la data di un giorno
+    const utcMs = Math.round((val - 25569) * 86400 * 1000)
+    const date = new Date(utcMs)
+    const yyyy = date.getUTCFullYear()
+    const mm = String(date.getUTCMonth() + 1).padStart(2, '0')
+    const dd = String(date.getUTCDate()).padStart(2, '0')
+    return `${yyyy}-${mm}-${dd}`
   }
   if (typeof val === 'string') {
     // GG/MM/AAAA o AAAA-MM-GG
@@ -86,6 +91,8 @@ export default function ImportTaskModal({ progetti, personaById, clienteId, onCl
   const [righe, setRighe] = useState<RigaImport[]>([])
   const [progettoDefault, setProgettoDefault] = useState(progetti[0]?.id ?? '')
   const [dragging, setDragging] = useState(false)
+  const [importing, setImporting] = useState(false)
+  const [importError, setImportError] = useState<string | null>(null)
 
   const nomeToId = useCallback((nome: string): string | null => {
     const key = nome.toLowerCase().trim()
@@ -228,7 +235,7 @@ export default function ImportTaskModal({ progetti, personaById, clienteId, onCl
     if (file) parseFile(file)
   }
 
-  function handleImport() {
+  async function handleImport() {
     const valide = righe.filter(r => r.errori.length === 0)
     const tasks: Omit<Task, 'id'>[] = valide.map(r => ({
       cliente: clienteId,
@@ -246,8 +253,16 @@ export default function ImportTaskModal({ progetti, personaById, clienteId, onCl
       note: r.note || null,
       progetto_id: r.progetto_id,
     }))
-    onImport(tasks)
-    setStep('done')
+    setImporting(true)
+    setImportError(null)
+    try {
+      await onImport(tasks)
+      setStep('done')
+    } catch (e: any) {
+      setImportError(e?.message ?? 'Errore durante l\'importazione. Riprova.')
+    } finally {
+      setImporting(false)
+    }
   }
 
   const conErrori = righe.filter(r => r.errori.length > 0).length
@@ -285,18 +300,24 @@ export default function ImportTaskModal({ progetti, personaById, clienteId, onCl
           {/* STEP 1: UPLOAD */}
           {step === 'upload' && (
             <div>
-              {/* Progetto default */}
-              {progetti.length > 1 && (
-                <div className="mb-5">
-                  <label className="text-xs text-gray-500 font-medium block mb-1">
-                    Progetto di destinazione (default se non specificato nel file)
-                  </label>
+              {/* Progetto di destinazione */}
+              <div className="mb-5">
+                <label className="text-xs text-gray-500 font-medium block mb-1">
+                  Progetto di destinazione
+                </label>
+                {progetti.length === 0 ? (
+                  <div className="px-3 py-2 rounded-lg border border-orange-200 text-xs text-orange-600"
+                    style={{ background: '#FFF7ED' }}>
+                    Nessun progetto creato. Vai su Anagrafica → + Nuovo progetto, poi torna qui.
+                  </div>
+                ) : (
                   <select value={progettoDefault} onChange={e => setProgettoDefault(e.target.value)}
                     className="text-sm px-3 py-2 rounded-lg border border-gray-200 bg-white outline-none w-full max-w-md">
+                    <option value="">Seleziona progetto...</option>
                     {progetti.map(p => <option key={p.id} value={p.id}>{p.nome}</option>)}
                   </select>
-                </div>
-              )}
+                )}
+              </div>
 
               {/* Drop zone */}
               <div
@@ -347,6 +368,14 @@ export default function ImportTaskModal({ progetti, personaById, clienteId, onCl
                   ← Carica altro file
                 </button>
               </div>
+
+              {/* Errore di importazione */}
+              {importError && (
+                <div className="mb-4 px-4 py-2 rounded-lg text-xs font-medium"
+                  style={{ background: '#FFEBEE', color: '#C62828' }}>
+                  ⚠ {importError}
+                </div>
+              )}
 
               {/* Righe con errori in evidenza */}
               {conErrori > 0 && (
@@ -494,15 +523,15 @@ export default function ImportTaskModal({ progetti, personaById, clienteId, onCl
             {step === 'preview' && conErrori > 0 && `Le ${conErrori} righe con errori non verranno importate.`}
           </p>
           <div className="flex gap-2">
-            <button onClick={onClose}
-              className="text-sm px-4 py-2 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-100 transition-colors">
+            <button onClick={onClose} disabled={importing}
+              className="text-sm px-4 py-2 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-100 transition-colors disabled:opacity-50">
               {step === 'done' ? 'Chiudi' : 'Annulla'}
             </button>
             {step === 'preview' && valide > 0 && (
-              <button onClick={handleImport}
-                className="text-sm px-4 py-2 rounded-lg font-medium transition-colors"
+              <button onClick={handleImport} disabled={importing}
+                className="text-sm px-4 py-2 rounded-lg font-medium transition-colors disabled:opacity-50"
                 style={{ background: '#7DF5DF', color: '#1A1A2E' }}>
-                Importa {valide} task
+                {importing ? 'Importazione...' : `Importa ${valide} task`}
               </button>
             )}
           </div>
