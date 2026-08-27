@@ -39,6 +39,7 @@ export default function ForecastView({ seed }: { seed: Seed }) {
   const [milestones, setMilestones] = useState<ForecastMilestone[]>([])
   const [loading, setLoading] = useState(true)
   const [showForm, setShowForm] = useState(false)
+  const [prospectInModifica, setProspectInModifica] = useState<ForecastProgetto | null>(null)
 
   // Finestra 18 mesi fissa da oggi
   const finestra = useMemo(() => genera18Mesi(), [])
@@ -285,8 +286,12 @@ export default function ForecastView({ seed }: { seed: Seed }) {
                       <p className="text-xs font-semibold truncate" style={{ color: p.colore }}>{p.nome}</p>
                       {p.referente && <p className="text-xs text-gray-400 truncate">{p.referente}</p>}
                     </div>
-                    <button onClick={() => handleDeleteProspect(p.id)}
-                      className="opacity-0 group-hover/row:opacity-100 text-gray-300 hover:text-red-400 text-xs ml-1 flex-shrink-0">✕</button>
+                    <div className="opacity-0 group-hover/row:opacity-100 flex gap-1 ml-1 flex-shrink-0">
+                      <button onClick={() => setProspectInModifica(p)}
+                        className="text-gray-300 hover:text-teal-500 text-xs">✎</button>
+                      <button onClick={() => handleDeleteProspect(p.id)}
+                        className="text-gray-300 hover:text-red-400 text-xs">✕</button>
+                    </div>
                   </div>
                   <div className="flex flex-1">
                     {finestra.map((f, fi) => {
@@ -337,23 +342,54 @@ export default function ForecastView({ seed }: { seed: Seed }) {
           }}
         />
       )}
+      {prospectInModifica && (
+        <NuovoProspectForm
+          coloriDisponibili={PROSPECT_COLORS}
+          prospect={prospectInModifica}
+          milestoneEsistenti={milestones.filter(m => m.forecast_id === prospectInModifica.id)}
+          onClose={() => setProspectInModifica(null)}
+          onSaved={(p, ms) => {
+            setProspects(prev => prev.map(x => x.id === p.id ? p : x))
+            setMilestones(prev => [
+              ...prev.filter(m => m.forecast_id !== p.id),
+              ...ms
+            ])
+            setProspectInModifica(null)
+          }}
+        />
+      )}
     </div>
   )
 }
 
 // ── Form nuovo prospect ───────────────────────────────────────────────────
 
-function NuovoProspectForm({ coloriDisponibili, onClose, onSaved }: {
+function NuovoProspectForm({ coloriDisponibili, prospect, milestoneEsistenti, onClose, onSaved }: {
   coloriDisponibili: string[]
+  prospect?: ForecastProgetto
+  milestoneEsistenti?: ForecastMilestone[]
   onClose: () => void
   onSaved: (p: ForecastProgetto, ms: ForecastMilestone[]) => void
 }) {
+  const isModifica = !!prospect
+
+  // Per modifica: ricostruisce ore_mese dalla prima cella non zero
+  const oreFlat = prospect?.ore_mensili?.find(v => v > 0)?.toString() || ''
+  const isCustom = prospect?.ore_mensili && prospect.ore_mensili.some((v,i,a) => v !== a[0] && v !== 0)
+
   const [form, setForm] = useState({
-    nome: '', referente: '', data_inizio: '', data_fine: '',
-    distribuzione: 'flat' as 'flat' | 'custom',
-    ore_mese: '', colore: coloriDisponibili[0], note: '',
+    nome: prospect?.nome || '',
+    referente: prospect?.referente || '',
+    data_inizio: prospect?.data_inizio || '',
+    data_fine: prospect?.data_fine || '',
+    distribuzione: (isCustom ? 'custom' : 'flat') as 'flat' | 'custom',
+    ore_mese: oreFlat,
+    colore: prospect?.colore || coloriDisponibili[0],
+    note: prospect?.note || '',
   })
-  const [milestoneList, setMilestoneList] = useState<{titolo:string,data:string,tipo:string}[]>([])
+  const [milestoneList, setMilestoneList] = useState<{titolo:string,data:string,tipo:string}[]>(
+    milestoneEsistenti?.map(m => ({ titolo: m.titolo, data: m.data, tipo: m.tipo })) || []
+  )
   const [newMs, setNewMs] = useState({ titolo:'', data:'', tipo:'rilascio' })
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
@@ -398,16 +434,26 @@ function NuovoProspectForm({ coloriDisponibili, onClose, onSaved }: {
   async function handleSalva() {
     if (!form.nome.trim()) { setError('Nome obbligatorio'); return }
     setSaving(true)
-    const id = `forecast_${Date.now()}`
+    const id = isModifica ? prospect!.id : `forecast_${Date.now()}`
     const progetto: ForecastProgetto = {
       id, nome: form.nome.trim(), referente: form.referente || undefined,
       data_inizio: form.data_inizio || null, data_fine: form.data_fine || null,
       ore_mensili: buildOreMensili(), colore: form.colore, note: form.note || undefined,
     }
     try {
-      await fetch(`${SUPABASE_URL}/rest/v1/forecast_progetti`, {
-        method:'POST', headers:{...SB_HEADERS,'Prefer':'return=minimal'}, body: JSON.stringify(progetto)
-      })
+      if (isModifica) {
+        await fetch(`${SUPABASE_URL}/rest/v1/forecast_progetti?id=eq.${id}`, {
+          method:'PATCH', headers:{...SB_HEADERS,'Prefer':'return=minimal'}, body: JSON.stringify(progetto)
+        })
+        // Elimina milestone vecchie e reinserisce
+        await fetch(`${SUPABASE_URL}/rest/v1/forecast_milestone?forecast_id=eq.${id}`, {
+          method:'DELETE', headers: SB_HEADERS
+        })
+      } else {
+        await fetch(`${SUPABASE_URL}/rest/v1/forecast_progetti`, {
+          method:'POST', headers:{...SB_HEADERS,'Prefer':'return=minimal'}, body: JSON.stringify(progetto)
+        })
+      }
       const msObjs: ForecastMilestone[] = []
       for (const ms of milestoneList) {
         const msObj: ForecastMilestone = {
@@ -428,7 +474,7 @@ function NuovoProspectForm({ coloriDisponibili, onClose, onSaved }: {
     <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ background:'rgba(0,0,0,0.45)' }}>
       <div className="bg-white rounded-2xl shadow-xl w-full max-w-xl mx-4 overflow-hidden">
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
-          <h3 className="text-sm font-semibold text-gray-900">Nuovo prospect / previsionale</h3>
+          <h3 className="text-sm font-semibold text-gray-900">{isModifica ? 'Modifica prospect' : 'Nuovo prospect / previsionale'}</h3>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-lg leading-none">✕</button>
         </div>
         <div className="px-6 py-5 space-y-4 max-h-[75vh] overflow-y-auto">
@@ -565,7 +611,7 @@ function NuovoProspectForm({ coloriDisponibili, onClose, onSaved }: {
           <button onClick={handleSalva} disabled={saving}
             className="text-sm px-4 py-2 rounded-lg font-medium disabled:opacity-50"
             style={{ background:'#1A1A2E',color:'#7DF5DF' }}>
-            {saving?'Salvataggio...':'Aggiungi prospect'}
+            {saving ? 'Salvataggio...' : (isModifica ? 'Salva modifiche' : 'Aggiungi prospect')}
           </button>
         </div>
       </div>
