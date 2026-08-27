@@ -45,6 +45,7 @@ export default function SchedaCliente({ clienteId, seed, onBack }: Props) {
   const [progettoSelezionato, setProgettoSelezionato] = useState<string | null>(null)
   const [activeTab, setActiveTab] = useState<'anagrafica' | 'attivita' | 'scadenze' | 'costi' | 'rinnovo' | 'archivio'>('anagrafica')
   const [filtroStato, setFiltroStato] = useState<'aperti' | 'tutti'>('aperti')
+  const [filtroRisorsa, setFiltroRisorsa] = useState<string>('tutti')
   const [expandedTask, setExpandedTask] = useState<string | null>(null)
   const [activeTaskModal, setActiveTaskModal] = useState<Task | null>(null)
   const [notaEdit, setNotaEdit] = useState<string | null>(null)
@@ -125,9 +126,14 @@ export default function SchedaCliente({ clienteId, seed, onBack }: Props) {
 
   const tasksConEdits = tasks.map(t => getTask(t))
 
-  const tasksFiltrati = filtroStato === 'aperti'
-    ? tasksConEdits.filter(t => t.stato !== 'completato')
-    : tasksConEdits
+  const tasksFiltrati = (() => {
+    let ts = filtroStato === 'aperti'
+      ? tasksConEdits.filter(t => t.stato !== 'completato')
+      : tasksConEdits
+    if (filtroRisorsa !== 'tutti')
+      ts = ts.filter(t => (t.assegnatari ?? []).includes(filtroRisorsa))
+    return ts
+  })()
 
   // Scadenze filtrate per progetto
   const scadenzeCliente = seed.scadenze.filter(s => s.cliente === clienteId)
@@ -555,6 +561,21 @@ export default function SchedaCliente({ clienteId, seed, onBack }: Props) {
                 {f === 'aperti' ? 'Aperti' : 'Tutti'}
               </button>
             ))}
+              {/* Filtro risorsa */}
+              {(() => {
+                const risorse = [...new Set(tasksConEdits.flatMap(t => t.assegnatari ?? []))]
+                if (risorse.length <= 1) return null
+                return (
+                  <select value={filtroRisorsa} onChange={e => setFiltroRisorsa(e.target.value)}
+                    className="text-sm px-3 py-1.5 rounded-lg border border-gray-200 bg-white outline-none text-gray-600">
+                    <option value="tutti">Tutte le risorse</option>
+                    {risorse.map(rid => {
+                      const p = personaById[rid]
+                      return <option key={rid} value={rid}>{p?.nome?.split(' ')[0] ?? rid}</option>
+                    })}
+                  </select>
+                )
+              })()}
             </div>
             <div className="flex items-center gap-2">
               {tasksFiltrati.length > 0 && (
