@@ -55,11 +55,16 @@ function PersonaLoadBar({ persona, pianificate, capacita, consuntivate }: {
           const cap = capacita[i] ?? 0
           const plan = pianificate[i] ?? 0
           const cons = consuntivate[i] ?? 0
+          // isOver: pianificate superano la capacità (allerta preventiva)
+          const isOverPlan = plan > cap && plan > 0
+          // isOverCons: effettive superano la capacità (allerta consuntivo)
           const isOver = cons > cap
           const maxVal = Math.max(cap, plan, cons, 1)
-          const planH = Math.min((plan / maxVal) * maxH, maxH + 20)
+          // La barra pianificate può superare maxH per mostrare il sovraccarico
+          const planH = (plan / maxVal) * maxH
           const consH = Math.min((cons / maxVal) * maxH, maxH)
           const delta = cons - cap
+          const deltaPlan = plan - cap
 
           return (
             <div key={mese} className="flex-1 flex flex-col items-center gap-1 relative"
@@ -74,7 +79,8 @@ function PersonaLoadBar({ persona, pianificate, capacita, consuntivate }: {
                   <p>Capacità: <strong>{cap}h</strong></p>
                   {plan > 0 && <p>Pianificate: <strong style={{ color: '#94A3B8' }}>{Math.round(plan)}h</strong></p>}
                   <p>Effettive: <strong style={{ color: '#4F86C6' }}>{Math.round(cons)}h</strong></p>
-                  {isOver && <p style={{ color: '#FCA5A5' }}>Sovraccarico: <strong>+{Math.round(Math.abs(delta))}h</strong></p>}
+                  {isOverPlan && <p style={{ color: '#FCA5A5' }}>Sovraccarico pianificate: <strong>+{Math.round(deltaPlan)}h</strong></p>}
+                  {isOver && !isOverPlan && <p style={{ color: '#FCA5A5' }}>Sovraccarico effettive: <strong>+{Math.round(Math.abs(delta))}h</strong></p>}
                   {!isOver && <p style={{ color: '#86EFAC' }}>Saldo: <strong>+{Math.round(cap - cons)}h</strong></p>}
                 </div>
               )}
@@ -85,12 +91,12 @@ function PersonaLoadBar({ persona, pianificate, capacita, consuntivate }: {
                 <div className="absolute left-0 right-0 border-t-2 border-dashed pointer-events-none"
                   style={{ bottom: 0, marginBottom: maxH, borderColor: persona.colore + '60' }} />
 
-                {/* Barra pianificate */}
+                {/* Barra pianificate — può superare la linea capacità */}
                 <div className="w-5 rounded-t transition-all flex-shrink-0"
                   style={{
                     height: Math.max(planH, 2),
-                    background: isOver ? '#FCA5A5' : persona.colore,
-                    opacity: 0.5,
+                    background: isOverPlan ? '#EF4444' : persona.colore,
+                    opacity: isOverPlan ? 0.8 : 0.45,
                   }} />
 
                 {/* Barra consuntivate sovrapposta */}
@@ -107,13 +113,18 @@ function PersonaLoadBar({ persona, pianificate, capacita, consuntivate }: {
               <span className="text-xs text-gray-400">{mese}</span>
 
               {/* Saldo */}
-              {isOver ? (
+              {isOverPlan ? (
                 <span className="text-xs font-semibold px-1.5 py-0.5 rounded w-full text-center"
                   style={{ background: '#FEE2E2', color: '#B91C1C' }}>
-                  −{delta}h
+                  +{Math.round(deltaPlan)}h
+                </span>
+              ) : isOver ? (
+                <span className="text-xs font-semibold px-1.5 py-0.5 rounded w-full text-center"
+                  style={{ background: '#FEE2E2', color: '#B91C1C' }}>
+                  −{Math.round(Math.abs(delta))}h
                 </span>
               ) : (
-                <span className="text-xs font-medium text-gray-400 text-center">{plan}h</span>
+                <span className="text-xs font-medium text-gray-400 text-center">{Math.round(plan)}h</span>
               )}
             </div>
           )
