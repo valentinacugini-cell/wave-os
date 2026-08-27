@@ -161,11 +161,46 @@ export default function SchedaCliente({ clienteId, seed, onBack }: Props) {
     if (Array.isArray(raw) && raw.length > 0) return raw.map(Number)
     return new Array(12).fill(0)
   })()
+
+  // Mese di inizio e fine contratto (0=Gen, 11=Dic) — dal progetto attivo
+  const meseInizioContratto: number = (() => {
+    if (!progettoAttivo?.data_inizio) return 0
+    return new Date(progettoAttivo.data_inizio).getMonth()
+  })()
+  const meseFineContratto: number = (() => {
+    if (!progettoAttivo?.data_fine) return 11
+    return new Date(progettoAttivo.data_fine).getMonth()
+  })()
+  const annoInizio: number = (() => {
+    if (!progettoAttivo?.data_inizio) return new Date().getFullYear()
+    return new Date(progettoAttivo.data_inizio).getFullYear()
+  })()
+  const annoFine: number = (() => {
+    if (!progettoAttivo?.data_fine) return new Date().getFullYear()
+    return new Date(progettoAttivo.data_fine).getFullYear()
+  })()
+  // Ore effettive filtrate per periodo contrattuale
+  // Per contratti nell'anno corrente: somma solo i mesi dal mese di inizio
+  // Per contratti che si estendono su più anni: gestione semplificata YTD dal mese di inizio
+  const oreEffettiveContratto: number = (() => {
+    let tot = 0
+    for (let mi = 0; mi < 12; mi++) {
+      // Includi solo mesi che rientrano nel contratto
+      const includi = annoInizio === annoCorrente
+        ? mi >= meseInizioContratto
+        : true // contratti iniziati anni precedenti: tutti i mesi YTD
+      if (includi) tot += oreEffettiveMesi[mi] ?? 0
+    }
+    return Math.round(tot)
+  })()
+
   const barData = mesiLabel.map((mese, mi) => {
     const effettive = oreEffettiveMesi[mi] ?? 0
     const pianificate = Math.round(oreContratto / 12)
-    return { mese, effettive, pianificate }
-  }).filter(d => d.effettive > 0 || d.pianificate > 0)
+    // Mostra solo mesi nel periodo contrattuale
+    const nelPeriodo = annoInizio === annoCorrente ? mi >= meseInizioContratto : true
+    return { mese, effettive, pianificate, nelPeriodo }
+  }).filter(d => d.nelPeriodo && (d.effettive > 0 || d.pianificate > 0))
 
   // Torte ore per risorsa e per area — caricate da OreEffettiveTorte (dettaglio timesheet)
 
@@ -391,18 +426,22 @@ export default function SchedaCliente({ clienteId, seed, onBack }: Props) {
             </div>
             <div className="bg-white rounded-xl border border-gray-200 p-4">
               <p className="text-xs text-gray-400 mb-1">Ore effettive</p>
-              <p className="text-2xl font-bold text-gray-900">{Math.round((cliente as any).ore_effettive_ytd_2026 ?? 0)}</p>
-              <p className="text-xs text-gray-400 mt-1">dal timesheet</p>
+              <p className="text-2xl font-bold text-gray-900">{oreEffettiveContratto}</p>
+              <p className="text-xs text-gray-400 mt-1">
+                {progettoAttivo?.data_inizio && annoInizio === annoCorrente && meseInizioContratto > 0
+                  ? `da ${new Date(progettoAttivo.data_inizio).toLocaleDateString('it-IT', {month:'short', year:'numeric'})}`
+                  : 'dal timesheet'}
+              </p>
             </div>
             <div className="bg-white rounded-xl border border-gray-200 p-4"
-              style={{ borderLeft: oreAllocateTotali < Math.round((cliente as any).ore_effettive_ytd_2026 ?? 0) ? '4px solid #E24B4A' : '4px solid #1D9E75' }}>
+              style={{ borderLeft: oreAllocateTotali < oreEffettiveContratto ? '4px solid #E24B4A' : '4px solid #1D9E75' }}>
               <p className="text-xs text-gray-400 mb-1">Saldo</p>
               {(() => {
                 if (oreAllocateTotali === 0) return (
                   <><p className="text-2xl font-bold text-gray-300">—</p>
                   <p className="text-xs text-gray-400 mt-1">inserisci task</p></>
                 )
-                const saldo = oreAllocateTotali - Math.round((cliente as any).ore_effettive_ytd_2026 ?? 0)
+                const saldo = oreAllocateTotali - oreEffettiveContratto
                 return <>
                   <p className="text-2xl font-bold" style={{ color: saldo < 0 ? '#E24B4A' : '#1D9E75' }}>
                     {saldo >= 0 ? `+${saldo}` : saldo}h
