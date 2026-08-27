@@ -613,6 +613,14 @@ export default function SchedaCliente({ clienteId, seed, onBack }: Props) {
                       <div className="flex-1 min-w-0">
                         <span className="text-sm font-medium text-gray-900">{t.titolo}</span>
                         <span className="text-xs text-gray-400 ml-2">{t.area}</span>
+                        <div className="flex gap-3 mt-0.5 text-xs text-gray-400 flex-wrap">
+                          {t.ore_stimate > 0 && <span className="font-medium" style={{ color: '#1D9E75' }}>{t.ore_stimate}h</span>}
+                          {t.data_fine && <span>→ {formatDate(t.data_fine)}</span>}
+                          {t.assegnatari?.map(rid => {
+                            const p = personaById[rid]
+                            return p ? <span key={rid} className="px-1.5 py-0.5 rounded" style={{ background: p.colore+'22', color: p.colore }}>{p.nome.split(' ')[0]}</span> : null
+                          })}
+                        </div>
                         {isExp && (
                           <div className="flex gap-3 mt-0.5 text-xs text-gray-400 flex-wrap">
                             {t.milestone && <span>· {t.milestone}</span>}
