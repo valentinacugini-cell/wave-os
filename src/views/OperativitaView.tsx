@@ -163,6 +163,11 @@ function ListaSettimanale({ tasks, seed, onOpenTask }: {
                               )}
                             </div>
                             <span className="text-sm font-medium text-gray-900">{t.titolo}</span>
+                            <div className="flex gap-3 mt-0.5 text-xs text-gray-400 flex-wrap items-center">
+                              <span className="text-gray-400">{t.area}</span>
+                              {t.ore_stimate > 0 && <span className="font-semibold" style={{ color: '#1D9E75' }}>{t.ore_stimate}h</span>}
+                              {t.data_fine && <span>→ {formatDate(t.data_fine)}</span>}
+                            </div>
                             {isExp && (
                               <div className="flex gap-3 mt-0.5 text-xs text-gray-400 flex-wrap">
                                 <span>{t.area}</span>
