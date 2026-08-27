@@ -185,7 +185,7 @@ export default function App() {
                 {currentView === 'scadenze' && <ScadenzeView seed={seed} onClienteClick={handleClienteClick} />}
                 {currentView === 'operativita' && <OperativitaView seed={seed} onClienteClick={handleClienteClick} />}
                 {currentView === 'cliente' && selectedCliente && <SchedaCliente clienteId={selectedCliente} seed={seed} onBack={handleBack} />}
-                {currentView === 'forecast' && <ForecastView />}
+                {currentView === 'forecast' && <ForecastView seed={seed} />}
           {currentView === 'impostazioni' && (
             <div className="max-w-lg">
               <h2 className="text-xl font-semibold text-gray-900 mb-6">Impostazioni</h2>
