@@ -55,16 +55,19 @@ function PersonaLoadBar({ persona, pianificate, capacita, consuntivate }: {
           const cap = capacita[i] ?? 0
           const plan = pianificate[i] ?? 0
           const cons = consuntivate[i] ?? 0
-          // isOver: pianificate superano la capacità (allerta preventiva)
           const isOverPlan = plan > cap && plan > 0
-          // isOverCons: effettive superano la capacità (allerta consuntivo)
           const isOver = cons > cap
-          const maxVal = Math.max(cap, plan, cons, 1)
-          // La barra pianificate può superare maxH per mostrare il sovraccarico
-          const planH = (plan / maxVal) * maxH
-          const consH = Math.min((cons / maxVal) * maxH, maxH)
           const delta = cons - cap
           const deltaPlan = plan - cap
+
+          // La capacità è sempre il tetto visivo fisso (maxH px)
+          // Le barre crescono in proporzione alla capacità
+          // Se superano la capacità, escono sopra in rosso
+          const capH = maxH
+          const planInCapH = cap > 0 ? Math.min(plan / cap, 1) * maxH : 0
+          const planOverH = cap > 0 && plan > cap ? ((plan - cap) / cap) * maxH : 0
+          const consInCapH = cap > 0 ? Math.min(cons / cap, 1) * maxH : 0
+          const consOverH = cap > 0 && cons > cap ? ((cons - cap) / cap) * maxH : 0
 
           return (
             <div key={mese} className="flex-1 flex flex-col items-center gap-1 relative"
@@ -86,27 +89,54 @@ function PersonaLoadBar({ persona, pianificate, capacita, consuntivate }: {
               )}
 
               {/* Barre */}
-              <div className="relative flex items-end gap-0.5" style={{ height: maxH + 24 }}>
-                {/* Linea capacità */}
-                <div className="absolute left-0 right-0 border-t-2 border-dashed pointer-events-none"
-                  style={{ bottom: 0, marginBottom: maxH, borderColor: persona.colore + '60' }} />
+              {/* Container barre — altezza fissa = maxH + spazio overflow sopra */}
+              <div className="relative flex items-end gap-0.5" style={{ height: maxH + 32 }}>
 
-                {/* Barra pianificate — può superare la linea capacità */}
-                <div className="w-5 rounded-t transition-all flex-shrink-0"
-                  style={{
-                    height: Math.max(planH, 2),
-                    background: isOverPlan ? '#EF4444' : persona.colore,
-                    opacity: isOverPlan ? 0.8 : 0.45,
-                  }} />
+                {/* Linea capacità — sempre a maxH dal basso, è il tetto fisso */}
+                <div className="absolute left-0 right-0 border-t-2 border-dashed pointer-events-none z-10"
+                  style={{ bottom: maxH, borderColor: persona.colore + '90' }} />
 
-                {/* Barra consuntivate sovrapposta */}
+                {/* Barra pianificate: parte che sta dentro la capacità */}
+                {plan > 0 && (
+                  <div className="w-5 flex-shrink-0 flex flex-col justify-end" style={{ height: maxH + 32, position: 'relative' }}>
+                    {/* Parte eccedente (sopra la linea) — rossa */}
+                    {planOverH > 0 && (
+                      <div className="w-full rounded-t absolute"
+                        style={{
+                          height: Math.max(planOverH, 2),
+                          bottom: maxH,
+                          background: '#EF4444',
+                          opacity: 0.85,
+                        }} />
+                    )}
+                    {/* Parte dentro la capacità */}
+                    <div className="w-full rounded-t"
+                      style={{
+                        height: Math.max(planInCapH, plan > 0 ? 2 : 0),
+                        background: persona.colore,
+                        opacity: 0.4,
+                      }} />
+                  </div>
+                )}
+
+                {/* Barra effettive sovrapposta */}
                 {cons > 0 && (
-                  <div className="absolute left-0 w-5 rounded-t"
-                    style={{
-                      height: Math.max(consH, 2),
-                      background: persona.colore,
-                      bottom: 0,
-                    }} />
+                  <div className="absolute left-0 w-5 flex flex-col justify-end" style={{ height: maxH + 32 }}>
+                    {consOverH > 0 && (
+                      <div className="w-full rounded-t absolute"
+                        style={{
+                          height: Math.max(consOverH, 2),
+                          bottom: maxH,
+                          background: '#DC2626',
+                          opacity: 0.9,
+                        }} />
+                    )}
+                    <div className="w-full rounded-t"
+                      style={{
+                        height: Math.max(consInCapH, 2),
+                        background: persona.colore,
+                      }} />
+                  </div>
                 )}
               </div>
 
