@@ -230,9 +230,10 @@ export default function ForecastView({ seed }: { seed: Seed }) {
                           )}
                           {ms.map((s: any, si: number) => (
                             <div key={si} className="absolute top-1 right-1 group z-10">
-                              <div className="w-2 h-2 rotate-45" style={{ background: getMsColore(s.tipo) }} />
-                              <div className="absolute bottom-full right-0 mb-1 bg-gray-900 text-white text-xs rounded px-2 py-1 whitespace-nowrap opacity-0 group-hover:opacity-100 pointer-events-none z-20">
-                                {s.titolo}
+                              <div className="w-2.5 h-2.5 rotate-45" style={{ background: getMsColore(s.tipo) }} />
+                              <div className="absolute bottom-full right-0 mb-1 bg-gray-900 text-white text-xs rounded px-2 py-1 whitespace-nowrap opacity-0 group-hover:opacity-100 pointer-events-none z-20 min-w-max">
+                                <p className="font-medium">{s.titolo}</p>
+                                <p className="text-white/60">{new Date(s.data).toLocaleDateString('it-IT')}</p>
                               </div>
                             </div>
                           ))}
@@ -310,8 +311,11 @@ export default function ForecastView({ seed }: { seed: Seed }) {
                           {ore > 0 && <span className="text-xs" style={{ color: p.colore }}>{Math.round(ore)}</span>}
                           {ms.map((m, mi) => (
                             <div key={mi} className="absolute top-1 right-1 group z-10">
-                              <div className="w-2 h-2 rotate-45 opacity-80" style={{ background: getMsColore(m.tipo) }} />
-                              <div className="absolute bottom-full right-0 mb-1 bg-gray-900 text-white text-xs rounded px-2 py-1 whitespace-nowrap opacity-0 group-hover:opacity-100 pointer-events-none z-20">{m.titolo}</div>
+                              <div className="w-2.5 h-2.5 rotate-45" style={{ background: getMsColore(m.tipo), opacity: 0.85 }} />
+                              <div className="absolute bottom-full right-0 mb-1 bg-gray-900 text-white text-xs rounded px-2 py-1 whitespace-nowrap opacity-0 group-hover:opacity-100 pointer-events-none z-20 min-w-max">
+                                <p className="font-medium">{m.titolo}</p>
+                                <p className="text-white/60">{m.data}</p>
+                              </div>
                             </div>
                           ))}
                         </div>
@@ -373,17 +377,36 @@ function NuovoProspectForm({ coloriDisponibili, prospect, milestoneEsistenti, on
 }) {
   const isModifica = !!prospect
 
-  // Per modifica: ricostruisce ore_mese dalla prima cella non zero
-  const oreFlat = prospect?.ore_mensili?.find(v => v > 0)?.toString() || ''
-  const isCustom = prospect?.ore_mensili && prospect.ore_mensili.some((v,i,a) => v !== a[0] && v !== 0)
+  // Pre-calcola stato iniziale per modifica
+  const valoriIniziali = useMemo(() => {
+    if (!prospect) return { oreFlat: '', isCustom: false, oreCustomInit: {} as Record<string,string> }
+    const ore = prospect.ore_mensili || []
+    const nonZero = ore.filter(v => v > 0)
+    const tutteUguali = nonZero.length > 0 && nonZero.every(v => v === nonZero[0])
+    const isCustom = !tutteUguali && nonZero.length > 0
+    const oreFlat = tutteUguali ? nonZero[0].toString() : ''
+
+    // Ricostruisce mappa anno_mese → ore per la modalità custom
+    const oreCustomInit: Record<string,string> = {}
+    if (isCustom && prospect.data_inizio) {
+      const start = new Date(prospect.data_inizio)
+      ore.forEach((v, i) => {
+        if (v > 0) {
+          const d = new Date(start.getFullYear(), start.getMonth() + i, 1)
+          oreCustomInit[`${d.getFullYear()}_${d.getMonth()}`] = v.toString()
+        }
+      })
+    }
+    return { oreFlat, isCustom, oreCustomInit }
+  }, [prospect])
 
   const [form, setForm] = useState({
     nome: prospect?.nome || '',
     referente: prospect?.referente || '',
     data_inizio: prospect?.data_inizio || '',
     data_fine: prospect?.data_fine || '',
-    distribuzione: (isCustom ? 'custom' : 'flat') as 'flat' | 'custom',
-    ore_mese: oreFlat,
+    distribuzione: (valoriIniziali.isCustom ? 'custom' : 'flat') as 'flat' | 'custom',
+    ore_mese: valoriIniziali.oreFlat,
     colore: prospect?.colore || coloriDisponibili[0],
     note: prospect?.note || '',
   })
@@ -393,6 +416,7 @@ function NuovoProspectForm({ coloriDisponibili, prospect, milestoneEsistenti, on
   const [newMs, setNewMs] = useState({ titolo:'', data:'', tipo:'rilascio' })
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
+  const [oreCustomInit] = useState<Record<string,string>>(valoriIniziali.oreCustomInit)
 
   // Mesi nel periodo per distribuzione custom
   const mesiPeriodo = useMemo(() => {
@@ -409,7 +433,7 @@ function NuovoProspectForm({ coloriDisponibili, prospect, milestoneEsistenti, on
     return result
   }, [form.data_inizio, form.data_fine])
 
-  const [oreCustom, setOreCustom] = useState<Record<string, string>>({})
+  const [oreCustom, setOreCustom] = useState<Record<string, string>>(oreCustomInit)
 
   function buildOreMensili(): number[] {
     if (!form.data_inizio) return new Array(12).fill(0)
