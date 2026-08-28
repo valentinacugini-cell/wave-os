@@ -13,6 +13,13 @@ const TIPO_COLORS: Record<string, string> = {
 }
 const PROSPECT_COLORS = ['#A67DC6','#E07B54','#4F86C6','#F9A825','#E53935','#639922','#1D9E75']
 
+// Evita shift timezone UTC → locale (new Date('2026-12-01') → 30 nov in IT)
+function parseDataLocale(s: string): Date {
+  if (!s) return new Date()
+  const p = s.split('-').map(Number)
+  return new Date(p[0], p[1]-1, p[2])
+}
+
 // Genera finestra 18 mesi da mese corrente
 function genera18Mesi(): {anno: number, mese: number, label: string}[] {
   const oggi = new Date()
@@ -193,7 +200,7 @@ export default function ForecastView({ seed }: { seed: Seed }) {
               const hasDati = finestra.some(f => {
                 const k = `${f.anno}_${f.mese}`
                 return (oreMap[k] || 0) > 0 || msProj.some((s: any) => {
-                  const d = new Date(s.data)
+                  const d = parseDataLocale(s.data)
                   return d.getFullYear() === f.anno && d.getMonth() === f.mese
                 })
               })
@@ -214,7 +221,7 @@ export default function ForecastView({ seed }: { seed: Seed }) {
                       const k = `${f.anno}_${f.mese}`
                       const ore = oreMap[k] || 0
                       const ms = msProj.filter((s: any) => {
-                        const d = new Date(s.data)
+                        const d = parseDataLocale(s.data)
                         return d.getFullYear() === f.anno && d.getMonth() === f.mese
                       })
                       // Se c'è milestone senza ore, colora la cella leggermente
@@ -233,7 +240,7 @@ export default function ForecastView({ seed }: { seed: Seed }) {
                               <div className="w-2.5 h-2.5 rotate-45" style={{ background: getMsColore(s.tipo) }} />
                               <div className="absolute bottom-full right-0 mb-1 bg-gray-900 text-white text-xs rounded px-2 py-1 whitespace-nowrap opacity-0 group-hover:opacity-100 pointer-events-none z-20 min-w-max">
                                 <p className="font-medium">{s.titolo}</p>
-                                <p className="text-white/60">{new Date(s.data).toLocaleDateString('it-IT')}</p>
+                                <p className="text-white/60">{parseDataLocale(s.data).toLocaleDateString('it-IT')}</p>
                               </div>
                             </div>
                           ))}
@@ -298,7 +305,7 @@ export default function ForecastView({ seed }: { seed: Seed }) {
                     {finestra.map((f, fi) => {
                       const ore = getOre(f.anno, f.mese)
                       const ms = msPros.filter(m => {
-                        const d = new Date(m.data)
+                        const d = parseDataLocale(m.data)
                         return d.getFullYear() === f.anno && d.getMonth() === f.mese
                       })
                       const msColore = ms.length > 0 ? getMsColore(ms[0].tipo) : null
