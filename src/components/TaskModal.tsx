@@ -156,12 +156,12 @@ export default function TaskModal({ task, personaById, clienteNome, progetti, on
             </div>
             <div>
               <label className="text-xs text-gray-400 block mb-1">Data inizio</label>
-              <input type="date" value={form.data_inizio} onChange={e => setForm(f => ({ ...f, data_inizio: e.target.value }))}
+              <input type="date" value={form.data_inizio ?? ''} onChange={e => setForm(f => ({ ...f, data_inizio: e.target.value }))}
                 className="w-full text-xs px-2 py-1.5 rounded-lg border border-gray-200 outline-none" />
             </div>
             <div>
               <label className="text-xs text-gray-400 block mb-1">Data fine</label>
-              <input type="date" value={form.data_fine} onChange={e => setForm(f => ({ ...f, data_fine: e.target.value }))}
+              <input type="date" value={form.data_fine ?? ''} onChange={e => setForm(f => ({ ...f, data_fine: e.target.value }))}
                 className="w-full text-xs px-2 py-1.5 rounded-lg border border-gray-200 outline-none" />
             </div>
           </div>
@@ -175,7 +175,7 @@ export default function TaskModal({ task, personaById, clienteNome, progetti, on
             </div>
             <div>
               <label className="text-xs text-gray-400 block mb-1">Ore stimate</label>
-              <input type="number" value={form.ore_stimate} onChange={e => setForm(f => ({ ...f, ore_stimate: Number(e.target.value) }))}
+              <input type="number" value={form.ore_stimate ?? ''} onChange={e => setForm(f => ({ ...f, ore_stimate: Number(e.target.value) }))}
                 className="w-full text-xs px-2 py-1.5 rounded-lg border border-gray-200 outline-none" />
             </div>
           </div>
