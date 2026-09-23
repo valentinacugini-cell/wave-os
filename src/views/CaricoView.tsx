@@ -382,6 +382,11 @@ export default function CaricoView({ seed }: CaricoProps) {
 
   return (
     <div>
+      <div className="mb-4 flex items-start gap-2 px-4 py-3 rounded-xl border text-sm"
+        style={{ background: '#FFFBEB', borderColor: '#FCD34D', color: '#92400E' }}>
+        <span className="flex-shrink-0">⚠</span>
+        <span><strong>Carico in aggiornamento</strong> — questa vista non riflette ancora la nuova pianificazione giornaliera. La nuova vista sarà introdotta nella Fase 2C.</span>
+      </div>
       <SectionHeader title="Carico Team" />
 
       {/* Barre */}
