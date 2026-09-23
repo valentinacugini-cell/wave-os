@@ -1,4 +1,6 @@
 import React, { useState, useMemo } from 'react'
+import { useAuth } from './hooks/useAuth'
+import LoginView from './views/LoginView'
 import seedData from './data/seed.json'
 import { loadSeed, syncOreEffettive } from './lib/supabase'
 import { Seed, Persona, View } from './types'
@@ -79,6 +81,7 @@ function normalizeSeed(raw: any): any {
 }
 
 export default function App() {
+  const auth = useAuth()
   const [seed, setSeed] = React.useState<any>(normalizeSeed(seedData))
   const [loading, setLoading] = React.useState(true)
   const [dbError, setDbError] = React.useState<string | null>(null)
@@ -121,7 +124,7 @@ export default function App() {
     setSyncing(true)
     setSyncMsg(null)
     try {
-      const n = await syncOreEffettive()
+      const n = await syncOreEffettive([])
       // Ricarica i dati aggiornati
       const data = await loadSeed()
       setSeed(normalizeSeed(data))
@@ -174,6 +177,45 @@ export default function App() {
     </div>
   )
 
+  // Auth guard — mostra loading durante inizializzazione sessione
+  // evita flash del contenuto prima di conoscere lo stato auth
+  if (auth.loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center" style={{ background: '#F5F4EF' }}>
+        <div className="text-sm text-gray-400">Caricamento...</div>
+      </div>
+    )
+  }
+
+  // Utente non autenticato — mostra login
+  if (!auth.user) {
+    return <LoginView />
+  }
+
+  // Utente autenticato ma non associato a nessun membro del team
+  if (auth.noTeamAssociation) {
+    return (
+      <div className="min-h-screen flex items-center justify-center" style={{ background: '#F5F4EF' }}>
+        <div className="bg-white rounded-2xl border border-gray-200 p-8 max-w-sm w-full text-center shadow-sm">
+          <div className="w-10 h-10 rounded-xl flex items-center justify-center mx-auto mb-4"
+            style={{ background: '#1A1A2E' }}>
+            <span className="text-xs font-bold" style={{ color: '#7DF5DF' }}>W</span>
+          </div>
+          <h2 className="text-sm font-semibold text-gray-900 mb-2">Account non associato</h2>
+          <p className="text-xs text-gray-400 mb-4">
+            Il tuo account non è ancora associato a una risorsa Wave.<br />
+            Contatta un amministratore per completare la configurazione.
+          </p>
+          <p className="text-xs text-gray-300 mb-4">{auth.user.email}</p>
+          <button onClick={auth.logout}
+            className="text-xs px-4 py-2 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50">
+            Disconnetti
+          </button>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <ErrorBoundary>
       <ClienteProvider>
@@ -185,6 +227,9 @@ export default function App() {
               currentUser={currentUser}
               team={seed.team}
               onUserChange={setCurrentUserId}
+              onLogout={auth.logout}
+              authUser={auth.user}
+              teamMember={auth.teamMember}
             />
             <main className="flex-1 overflow-auto" style={{ marginLeft: 240 }}>
               <div className="max-w-6xl mx-auto px-8 py-8">
