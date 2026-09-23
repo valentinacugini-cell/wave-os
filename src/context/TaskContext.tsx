@@ -5,8 +5,8 @@ import { sbPost, sbPatch, sbDelete } from '../lib/supabase'
 interface TaskContextValue {
   taskEdits: Record<string, Partial<Task>>
   taskEliminati: Set<string>
-  updateTask: (id: string, updates: Partial<Task>) => void
-  eliminaTask: (ids: string[]) => void
+  updateTask: (id: string, updates: Partial<Task>) => Promise<void>
+  eliminaTask: (ids: string[]) => Promise<void>
   getTask: (task: Task) => Task
   isEliminato: (id: string) => boolean
   addTask: (task: Omit<Task, 'id'> & { id?: string }) => Promise<string>
@@ -18,41 +18,35 @@ export function TaskProvider({ children }: { children: ReactNode }) {
   const [taskEdits, setTaskEdits] = useState<Record<string, Partial<Task>>>({})
   const [taskEliminati, setTaskEliminati] = useState<Set<string>>(new Set())
 
-  async function updateTask(id: string, updates: Partial<Task>) {
-    // Aggiorna stato locale immediatamente
+  // updateTask — aggiorna lo stato locale SOLO dopo conferma DB
+  async function updateTask(id: string, updates: Partial<Task>): Promise<void> {
+    await sbPatch('tasks', id, updates)
+    // Aggiorna stato locale solo se DB ha confermato (sbPatch lancia eccezione in caso di errore)
     setTaskEdits(prev => ({ ...prev, [id]: { ...(prev[id] ?? {}), ...updates } }))
-    // Scrive su Supabase in background
-    try {
-      await sbPatch('tasks', id, updates)
-    } catch(e) {
-      console.error('updateTask Supabase:', e)
-    }
   }
 
-  async function eliminaTask(ids: string[]) {
-    setTaskEliminati(prev => {
-      const next = new Set(prev)
-      ids.forEach(id => next.add(id))
-      return next
-    })
-    // Elimina su Supabase in background
+  // eliminaTask — soft delete tramite archived_at, NON DELETE fisico
+  // Lo stato operativo NON diventa 'archiviato' — il task rimane con il suo stato attuale
+  // ma viene filtrato dalle viste tramite archived_at IS NOT NULL
+  async function eliminaTask(ids: string[]): Promise<void> {
+    const archivedAt = new Date().toISOString()
     for (const id of ids) {
-      try {
-        await sbDelete('tasks', id)
-      } catch(e) {
-        console.error('eliminaTask Supabase:', e)
-      }
+      await sbPatch('tasks', id, { archived_at: archivedAt })
+      // Aggiorna stato locale solo dopo conferma DB
+      setTaskEliminati(prev => {
+        const next = new Set(prev)
+        next.add(id)
+        return next
+      })
     }
   }
 
+  // addTask — aggiunge task solo se DB conferma
   async function addTask(taskData: Omit<Task, 'id'> & { id?: string }): Promise<string> {
     const id = taskData.id ?? `task_${Date.now()}_${Math.random().toString(36).slice(2,7)}`
     const task = { ...taskData, id }
-    try {
-      await sbPost('tasks', task)
-    } catch(e) {
-      console.error('addTask Supabase:', e)
-    }
+    await sbPost('tasks', task)
+    // Nessuna modifica locale ottimistica — il seed viene ricaricato o il chiamante gestisce
     return id
   }
 
