@@ -156,7 +156,7 @@ export default function SchedaCliente({ clienteId, seed, onBack }: Props) {
 
   // Ore: contratto vs allocate (somma ore stimate dei task) vs effettive
   const oreContratto = progettoAttivo?.ore_contratto ?? 0
-  const oreAllocateTotali = Math.round(tasksConEdits.reduce((s, t) => s + (t.ore_stimate || 0), 0))
+  const oreAllocateTotali = Math.round(tasksConEdits.reduce((s, t) => s + ((t.ore_stimate ?? 0) || 0), 0))
 
   // Dati grafico a barre mensile
   const mesiLabel = ['Gen','Feb','Mar','Apr','Mag','Giu','Lug','Ago','Set','Ott','Nov','Dic']
@@ -253,18 +253,7 @@ export default function SchedaCliente({ clienteId, seed, onBack }: Props) {
       {/* ImportTaskModal */}
       {showImport && (
         <ImportTaskModal
-          progetti={progetti}
-          personaById={personaById}
-          clienteId={clienteId}
           onClose={() => setShowImport(false)}
-          onImport={async (nuoviTask) => {
-            const saved: any[] = []
-            for (const t of nuoviTask) {
-              const id = await addTask(t)
-              saved.push({ ...t, id })
-            }
-            setTaskImportati(prev => [...prev, ...saved])
-          }}
         />
       )}
 
@@ -635,7 +624,7 @@ export default function SchedaCliente({ clienteId, seed, onBack }: Props) {
                         <span className="text-sm font-medium text-gray-900">{t.titolo}</span>
                         <span className="text-xs text-gray-400 ml-2">{t.area}</span>
                         <div className="flex gap-3 mt-0.5 text-xs text-gray-400 flex-wrap">
-                          {t.ore_stimate > 0 && <span className="font-medium" style={{ color: '#1D9E75' }}>{t.ore_stimate}h</span>}
+                          {(t.ore_stimate ?? 0) > 0 && <span className="font-medium" style={{ color: '#1D9E75' }}>{(t.ore_stimate ?? 0)}h</span>}
                           {t.data_fine && <span>→ {formatDate(t.data_fine)}</span>}
                           {t.assegnatari?.map(rid => {
                             const p = personaById[rid]
@@ -646,7 +635,7 @@ export default function SchedaCliente({ clienteId, seed, onBack }: Props) {
                           <div className="flex gap-3 mt-0.5 text-xs text-gray-400 flex-wrap">
                             {t.milestone && <span>· {t.milestone}</span>}
                             <span>{formatDate(t.data_inizio)} → {formatDate(t.data_fine)}</span>
-                            {t.ore_stimate > 0 && <span>{t.ore_stimate}h</span>}
+                            {(t.ore_stimate ?? 0) > 0 && <span>{(t.ore_stimate ?? 0)}h</span>}
                             {t.ricorrente && <span style={{ color: '#185FA5' }}>↻ {t.frequenza}</span>}
                             {t.note && <span className="italic">{t.note}</span>}
                           </div>
