@@ -7,6 +7,9 @@ export interface Persona {
   tipo: PersonaTipo
   ore_settimana?: number
   colore: string
+  capacita_mensile?: number[]
+  ore_pianificate?: number[]
+  ore_effettive_mensili?: number[]
 }
 
 export type ClienteStato = 'attivo' | 'in_attesa' | 'pausa' | 'concluso'
@@ -41,7 +44,7 @@ export interface AllocazioneRiga {
 }
 
 export type ScadenzaTipo = 'rinnovo' | 'rilascio' | 'riunione_cliente' | 'interno' | 'checkpoint'
-export type ScadenzaStato = 'aperto' | 'completato' | 'posticipato'
+export type ScadenzaStato = 'aperto' | 'chiuso'
 export type ScadenzaUrgenza = 'critica' | 'alta' | 'normale'
 
 export interface Scadenza {
@@ -55,18 +58,28 @@ export interface Scadenza {
   urgenza: ScadenzaUrgenza
   note?: string | null
   progetto_id?: string | null
+  completed_at?: string | null
+  cancelled_at?: string | null
 }
 
-export type TaskStato = 'da_fare' | 'in_corso' | 'completato' | 'bloccato' | 'in_attesa_materiali'
-export type TaskPriorita = 'alta' | 'media' | 'bassa'
+// Stati operativi task — bloccato/in_attesa_materiali rimossi dal DB
+// Il blocco è rappresentato da blocco_tipo separato
+export type TaskStato = 'da_fare' | 'in_corso' | 'completato' | 'annullato'
+
+export type TaskPriorita = 'alta' | 'media' | 'bassa' | 'urgente'
+
+export type BloccTipo = 'nessuno' | 'attesa_cliente' | 'attesa_materiali' | 'dipendenza_interna' | 'altro'
+
+export type MigrationReviewReason = 'multi_assegnatario' | 'stima_anomala'
 
 export interface Task {
   id: string
   cliente: string
   area: string
-  milestone?: string | null
+  milestone?: string | null        // legacy text — mantenuto per compatibilità
+  milestone_id?: string | null     // FK verso scadenze(id) — nuovo modello
   titolo: string
-  assegnatari: string[]
+  assegnatari: string[]            // legacy array — mantenuto per compatibilità
   ore_stimate: number
   data_inizio: string
   data_fine: string
@@ -76,6 +89,15 @@ export interface Task {
   frequenza?: string
   note?: string | null
   progetto_id?: string | null
+  // Campi Fase 1 — lifecycle
+  deadline?: string | null
+  blocco_tipo?: BloccTipo | null
+  blocco_note?: string | null
+  completed_at?: string | null
+  cancelled_at?: string | null
+  archived_at?: string | null
+  needs_assignment_review?: boolean
+  migration_review_reason?: MigrationReviewReason | null
 }
 
 export interface Progetto {
@@ -87,7 +109,8 @@ export interface Progetto {
   importo_contratto?: number
   note_commerciali?: string | null
   rinnovo_previsto?: string | null
-  stato: 'attivo' | 'concluso' | 'sospeso'
+  responsabile_id?: string | null  // Fase 1B — owner progetto
+  stato: 'pianificato' | 'attivo' | 'sospeso' | 'concluso' | 'annullato'
   data_inizio?: string | null
   data_fine?: string | null
 }
@@ -107,6 +130,36 @@ export interface NoteRinnovo {
   note: string
   anno_precedente_valore?: number | null
   anno_corrente_proposta?: number | null
+}
+
+// Nuove entità Fase 1 — non ancora usate dal frontend
+export interface Assegnazione {
+  id: string
+  task_id: string
+  persona_id: string
+  ore_assegnate: number
+  note?: string | null
+  created_at?: string
+  updated_at?: string
+}
+
+export interface Allocazione {
+  id: string
+  assegnazione_id: string
+  ore: number
+  data_inizio: string
+  data_fine: string
+  note?: string | null
+  created_at?: string
+  updated_at?: string
+}
+
+export interface CapacitaPersona {
+  id: string
+  persona_id: string
+  anno: number
+  mese: number
+  ore_disponibili: number
 }
 
 export interface Seed {
