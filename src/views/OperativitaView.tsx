@@ -165,7 +165,7 @@ function ListaSettimanale({ tasks, seed, onOpenTask }: {
                             <span className="text-sm font-medium text-gray-900">{t.titolo}</span>
                             <div className="flex gap-3 mt-0.5 text-xs text-gray-400 flex-wrap items-center">
                               <span className="text-gray-400">{t.area}</span>
-                              {t.ore_stimate > 0 && <span className="font-semibold" style={{ color: '#1D9E75' }}>{t.ore_stimate}h</span>}
+                              {(t.ore_stimate ?? 0) > 0 && <span className="font-semibold" style={{ color: '#1D9E75' }}>{(t.ore_stimate ?? 0)}h</span>}
                               {t.data_fine && <span>→ {formatDate(t.data_fine)}</span>}
                             </div>
                             {isExp && (
@@ -173,7 +173,7 @@ function ListaSettimanale({ tasks, seed, onOpenTask }: {
                                 <span>{t.area}</span>
                                 {t.milestone && <span>· {t.milestone}</span>}
                                 <span>{formatDate(t.data_inizio)} → {formatDate(t.data_fine)}</span>
-                                {t.ore_stimate > 0 && <span>{t.ore_stimate}h</span>}
+                                {(t.ore_stimate ?? 0) > 0 && <span>{(t.ore_stimate ?? 0)}h</span>}
                                 {t.ricorrente && <span style={{ color: '#185FA5' }}>↻ {t.frequenza}</span>}
                                 {t.note && <span className="italic">{t.note}</span>}
                               </div>
@@ -244,7 +244,7 @@ function TaskHoverCard({ tasks, personaById, onSelect }: {
               <p className="text-xs font-semibold text-gray-900 leading-snug">{t.titolo}</p>
               <div className="flex items-center gap-2 mt-1 flex-wrap">
                 <span className="text-xs text-gray-400">{STATI_SHORT[t.stato]}</span>
-                {t.ore_stimate > 0 && <span className="text-xs text-gray-400">{t.ore_stimate}h</span>}
+                {(t.ore_stimate ?? 0) > 0 && <span className="text-xs text-gray-400">{(t.ore_stimate ?? 0)}h</span>}
                 {t.data_fine && <span className="text-xs text-gray-400">scad. {new Date(t.data_fine).toLocaleDateString('it-IT', {day:'numeric', month:'short'})}</span>}
                 <div className="flex gap-0.5 ml-auto">
                   {t.assegnatari.slice(0, 2).map(pid => {
@@ -310,13 +310,13 @@ function Swimlane({ tasks, seed, onOpenTask }: {
       const rt = getTask(t)
       const tStart = parseDate(rt.data_inizio)
       const tEnd = parseDate(rt.data_fine)
-      if (!tStart || !tEnd || rt.ore_stimate <= 0) return
+      if (!tStart || !tEnd || (rt.ore_stimate ?? 0) <= 0) return
       if (tStart <= colEnd && tEnd >= colStart) {
         const durataTask = Math.max(1, Math.round((tEnd.getTime() - tStart.getTime()) / (1000 * 60 * 60 * 24)))
         const overlapStart = tStart < colStart ? colStart : tStart
         const overlapEnd = tEnd > colEnd ? colEnd : tEnd
         const overlap = Math.max(1, Math.round((overlapEnd.getTime() - overlapStart.getTime()) / (1000 * 60 * 60 * 24)) + 1)
-        ore += Math.round((rt.ore_stimate * overlap) / durataTask)
+        ore += Math.round(((rt.ore_stimate ?? 0) * overlap) / durataTask)
       }
     })
     return ore
