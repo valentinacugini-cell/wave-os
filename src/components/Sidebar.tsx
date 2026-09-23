@@ -2,6 +2,7 @@ import React from 'react'
 import { View, Persona } from '../types'
 
 const NAV_ITEMS: { id: View; label: string; icon: string }[] = [
+  { id: 'miei_task',    label: 'I miei task',    icon: '✦' },
   { id: 'home',         label: 'Clienti attivi', icon: '⊞' },
   { id: 'operativita',  label: 'Operatività',    icon: '◈' },
   { id: 'carico',       label: 'Carico Team',    icon: '◫' },
