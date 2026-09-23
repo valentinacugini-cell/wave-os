@@ -2,7 +2,7 @@ import React, { useState, useMemo } from 'react'
 import { useAuth } from './hooks/useAuth'
 import LoginView from './views/LoginView'
 import seedData from './data/seed.json'
-import { loadSeed, syncOreEffettive } from './lib/supabase'
+import { supabase, loadSeed, syncOreEffettive } from './lib/supabase'
 import { Seed, Persona, View } from './types'
 import { TaskProvider } from './context/TaskContext'
 import { ClienteProvider } from './context/ClienteContext'
@@ -96,7 +96,9 @@ export default function App() {
     try {
       const SUPABASE_URL = 'https://ckkdrtzyowhbddpoziha.supabase.co'
       const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNra2RydHp5b3doYmRkcG96aWhhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI0NzU2MzcsImV4cCI6MjA5ODA1MTYzN30.0BSBbjKmrdGtmtr2N2RCIQUZDxGkHObcWYguoarFC2I'
-      const headers = { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }
+      const { data: { session: backupSession } } = await supabase.auth.getSession()
+      const backupToken = backupSession?.access_token ?? SUPABASE_KEY
+      const headers = { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${backupToken}` }
       const tables = ['team', 'clienti', 'progetti', 'tasks', 'scadenze', 'contatti', 'note_rinnovo']
       const backup: any = { exported_at: new Date().toISOString(), version: '1.0' }
       for (const table of tables) {
@@ -137,10 +139,17 @@ export default function App() {
   }
 
   React.useEffect(() => {
+    // Carica il seed solo quando l'utente è autenticato e associato al team
+    // Se auth è ancora in loading, aspetta. Se non autenticato, non caricare.
+    if (auth.loading) return
+    if (!auth.user) {
+      setLoading(false)
+      return
+    }
     loadSeed()
       .then(data => { setSeed(normalizeSeed(data)); setLoading(false) })
       .catch(err => { console.error('Supabase:', err); setDbError(err.message); setLoading(false) })
-  }, [])
+  }, [auth.user, auth.loading])
 
   const [currentView, setCurrentView] = useState<View>('home')
   const [currentUserId, setCurrentUserId] = useState<string>('valentina')
