@@ -19,14 +19,14 @@ const STATI_LABEL: Record<TaskStato, { label: string; bg: string; color: string 
   da_fare:             { label: 'Da fare',          bg: '#F1EFE8', color: '#444441' },
   in_corso:            { label: 'In corso',          bg: '#E1F5EE', color: '#085041' },
   completato:          { label: 'Completato',        bg: '#EAF3DE', color: '#27500A' },
-  bloccato:            { label: 'Bloccato',          bg: '#FCEBEB', color: '#501313' },
-  in_attesa_materiali: { label: 'Attesa materiali',  bg: '#FAEEDA', color: '#412402' },
+  annullato:           { label: 'Annullato',         bg: '#F5F5F5', color: '#666660' },
 }
 
 const PRIO: Record<TaskPriorita, { dot: string; bg: string; color: string; label: string }> = {
   alta:  { dot: '#E24B4A', bg: '#FFEBEE', color: '#C62828', label: 'Alta' },
   media: { dot: '#EF9F27', bg: '#FFF3E0', color: '#E65100', label: 'Media' },
-  bassa: { dot: '#639922', bg: '#EAF3DE', color: '#2E7D32', label: 'Bassa' },
+  bassa:   { dot: '#639922', bg: '#EAF3DE', color: '#2E7D32', label: 'Bassa' },
+  urgente: { dot: '#C62828', bg: '#FFEBEE', color: '#B71C1C', label: 'Urgente' },
 }
 
 function getStat(stato: string) {
@@ -214,7 +214,7 @@ export default function SchedaCliente({ clienteId, seed, onBack }: Props) {
   const totTask = tasksConEdits.length
   const completati = tasksConEdits.filter(t => t.stato === 'completato').length
   const pctCompletamento = totTask > 0 ? Math.round((completati / totTask) * 100) : 0
-  const taskBloccati = tasksConEdits.filter(t => t.stato === 'bloccato' || t.stato === 'in_attesa_materiali').length
+  const taskBloccati = tasksConEdits.filter(t => t.blocco_tipo && t.blocco_tipo !== 'nessuno').length
 
   // PPL progress
   const isPPL = cliente.tipo_contratto === 'ppl'
@@ -620,7 +620,7 @@ export default function SchedaCliente({ clienteId, seed, onBack }: Props) {
                 const isLast = i === tasksFiltrati.length - 1
                 return (
                   <div key={t.id}
-                    style={{ borderBottom: isLast ? 'none' : '1px solid #F0F0F0', background: t.stato === 'bloccato' ? '#FFF8F8' : 'white' }}>
+                    style={{ borderBottom: isLast ? 'none' : '1px solid #F0F0F0', background: t.blocco_tipo !== undefined && t.blocco_tipo !== 'nessuno' ? '#FFF8F8' : 'white' }}>
                     <div className="flex items-center gap-3 px-4 py-2.5">
                       <input type="checkbox"
                         checked={selezione.has(t.id)}
