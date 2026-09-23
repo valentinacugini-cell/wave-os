@@ -16,14 +16,14 @@ const STATI_LABEL: Record<TaskStato, { label: string; bg: string; color: string 
   da_fare:             { label: 'Da fare',          bg: '#F1EFE8', color: '#444441' },
   in_corso:            { label: 'In corso',          bg: '#E1F5EE', color: '#085041' },
   completato:          { label: 'Completato',        bg: '#EAF3DE', color: '#27500A' },
-  bloccato:            { label: 'Bloccato',          bg: '#FCEBEB', color: '#501313' },
-  in_attesa_materiali: { label: 'Attesa materiali',  bg: '#FAEEDA', color: '#412402' },
+  annullato:           { label: 'Annullato',         bg: '#F5F5F5', color: '#666660' },
 }
 
 const PRIO: Record<TaskPriorita, { dot: string; bg: string; color: string; label: string }> = {
   alta:  { dot: '#E24B4A', bg: '#FFEBEE', color: '#C62828', label: 'Alta' },
   media: { dot: '#EF9F27', bg: '#FFF3E0', color: '#E65100', label: 'Media' },
-  bassa: { dot: '#639922', bg: '#EAF3DE', color: '#2E7D32', label: 'Bassa' },
+  bassa:   { dot: '#639922', bg: '#EAF3DE', color: '#2E7D32', label: 'Bassa' },
+  urgente: { dot: '#C62828', bg: '#FFEBEE', color: '#B71C1C', label: 'Urgente' },
 }
 
 function getStat(stato: string) {
@@ -103,7 +103,7 @@ function ListaSettimanale({ tasks, seed, onOpenTask }: {
     })
     Object.values(groups).forEach(list =>
       list.sort((a, b) => {
-        const po: Record<TaskPriorita, number> = { alta: 0, media: 1, bassa: 2 }
+        const po: Record<TaskPriorita, number> = { alta: 0, media: 1, bassa: 2, urgente: 0 }
         return po[a.priorita] - po[b.priorita]
       })
     )
@@ -148,7 +148,7 @@ function ListaSettimanale({ tasks, seed, onOpenTask }: {
                     const isLast = i === taskList.length - 1
                     const isExp = expanded === t.id
                     return (
-                      <div key={t.id} style={{ borderBottom: isLast ? 'none' : '1px solid #F0F0F0', background: t.stato === 'bloccato' ? '#FFF8F8' : 'white' }}>
+                      <div key={t.id} style={{ borderBottom: isLast ? 'none' : '1px solid #F0F0F0', background: t.blocco_tipo && t.blocco_tipo !== 'nessuno' ? '#FFF8F8' : 'white' }}>
                         <div className="flex items-center gap-3 px-4 py-2.5">
                           <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ background: getPrio(t.priorita).dot }} />
                           <div className="flex-1 min-w-0">
@@ -224,10 +224,10 @@ function TaskHoverCard({ tasks, personaById, onSelect }: {
   personaById: Record<string, Persona>
   onSelect: (t: Task) => void
 }) {
-  const PRIO_DOT: Record<TaskPriorita, string> = { alta: '#E24B4A', media: '#EF9F27', bassa: '#639922' }
+  const PRIO_DOT: Record<TaskPriorita, string> = { alta: '#E24B4A', media: '#EF9F27', bassa: '#639922', urgente: '#C62828' }
   const STATI_SHORT: Record<TaskStato, string> = {
     da_fare: 'Da fare', in_corso: 'In corso', completato: 'Fatto',
-    bloccato: 'Bloccato', in_attesa_materiali: 'Attesa'
+    annullato: 'Annullato'
   }
   return (
     <div className="absolute z-40 bg-white rounded-xl shadow-2xl border border-gray-100 p-3 min-w-52 max-w-72"
@@ -366,7 +366,7 @@ function Swimlane({ tasks, seed, onOpenTask }: {
             if (existing) {
               existing.tasks.push(rawT)
               // Scala priorità al massimo
-              const po: Record<TaskPriorita, number> = { alta: 0, media: 1, bassa: 2 }
+              const po: Record<TaskPriorita, number> = { alta: 0, media: 1, bassa: 2, urgente: 0 }
               if (po[t.priorita] < po[existing.priorita]) existing.priorita = t.priorita
             } else {
               result[pid][ci].push({ clienteId: t.cliente, area: t.area, progettoId: t.progetto_id ?? null, priorita: t.priorita, tasks: [rawT] })
