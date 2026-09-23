@@ -1,27 +1,43 @@
+import { createClient, Session, User } from '@supabase/supabase-js'
+import { Task, Assegnazione, Allocazione, CapacitaPersona, Persona } from '../types'
+
 const SUPABASE_URL = 'https://ckkdrtzyowhbddpoziha.supabase.co'
-const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNra2RydHp5b3doYmRkcG96aWhhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI0NzU2MzcsImV4cCI6MjA5ODA1MTYzN30.0BSBbjKmrdGtmtr2N2RCIQUZDxGkHObcWYguoarFC2I'
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNra2RydHp5b3doYmRkcG96aWhhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI0NzU2MzcsImV4cCI6MjA5ODA1MTYzN30.0BSBbjKmrdGtmtr2N2RCIQUZDxGkHObcWYguoarFC2I'
+
+// Client Supabase ufficiale — gestisce sessione, refresh token, onAuthStateChange
+export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+  auth: {
+    persistSession: true,
+    autoRefreshToken: true,
+    detectSessionInUrl: false,
+  }
+})
+
+// ── Funzioni helper REST legacy (mantengono compatibilità con il codice esistente) ──
+// Ora usano il token della sessione corrente invece dell'anon key fissa
+
+async function getAuthHeaders(): Promise<Record<string, string>> {
+  const { data: { session } } = await supabase.auth.getSession()
+  const token = session?.access_token ?? SUPABASE_ANON_KEY
+  return {
+    'apikey': SUPABASE_ANON_KEY,
+    'Authorization': `Bearer ${token}`,
+    'Content-Type': 'application/json',
+  }
+}
 
 async function sb(table: string, params = '') {
-  const res = await fetch(`${SUPABASE_URL}/rest/v1/${table}?${params}`, {
-    headers: {
-      'apikey': SUPABASE_KEY,
-      'Authorization': `Bearer ${SUPABASE_KEY}`,
-      'Content-Type': 'application/json',
-    }
-  })
+  const headers = await getAuthHeaders()
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/${table}?${params}`, { headers })
   if (!res.ok) throw new Error(`Supabase error ${res.status}: ${await res.text()}`)
   return res.json()
 }
 
 export async function sbPost(table: string, data: any) {
+  const headers = await getAuthHeaders()
   const res = await fetch(`${SUPABASE_URL}/rest/v1/${table}`, {
     method: 'POST',
-    headers: {
-      'apikey': SUPABASE_KEY,
-      'Authorization': `Bearer ${SUPABASE_KEY}`,
-      'Content-Type': 'application/json',
-      'Prefer': 'return=representation'
-    },
+    headers: { ...headers, 'Prefer': 'return=representation' },
     body: JSON.stringify(data)
   })
   if (!res.ok) throw new Error(`Supabase error ${res.status}: ${await res.text()}`)
@@ -29,427 +45,144 @@ export async function sbPost(table: string, data: any) {
 }
 
 export async function sbPatch(table: string, id: string, data: any) {
-  const res = await fetch(`${SUPABASE_URL}/rest/v1/${table}?id=eq.${encodeURIComponent(id)}`, {
+  const headers = await getAuthHeaders()
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/${table}?id=eq.${id}`, {
     method: 'PATCH',
-    headers: {
-      'apikey': SUPABASE_KEY,
-      'Authorization': `Bearer ${SUPABASE_KEY}`,
-      'Content-Type': 'application/json',
-      'Prefer': 'return=minimal'
-    },
-    body: JSON.stringify(data)
-  })
-  if (!res.ok) throw new Error(`Supabase error ${res.status}: ${await res.text()}`)
-}
-
-export async function sbUpsert(table: string, data: any) {
-  const res = await fetch(`${SUPABASE_URL}/rest/v1/${table}`, {
-    method: 'POST',
-    headers: {
-      'apikey': SUPABASE_KEY,
-      'Authorization': `Bearer ${SUPABASE_KEY}`,
-      'Content-Type': 'application/json',
-      'Prefer': 'resolution=merge-duplicates,return=minimal'
-    },
+    headers: { ...headers, 'Prefer': 'return=minimal' },
     body: JSON.stringify(data)
   })
   if (!res.ok) throw new Error(`Supabase error ${res.status}: ${await res.text()}`)
 }
 
 export async function sbDelete(table: string, id: string) {
-  const res = await fetch(`${SUPABASE_URL}/rest/v1/${table}?id=eq.${encodeURIComponent(id)}`, {
+  const headers = await getAuthHeaders()
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/${table}?id=eq.${id}`, {
     method: 'DELETE',
-    headers: {
-      'apikey': SUPABASE_KEY,
-      'Authorization': `Bearer ${SUPABASE_KEY}`,
-    }
+    headers,
   })
   if (!res.ok) throw new Error(`Supabase error ${res.status}: ${await res.text()}`)
 }
 
-export async function loadSeed() {
-  const [team, clienti, progetti, tasks, scadenze, contatti, noteRinnovo] = await Promise.all([
-    sb('team', 'select=id,nome,ruolo,tipo,colore,capacita_mensile,ore_pianificate,ore_effettive_mensili&order=tipo,nome'),
-    sb('clienti', 'select=*&order=nome'),
-    sb('progetti', 'select=*&order=nome'),
-    sb('tasks', 'select=*&order=data_fine'),
-    sb('scadenze', 'select=*&order=data'),
-    sb('contatti', 'select=*'),
-    sb('note_rinnovo', 'select=*'),
-  ])
+export async function sbUpsert(table: string, data: any) {
+  const headers = await getAuthHeaders()
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/${table}`, {
+    method: 'POST',
+    headers: { ...headers, 'Prefer': 'resolution=merge-duplicates,return=representation' },
+    body: JSON.stringify(data)
+  })
+  if (!res.ok) throw new Error(`Supabase error ${res.status}: ${await res.text()}`)
+  return res.json()
+}
 
-  const mesi_label = ['Giu', 'Lug', 'Ago', 'Set', 'Ott', 'Nov', 'Dic']
+// ── Foundation Data Layer — Fase 2A ──────────────────────────────────────────
+// Queste funzioni leggono/scrivono le nuove entità.
+// Non sono ancora usate dalle viste legacy — pronte per la Fase 2B.
 
-  const teamNorm = team.map((p: any) => ({
-    id: p.id, nome: p.nome, ruolo: p.ruolo, tipo: p.tipo, colore: p.colore,
-    capacita_mensile: p.capacita_mensile ?? [],
-    ore_pianificate: p.ore_pianificate ?? [],
-    ore_effettive_mensili: p.ore_effettive_mensili ?? [],
-  }))
-
-  const capacita = teamNorm
-    .filter((p: any) => p.tipo === 'operativo' && p.capacita_mensile?.length > 0)
-    .map((p: any) => ({ persona: p.id, valori: p.capacita_mensile }))
-
-  const ore_pianificate = teamNorm
-    .filter((p: any) => p.tipo === 'operativo')
-    .map((p: any) => ({ persona: p.id, valori: Array.isArray(p.ore_pianificate) && p.ore_pianificate.length > 0 ? p.ore_pianificate : new Array(12).fill(0) }))
-
-  const ore_consuntivate = teamNorm
-    .filter((p: any) => p.tipo === 'operativo')
-    .map((p: any) => ({ persona: p.id, valori: Array.isArray(p.ore_effettive_mensili) && p.ore_effettive_mensili.length > 0 ? p.ore_effettive_mensili.map(Number) : new Array(12).fill(0) }))
-
-  // Assicuro che tutti gli array siano sempre array validi
-  const safeSeed = {
-    team: teamNorm ?? [],
-    clienti: (clienti ?? []).map((c: any) => ({
-      id: c.id, nome: c.nome, stato: c.stato, tipo: c.tipo,
-      tipo_contratto: c.tipo_contratto, referente: c.referente, commerciale: c.commerciale,
-      scadenza_contratto: c.scadenza_contratto, rinnovo_previsto: c.rinnovo_previsto,
-      lead_obiettivo: c.lead_obiettivo, lead_raccolte: c.lead_raccolte,
-      ore_effettive_ytd_2026: c.ore_effettive_ytd_2026 ?? 0,
-      ore_effettive_mesi_2026: c.ore_effettive_mesi_2026 ?? new Array(12).fill(0),
-    })),
-    progetti: progetti.map((p: any) => ({
-      id: p.id, cliente: p.cliente, nome: p.nome, anno: p.anno,
-      ore_contratto: p.ore_contratto ?? 0, stato: p.stato,
-      data_inizio: p.data_inizio ?? null, data_fine: p.data_fine ?? null,
-      importo_contratto: p.importo_contratto ?? 0,
-      note_commerciali: p.note_commerciali ?? null,
-      rinnovo_previsto: p.rinnovo_previsto ?? null,
-    })),
-    tasks: tasks.map((t: any) => ({
-      id: t.id, cliente: t.cliente, progetto_id: t.progetto_id,
-      area: t.area ?? '', milestone: t.milestone, titolo: t.titolo,
-      assegnatari: t.assegnatari ?? [], ore_stimate: t.ore_stimate ?? 0,
-      data_inizio: t.data_inizio, data_fine: t.data_fine,
-      priorita: t.priorita ?? 'media', stato: t.stato ?? 'da_fare',
-      ricorrente: t.ricorrente ?? false, frequenza: t.frequenza, note: t.note,
-    })),
-    scadenze: scadenze.map((s: any) => ({
-      id: s.id, cliente: s.cliente, progetto_id: s.progetto_id,
-      titolo: s.titolo, tipo: s.tipo, urgenza: s.urgenza ?? 'normale',
-      data: s.data, stato: s.stato ?? 'aperto', referente: s.referente, note: s.note,
-    })),
-    contatti: contatti.map((c: any) => ({
-      id: c.id, cliente: c.cliente, nome: c.nome, ruolo: c.ruolo,
-      email: c.email, telefono: c.telefono, principale: c.principale ?? false,
-    })),
-    note_rinnovo: noteRinnovo.map((n: any) => ({ cliente: n.cliente, note: n.note })),
-    allocazioni: [],
-    mesi_label: mesi_label ?? ['Giu','Lug','Ago','Set','Ott','Nov','Dic'],
-    capacita: capacita ?? [],
-    ore_pianificate: ore_pianificate ?? [],
-    ore_consuntivate: ore_consuntivate ?? [],
+// Assegnazioni
+export async function fetchAssegnazioni(taskIds?: string[]): Promise<Assegnazione[]> {
+  let params = 'select=*'
+  if (taskIds && taskIds.length > 0) {
+    params += `&task_id=in.(${taskIds.join(',')})`
   }
+  return sb('assegnazioni', params)
+}
 
-  // Patch difensiva completa
-  safeSeed.clienti = (safeSeed.clienti ?? []).map((c: any) => ({
-    ...c,
-    ore_effettive_mesi_2026: Array.isArray(c.ore_effettive_mesi_2026) ? c.ore_effettive_mesi_2026 : new Array(12).fill(0),
-  }))
-  safeSeed.team = (safeSeed.team ?? []).map((p: any) => ({
-    ...p,
-    capacita_mensile: Array.isArray(p.capacita_mensile) ? p.capacita_mensile : [],
-  }))
-  safeSeed.tasks = (safeSeed.tasks ?? []).map((t: any) => ({
+export async function createAssegnazione(data: Omit<Assegnazione, 'id' | 'created_at' | 'updated_at'>): Promise<Assegnazione> {
+  const id = `asgn_${Date.now()}_${Math.random().toString(36).slice(2,6)}`
+  const rows = await sbPost('assegnazioni', { ...data, id })
+  return Array.isArray(rows) ? rows[0] : rows
+}
+
+export async function updateAssegnazione(id: string, data: Partial<Assegnazione>): Promise<void> {
+  await sbPatch('assegnazioni', id, data)
+}
+
+export async function deleteAssegnazioneAdmin(id: string): Promise<void> {
+  // Cancellazione fisica — solo uso amministrativo, non dalla normale UX
+  await sbDelete('assegnazioni', id)
+}
+
+// Allocazioni
+export async function fetchAllocazioni(assegnazioneIds?: string[]): Promise<Allocazione[]> {
+  let params = 'select=*'
+  if (assegnazioneIds && assegnazioneIds.length > 0) {
+    params += `&assegnazione_id=in.(${assegnazioneIds.join(',')})`
+  }
+  return sb('allocazioni', params)
+}
+
+export async function createAllocazione(data: Omit<Allocazione, 'id' | 'created_at' | 'updated_at'>): Promise<Allocazione> {
+  const id = `alloc_${Date.now()}_${Math.random().toString(36).slice(2,6)}`
+  const rows = await sbPost('allocazioni', { ...data, id })
+  return Array.isArray(rows) ? rows[0] : rows
+}
+
+export async function updateAllocazione(id: string, data: Partial<Allocazione>): Promise<void> {
+  await sbPatch('allocazioni', id, data)
+}
+
+export async function deleteAllocazione(id: string): Promise<void> {
+  await sbDelete('allocazioni', id)
+}
+
+// Capacità persona
+export async function fetchCapacitaPersona(personaId?: string, anno?: number): Promise<CapacitaPersona[]> {
+  let params = 'select=*&order=anno,mese'
+  if (personaId) params += `&persona_id=eq.${personaId}`
+  if (anno) params += `&anno=eq.${anno}`
+  return sb('capacita_persona', params)
+}
+
+export async function upsertCapacitaPersona(data: Omit<CapacitaPersona, 'id'> & { id?: string }): Promise<void> {
+  const id = data.id ?? `cap_${data.persona_id}_${data.anno}_${data.mese}`
+  const headers = await getAuthHeaders()
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/capacita_persona`, {
+    method: 'POST',
+    headers: { ...headers, 'Prefer': 'resolution=merge-duplicates,return=minimal' },
+    body: JSON.stringify({ ...data, id })
+  })
+  if (!res.ok) throw new Error(`Supabase error ${res.status}: ${await res.text()}`)
+}
+
+// Team — identificazione membro corrente
+export async function fetchTeamMemberByAuthId(authUserId: string): Promise<Persona | null> {
+  const rows = await sb('team', `select=*&auth_user_id=eq.${authUserId}`)
+  if (!Array.isArray(rows) || rows.length === 0) return null
+  const t = rows[0]
+  return {
     ...t,
-    assegnatari: Array.isArray(t.assegnatari) ? t.assegnatari : [],
-    priorita: t.priorita ?? 'media',
-    stato: t.stato ?? 'da_fare',
-    ore_stimate: t.ore_stimate ?? 0,
-  }))
-  ;(safeSeed as any).scadenze = Array.isArray(safeSeed.scadenze) ? safeSeed.scadenze : []
-  ;(safeSeed as any).progetti = Array.isArray(safeSeed.progetti) ? safeSeed.progetti : []
-  ;(safeSeed as any).contatti = Array.isArray(safeSeed.contatti) ? safeSeed.contatti : []
-  ;(safeSeed as any).allocazioni = []
-  ;(safeSeed as any).ore_consuntivate = []
-  ;(safeSeed as any).capacita = Array.isArray(safeSeed.capacita) ? safeSeed.capacita : []
-  ;(safeSeed as any).ore_pianificate = Array.isArray(safeSeed.ore_pianificate) ? safeSeed.ore_pianificate : []
-
-  return safeSeed
-}
-
-// ── Lettura ore effettive dal timesheet Google Sheets ─────────────────────
-
-const SHEET_ID = '1UUIohuV202zvnB909QrAJyrLpqDQwsLkj16vYiZvgak'
-
-// Mappa nome cliente nel timesheet → id Supabase
-const TIMESHEET_CLIENTE_MAP: Record<string, string> = {
-  'Accuracy': 'accuracy',
-  'AGRIBRIANZA': 'agribrianza',
-  'Alimeco': 'alimeco',
-  'ASILETTO': 'asiletto',
-  'BEFLUIDICA': 'befluidica',
-  'CDO': 'cdo',
-  'CARBOTERMO': 'carbotermo',
-  'CDO MILANO': 'cdo_milano',
-  'CDO COMO': 'cdo_como',
-  'CDO MONZA E BRIANZA': 'cdo_monza',
-  'CL SCRITTI': 'cl_scritti',
-  'COMUNE DI SONDRIO': 'comune_sondrio',
-  'CTL GROUP': 'ctl_group',
-  'COGEFIM': 'cogefim',
-  "COLLEZIONI D'ARTE": 'collezioni_arte',
-  'DIEMME': 'diemme',
-  'FERRARI': 'ferrari',
-  'FIU': 'fiu',
-  'FOTORENT': 'fotorent',
-  'G&B': 'gb_group',
-  'GIARDINIA': 'giardinia',
-  'GRUPPODIGIT': 'gruppodigit',
-  'INFOR-MA': 'informa',
-  'MAINARDI SISTEMI': 'mainardi',
-  'MIL SERVICE': 'mil_service',
-  'MECH-I-TRONIC': 'mech_i_tronic',
-  'NASTRI BRIZZOLARI': 'brizzolari',
-  'NATURAL CLIMA': 'natural_clima',
-  'NEW': 'new_srl',
-  'OLTRE IMPACT': 'oltre_impact',
-  'ON ENERGY': 'on_energy',
-  'RB': 'rb',
-  'RL - VIRGONET': 'virgonet',
-  'SCS': 'scs',
-  'Shoptime': 'shoptime',
-  'SILVAUTO': 'silvauto',
-  'SOGEMA': 'sogema',
-  'TECNODATA': 'tecnodata',
-  'TELPRO': 'telpro',
-  'TOP FILM': 'topfilm',
-  'TRECCANI': 'treccani',
-  'WIT IN CLOUD': 'wic',
-}
-
-function safeNum(v: any): number {
-  if (v === null || v === undefined || v === '') return 0
-  const n = parseFloat(String(v).replace(',', '.'))
-  return isNaN(n) ? 0 : n
-}
-
-export async function fetchOreEffettive(): Promise<Record<string, { ytd: number; mesi: number[] }>> {
-  const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=Controllo`
-  try {
-    const res = await fetch(url)
-    if (!res.ok) throw new Error(`HTTP ${res.status}`)
-    const csv = await res.text()
-
-    // Parser CSV robusto che gestisce celle multiriga con newline interni
-    const rows: string[][] = []
-    let row: string[] = []
-    let cell = ''
-    let inQuote = false
-
-    for (let i = 0; i < csv.length; i++) {
-      const ch = csv[i]
-      const next = csv[i + 1]
-
-      if (ch === '"') {
-        if (inQuote && next === '"') { cell += '"'; i++ }
-        else { inQuote = !inQuote }
-      } else if (ch === ',' && !inQuote) {
-        row.push(cell.trim())
-        cell = ''
-      } else if ((ch === '\n' || ch === '\r') && !inQuote) {
-        if (ch === '\r' && next === '\n') i++
-        row.push(cell.trim())
-        rows.push(row)
-        row = []
-        cell = ''
-      } else {
-        cell += ch
-      }
-    }
-    if (cell || row.length) { row.push(cell.trim()); rows.push(row) }
-
-    // col 44=YTD 2026, col 46-57=GEN-DIC 2026
-    const result: Record<string, { ytd: number; mesi: number[] }> = {}
-
-    for (const row of rows) {
-      const nome = row[0]?.replace(/^"|"$/g, '').trim() ?? ''
-      if (!nome || !TIMESHEET_CLIENTE_MAP[nome]) continue
-
-      const clienteId = TIMESHEET_CLIENTE_MAP[nome]
-      const ytd = safeNum(row[44])
-      const mesi = Array.from({ length: 12 }, (_, i) => safeNum(row[46 + i]))
-
-      result[clienteId] = { ytd, mesi }
-    }
-
-    return result
-  } catch (e) {
-    console.error('fetchOreEffettive:', e)
-    return {}
+    capacita_mensile: Array.isArray(t.capacita_mensile) ? t.capacita_mensile : [],
+    ore_pianificate: Array.isArray(t.ore_pianificate) ? t.ore_pianificate : [],
+    ore_effettive_mensili: Array.isArray(t.ore_effettive_mensili) ? t.ore_effettive_mensili : [],
   }
 }
 
-async function fetchDettaglioAreaClienti(): Promise<{cliente: string, risorsa: string, area: string, mesi: number[]}[]> {
-  const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=Controllo`
-  const RISORSE_MAP: Record<string, string> = {
-    'Valentina': 'valentina', 'Ivana': 'ivana', 'Giulia': 'giulia', 'Gloria': 'gloria'
-  }
-  const AREE = new Set(['web', 'social', 'adv', 'email', 'meeting'])
-  // Nomi che indicano una riga che NON appartiene a un cliente — reset del cliente corrente
-  const NON_CLIENTE = new Set([
-    ...Object.keys(RISORSE_MAP),
-    'Valentina file presenze', 'Ivana file presenze', 'Giulia file presenze', 'Gloria file presenze',
-    'web', 'social', 'adv', 'email', 'meeting', '', 'Wave', 'WAVE'
-  ])
-  const result: {cliente: string, risorsa: string, area: string, mesi: number[]}[] = []
+// ── loadSeed — invariato rispetto a prima, ora usa token sessione ─────────────
+export async function loadSeed() {
+  const [team, clienti, scadenze, progetti, tasks, contatti, note_rinnovo, ore_det] =
+    await Promise.all([
+      sb('team', 'select=*'),
+      sb('clienti', 'select=*'),
+      sb('scadenze', 'select=*'),
+      sb('progetti', 'select=*'),
+      sb('tasks', 'select=*&archived_at=is.null'),
+      sb('contatti', 'select=*'),
+      sb('note_rinnovo', 'select=*'),
+      sb('ore_effettive_dettaglio', 'select=*'),
+    ])
+  return { team, clienti, scadenze, progetti, tasks, contatti, note_rinnovo, ore_det }
+}
 
-  try {
-    const res = await fetch(url)
-    if (!res.ok) return result
-    const csv = await res.text()
-
-    const rows: string[][] = []
-    let row: string[] = [], cell = '', inQuote = false
-    for (let i = 0; i < csv.length; i++) {
-      const ch = csv[i], next = csv[i+1]
-      if (ch === '"') { if (inQuote && next === '"') { cell += '"'; i++ } else inQuote = !inQuote }
-      else if (ch === ',' && !inQuote) { row.push(cell.trim()); cell = '' }
-      else if ((ch === '\n' || ch === '\r') && !inQuote) {
-        if (ch === '\r' && next === '\n') i++
-        row.push(cell.trim()); rows.push(row); row = []; cell = ''
-      } else cell += ch
-    }
-    if (cell || row.length) { row.push(cell.trim()); rows.push(row) }
-
-    let clienteCorrente: string | null = null
-    let risorsaCorrente: string | null = null
-
-    for (const row of rows) {
-      const col0 = row[0]?.replace(/^"|"$/g, '').trim() ?? ''
-      const col0Low = col0.toLowerCase()
-
-      // Nuovo cliente valido
-      if (TIMESHEET_CLIENTE_MAP[col0]) {
-        clienteCorrente = TIMESHEET_CLIENTE_MAP[col0]
-        risorsaCorrente = null
-        continue
-      }
-
-      // Stringa che non è né area né risorsa né vuota = fine del blocco cliente
-      if (col0 && !AREE.has(col0Low) && !RISORSE_MAP[col0] && !NON_CLIENTE.has(col0)) {
-        clienteCorrente = null
-        risorsaCorrente = null
-        continue
-      }
-
-      if (!clienteCorrente) continue
-
-      // Riga risorsa
-      if (RISORSE_MAP[col0]) { risorsaCorrente = RISORSE_MAP[col0]; continue }
-
-      // Riga area
-      if (AREE.has(col0Low) && risorsaCorrente) {
-        const mesi = Array.from({ length: 12 }, (_, i) => safeNum(row[46 + i]))
-        if (mesi.some(v => v > 0)) {
-          result.push({ cliente: clienteCorrente, risorsa: risorsaCorrente, area: col0Low, mesi })
-        }
-      }
-    }
-    return result
-  } catch(e) {
-    console.error('fetchDettaglioAreaClienti:', e)
-    return result
+export async function syncOreEffettive(timesheet: any[] = []) {
+  const headers = await getAuthHeaders()
+  for (const row of timesheet) {
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/ore_effettive_dettaglio`, {
+      method: 'POST',
+      headers: { ...headers, 'Prefer': 'resolution=merge-duplicates,return=minimal' },
+      body: JSON.stringify(row)
+    })
+    if (!res.ok) console.error(`syncOreEffettive error: ${res.status}`)
   }
 }
 
-export async function syncOreEffettive(): Promise<number> {
-  const [ore, oreRisorsa] = await Promise.all([
-    fetchOreEffettive(),
-    fetchOreEffettivePerRisorsa(),
-  ])
-  let aggiornati = 0
-
-  // Aggiorna ore clienti
-  for (const [clienteId, dati] of Object.entries(ore)) {
-    if (dati.ytd === 0 && dati.mesi.every(v => v === 0)) continue
-    try {
-      await sbPatch('clienti', clienteId, {
-        ore_effettive_ytd_2026: dati.ytd,
-        ore_effettive_mesi_2026: dati.mesi,
-      })
-      aggiornati++
-    } catch (e) {
-      console.error(`syncOreEffettive ${clienteId}:`, e)
-    }
-  }
-
-  // Aggiorna ore effettive mensili per risorsa nel team
-  for (const [risorsaId, mesi] of Object.entries(oreRisorsa)) {
-    try {
-      await sbPatch('team', risorsaId, { ore_effettive_mensili: mesi })
-    } catch (e) {
-      console.error(`syncOreRisorsa ${risorsaId}:`, e)
-    }
-  }
-
-  // Aggiorna dettaglio area per cliente
-  const dettaglio = await fetchDettaglioAreaClienti()
-  for (const d of dettaglio) {
-    // ID deterministico uguale per caricamento manuale e sync
-    const id = `det_${d.cliente}_${d.risorsa}_${d.area}`
-    try {
-      await sbUpsert('ore_effettive_dettaglio', {
-        id, cliente: d.cliente, risorsa: d.risorsa, area: d.area, mesi: d.mesi
-      })
-    } catch(e) {
-      console.error(`dettaglio upsert ${id}:`, e)
-    }
-  }
-
-  return aggiornati
-}
-
-async function fetchOreEffettivePerRisorsa(): Promise<Record<string, number[]>> {
-  const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=Controllo`
-  const RISORSE_MAP: Record<string, string> = {
-    'Valentina': 'valentina', 'Ivana': 'ivana', 'Giulia': 'giulia', 'Gloria': 'gloria'
-  }
-  const ESCLUSI = new Set(['Wave', 'WAVE']) // ore interne escluse dal calcolo
-  const result: Record<string, number[]> = {
-    valentina: new Array(12).fill(0), ivana: new Array(12).fill(0),
-    giulia: new Array(12).fill(0), gloria: new Array(12).fill(0),
-  }
-  try {
-    const res = await fetch(url)
-    if (!res.ok) return result
-    const csv = await res.text()
-
-    const rows: string[][] = []
-    let row: string[] = [], cell = '', inQuote = false
-    for (let i = 0; i < csv.length; i++) {
-      const ch = csv[i], next = csv[i+1]
-      if (ch === '"') { if (inQuote && next === '"') { cell += '"'; i++ } else inQuote = !inQuote }
-      else if (ch === ',' && !inQuote) { row.push(cell.trim()); cell = '' }
-      else if ((ch === '\n' || ch === '\r') && !inQuote) {
-        if (ch === '\r' && next === '\n') i++
-        row.push(cell.trim()); rows.push(row); row = []; cell = ''
-      } else cell += ch
-    }
-    if (cell || row.length) { row.push(cell.trim()); rows.push(row) }
-
-    let inCliente = false
-    for (const row of rows) {
-      const col0 = row[0]?.replace(/^"|"$/g, '').trim() ?? ''
-      // Cliente valido → attiva lettura
-      if (TIMESHEET_CLIENTE_MAP[col0]) { inCliente = true; continue }
-      // Cliente escluso (Wave) o cliente sconosciuto → disattiva lettura
-      if (col0 && !RISORSE_MAP[col0] && !['web','social','adv','email','meeting',''].includes(col0.toLowerCase())) {
-        inCliente = false
-        continue
-      }
-      if (!inCliente) continue
-      const risorsaId = RISORSE_MAP[col0]
-      if (!risorsaId) continue
-      for (let m = 0; m < 12; m++) {
-        result[risorsaId][m] += safeNum(row[46 + m])
-      }
-    }
-    return result
-  } catch(e) {
-    console.error('fetchOreEffettivePerRisorsa:', e)
-    return result
-  }
-}
+export type { Session, User }
