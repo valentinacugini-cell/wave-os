@@ -60,13 +60,21 @@ function normalizeSeed(raw: any): any {
       ...c,
       ore_effettive_mesi_2026: Array.isArray(c.ore_effettive_mesi_2026) ? c.ore_effettive_mesi_2026 : new Array(12).fill(0),
     })),
-    tasks: arr(raw?.tasks).map((t: any) => ({
-      ...t,
-      assegnatari: Array.isArray(t.assegnatari) ? t.assegnatari : [],
-      priorita: t.priorita ?? 'media',
-      stato: t.stato ?? 'da_fare',
-      ore_stimate: t.ore_stimate ?? 0,
-    })),
+    tasks: arr(raw?.tasks)
+      .filter((t: any) => !t.archived_at) // esclude task con soft delete
+      .map((t: any) => {
+        // Normalizza stato — rimuove valori legacy non più accettati dal DB
+        let stato = t.stato ?? 'da_fare'
+        if (stato === 'bloccato' || stato === 'in_attesa_materiali') stato = 'in_corso'
+        if (!['da_fare','in_corso','completato','annullato'].includes(stato)) stato = 'da_fare'
+        return {
+          ...t,
+          assegnatari: Array.isArray(t.assegnatari) ? t.assegnatari : [],
+          priorita: t.priorita ?? 'media',
+          stato,
+          ore_stimate: t.ore_stimate ?? 0,
+        }
+      }),
   }
 }
 
