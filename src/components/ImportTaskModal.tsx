@@ -70,8 +70,11 @@ function normalizzaStato(val: any): TaskStato {
   const v = String(val ?? '').toLowerCase().trim()
   if (v === 'in corso' || v === 'in progress') return 'in_corso'
   if (v === 'completato' || v === 'done') return 'completato'
-  if (v === 'bloccato' || v === 'blocked') return 'bloccato'
-  if (v === 'attesa materiali' || v === 'attesa') return 'in_attesa_materiali'
+  if (v === 'annullato' || v === 'cancelled') return 'annullato'
+  // 'bloccato' e 'attesa materiali' non sono più stati validi nel DB
+  // Vengono normalizzati a 'in_corso' — il blocco andrà impostato tramite blocco_tipo in futuro
+  if (v === 'bloccato' || v === 'blocked') return 'in_corso'
+  if (v === 'attesa materiali' || v === 'attesa') return 'in_corso'
   return 'da_fare'
 }
 
@@ -268,7 +271,7 @@ export default function ImportTaskModal({ progetti, personaById, clienteId, onCl
   const conErrori = righe.filter(r => r.errori.length > 0).length
   const valide = righe.filter(r => r.errori.length === 0).length
 
-  const PRIO_COLOR: Record<TaskPriorita, string> = { alta: '#E24B4A', media: '#EF9F27', bassa: '#639922' }
+  const PRIO_COLOR: Record<TaskPriorita, string> = { alta: '#E24B4A', media: '#EF9F27', bassa: '#639922', urgente: '#C62828' }
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center"
