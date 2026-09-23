@@ -16,9 +16,12 @@ interface SidebarProps {
   currentUser: Persona
   team: Persona[]
   onUserChange: (id: string) => void
+  onLogout?: () => Promise<void>
+  authUser?: { email?: string } | null
+  teamMember?: Persona | null
 }
 
-export default function Sidebar({ currentView, onViewChange, currentUser, team, onUserChange }: SidebarProps) {
+export default function Sidebar({ currentView, onViewChange, currentUser, team, onUserChange, onLogout, authUser }: SidebarProps) {
   const activeView = currentView === 'cliente' ? 'home' : currentView
 
   return (
@@ -77,6 +80,15 @@ export default function Sidebar({ currentView, onViewChange, currentUser, team, 
             {currentUser.tipo === 'operativo' ? 'Operativo' : 'Commerciale'} · {currentUser.ruolo}
           </span>
         </div>
+        {onLogout && (
+          <button
+            onClick={onLogout}
+            title={authUser?.email ? `Disconnetti ${authUser.email}` : 'Disconnetti'}
+            className="mt-2 w-full text-left text-xs px-2 py-1.5 rounded-lg transition-colors hover:bg-white/5"
+            style={{ color: '#7DF5DF44' }}>
+            Esci
+          </button>
+        )}
       </div>
     </div>
   )
