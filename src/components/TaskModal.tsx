@@ -15,8 +15,8 @@ const STATI: { value: TaskStato; label: string; bg: string; color: string }[] = 
   { value: 'da_fare', label: 'Da fare', bg: '#F1EFE8', color: '#444441' },
   { value: 'in_corso', label: 'In corso', bg: '#E1F5EE', color: '#085041' },
   { value: 'completato', label: 'Completato', bg: '#EAF3DE', color: '#27500A' },
-  { value: 'bloccato', label: 'Bloccato', bg: '#FCEBEB', color: '#501313' },
-  { value: 'in_attesa_materiali', label: 'Attesa materiali', bg: '#FAEEDA', color: '#412402' },
+  { value: 'annullato', label: 'Annullato', bg: '#F5F5F5', color: '#666660' },
+  // 'bloccato' e 'in_attesa_materiali' rimossi — il blocco è rappresentato da blocco_tipo
 ]
 
 const PRIORITA: { value: TaskPriorita; label: string; color: string; bg: string }[] = [
@@ -26,8 +26,8 @@ const PRIORITA: { value: TaskPriorita; label: string; color: string; bg: string 
 ]
 
 export default function TaskModal({ task, personaById, clienteNome, progetti, onClose, onSave }: TaskModalProps) {
-  const STATI_VALIDI: TaskStato[] = ['da_fare','in_corso','completato','bloccato','in_attesa_materiali']
-  const PRIO_VALIDE: TaskPriorita[] = ['alta','media','bassa']
+  const STATI_VALIDI: TaskStato[] = ['da_fare','in_corso','completato','annullato']
+  const PRIO_VALIDE: TaskPriorita[] = ['alta','media','bassa','urgente']
   const safeStato = (s: string): TaskStato => STATI_VALIDI.includes(s as TaskStato) ? s as TaskStato : 'da_fare'
   const safePrio = (p: string): TaskPriorita => PRIO_VALIDE.includes(p as TaskPriorita) ? p as TaskPriorita : 'media'
 
