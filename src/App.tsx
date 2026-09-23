@@ -1,6 +1,8 @@
 import React, { useState, useMemo } from 'react'
 import { useAuth } from './hooks/useAuth'
 import LoginView from './views/LoginView'
+import MieiTaskView from './views/MieiTaskView'
+import { TaskDataProvider } from './context/TaskDataContext'
 import seedData from './data/seed.json'
 import { supabase, loadSeed, syncOreEffettive } from './lib/supabase'
 import { Seed, Persona, View } from './types'
@@ -227,6 +229,7 @@ export default function App() {
 
   return (
     <ErrorBoundary>
+      <TaskDataProvider>
       <ClienteProvider>
         <TaskProvider>
           <div className="flex min-h-screen" style={{ backgroundColor: '#F8F9FA' }}>
@@ -248,6 +251,7 @@ export default function App() {
                 {currentView === 'operativita' && <OperativitaView seed={seed} onClienteClick={handleClienteClick} />}
                 {currentView === 'cliente' && selectedCliente && <SchedaCliente clienteId={selectedCliente} seed={seed} onBack={handleBack} />}
                 {currentView === 'forecast' && <ForecastView seed={seed} />}
+              {currentView === 'miei_task' && <MieiTaskView seed={seed} />}
           {currentView === 'impostazioni' && (
             <div className="max-w-lg">
               <h2 className="text-xl font-semibold text-gray-900 mb-6">Impostazioni</h2>
@@ -284,6 +288,7 @@ export default function App() {
           </div>
         </TaskProvider>
       </ClienteProvider>
+      </TaskDataProvider>
     </ErrorBoundary>
   )
 }
