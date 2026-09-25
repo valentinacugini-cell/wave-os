@@ -50,12 +50,13 @@ interface TaskEditorProps {
   // Azioni speciali
   onCompleta?: (liberaFuture: boolean) => Promise<void>
   onArchivia?: () => Promise<void>
+  onRipristina?: () => Promise<void>
 }
 
 export default function TaskEditor({
   team, clienti, progetti, scadenze,
   taskEsistente, defaultCliente, defaultProgetto,
-  onSave, onClose, onCompleta, onArchivia
+  onSave, onClose, onCompleta, onArchivia, onRipristina
 }: TaskEditorProps) {
 
   const isModifica = !!taskEsistente
@@ -92,6 +93,7 @@ export default function TaskEditor({
   const [error, setError] = useState<string | null>(null)
   const [warningOre, setWarningOre] = useState(false)
   const [completaDialog, setCompletaDialog] = useState(false)
+  const [ripristinaConfirm, setRipristinaConfirm] = useState(false)
 
   // Progetti filtrati per cliente
   const progettiFiltrati = useMemo(() =>
@@ -208,6 +210,31 @@ export default function TaskEditor({
           <div className="flex items-center gap-2">
             {isModifica && onArchivia && (
               <button onClick={onArchivia} className="text-xs text-gray-400 hover:text-red-400 px-2 py-1 rounded">Archivia</button>
+            )}
+            {isModifica && stato === 'completato' && onRipristina && (
+              <div className="flex items-center gap-2">
+                {ripristinaConfirm ? (
+                  <>
+                    <span className="text-xs text-amber-700 bg-amber-50 px-2 py-1 rounded-lg">
+                      Le pianificazioni liberate non vengono ripristinate.
+                    </span>
+                    <button onClick={() => { onRipristina(); setRipristinaConfirm(false) }}
+                      className="text-xs px-3 py-1.5 rounded-lg font-medium bg-amber-600 text-white">
+                      Conferma
+                    </button>
+                    <button onClick={() => setRipristinaConfirm(false)}
+                      className="text-xs px-2 py-1.5 text-gray-500">
+                      Annulla
+                    </button>
+                  </>
+                ) : (
+                  <button onClick={() => setRipristinaConfirm(true)}
+                    className="text-xs px-3 py-1.5 rounded-lg font-medium"
+                    style={{ background: '#FEF3C7', color: '#92400E' }}>
+                    ↺ Riapri
+                  </button>
+                )}
+              </div>
             )}
             {isModifica && onCompleta && stato !== 'completato' && (
               <button onClick={() => allocazioniFuture.length > 0 ? setCompletaDialog(true) : onCompleta(false)}
