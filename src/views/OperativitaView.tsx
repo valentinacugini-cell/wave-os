@@ -2,8 +2,9 @@ import React, { useState, useMemo } from 'react'
 import { Seed, Task, Persona, TaskStato, TaskPriorita, Progetto } from '../types'
 import { formatDate, parseDate, TODAY, oreTaskNelPeriodo } from '../utils'
 import { Tabs, EmptyState } from '../components/UI'
-import TaskModal from '../components/TaskModal'
+import TaskEditor from '../components/TaskEditor'
 import { useTaskContext } from '../context/TaskContext'
+import { useTaskData } from '../context/TaskDataContext'
 
 interface OperativitaProps {
   seed: Seed
@@ -849,8 +850,9 @@ export default function OperativitaView({ seed, onClienteClick }: OperativitaPro
   const [subView, setSubView] = useState<SubView>('settimana')
   const [filtroPersona, setFiltroPersona] = useState('tutti')
   const [filtroCliente, setFiltroCliente] = useState('tutti')
-  const [activeTask, setActiveTask] = useState<Task | null>(null)
+  const [activeTaskId, setActiveTaskId] = useState<string | null>(null)
   const { updateTask, getTask, isEliminato } = useTaskContext()
+  const { modificaTask, completaTaskAction, archivaTaskAction, ripristinaTaskAction, getTaskConDati } = useTaskData()
 
   const operativi = seed.team.filter(p => p.tipo === 'operativo')
 
@@ -891,16 +893,31 @@ export default function OperativitaView({ seed, onClienteClick }: OperativitaPro
 
   return (
     <div>
-      {activeTask && (
-        <TaskModal
-          task={getTask(activeTask)}
-          personaById={personaById}
-          clienteNome={clienteNome[activeTask.cliente] ?? activeTask.cliente}
-          progetti={progettiPerCliente[activeTask.cliente] ?? []}
-          onClose={() => setActiveTask(null)}
-          onSave={(id, updates) => updateTask(id, updates)}
-        />
-      )}
+      {activeTaskId && (() => {
+        const taskRaw = seed.tasks.find(t => t.id === activeTaskId)
+        if (!taskRaw) return null
+        const taskConDati = getTaskConDati(activeTaskId)
+        const taskDaAprire = taskConDati ?? { ...taskRaw, assegnazioni: [], allocazioni: [],
+          ore_assegnate_totali: 0, ore_pianificate_totali: 0,
+          ore_da_assegnare: taskRaw.ore_stimate, ore_da_pianificare: 0,
+          pianificazione_stato: 'da_assegnare' as const, prossima_data_pianificata: null }
+        return (
+          <TaskEditor
+            team={seed.team}
+            clienti={seed.clienti.map(c => ({ id: c.id, nome: c.nome }))}
+            progetti={seed.progetti}
+            scadenze={seed.scadenze}
+            taskEsistente={taskDaAprire}
+            onSave={async (input) => { await modificaTask(activeTaskId, input); setActiveTaskId(null) }}
+            onClose={() => setActiveTaskId(null)}
+            onCompleta={async (libera) => { await completaTaskAction(activeTaskId, libera); setActiveTaskId(null) }}
+            onArchivia={async () => { await archivaTaskAction(activeTaskId); setActiveTaskId(null) }}
+            onRipristina={taskDaAprire.stato === 'completato' ? async () => {
+              await ripristinaTaskAction(activeTaskId); setActiveTaskId(null)
+            } : undefined}
+          />
+        )
+      })()}
 
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-xl font-semibold text-gray-900">Operatività</h1>
@@ -920,8 +937,8 @@ export default function OperativitaView({ seed, onClienteClick }: OperativitaPro
 
       <Tabs tabs={tabs as any} active={subView} onChange={id => setSubView(id as SubView)} />
 
-      {subView === 'settimana' && <ListaSettimanale tasks={tasksFiltrati} seed={seed} onOpenTask={setActiveTask} />}
-      {subView === 'swimlane' && <Swimlane tasks={tasksFiltrati} seed={seed} onOpenTask={setActiveTask} />}
+      {subView === 'settimana' && <ListaSettimanale tasks={tasksFiltrati} seed={seed} onOpenTask={(t) => setActiveTaskId(t.id)} />}
+      {subView === 'swimlane' && <Swimlane tasks={tasksFiltrati} seed={seed} onOpenTask={(t) => setActiveTaskId(t.id)} />}
       {subView === 'anno' && <VistaAnno seed={seed} />}
     </div>
   )
