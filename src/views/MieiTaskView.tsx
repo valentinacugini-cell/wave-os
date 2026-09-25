@@ -51,10 +51,11 @@ function ordinaTask(tasks: TaskConDati[]): TaskConDati[] {
 }
 
 export default function MieiTaskView({ seed }: { seed: Seed }) {
-  const { tasks, loading, error, carica, creaTask, modificaTask, completaTaskAction, archivaTaskAction } = useTaskData()
+  const { tasks, loading, error, carica, creaTask, modificaTask, completaTaskAction, archivaTaskAction, ripristinaTaskAction, desarchivaTaskAction } = useTaskData()
   const { teamMember } = useAuth()
 
   const [mostraTutti, setMostraTutti] = useState(false)
+  const [mostraArchiviati, setMostraArchiviati] = useState(false)
   const [ricerca, setRicerca] = useState('')
   const [filtroCliente, setFiltroCliente] = useState('')
   const [filtroArea, setFiltroArea] = useState('')
@@ -67,9 +68,10 @@ export default function MieiTaskView({ seed }: { seed: Seed }) {
   useEffect(() => {
     carica({
       personaId: mostraTutti ? undefined : teamMember?.id,
-      includiCompletati: false,
+      includiCompletati: mostraArchiviati,
+      includiArchiviati: mostraArchiviati,
     })
-  }, [mostraTutti, teamMember?.id])
+  }, [mostraTutti, mostraArchiviati, teamMember?.id])
 
   const taskFiltrati = useMemo(() => {
     let ts = tasks
@@ -128,6 +130,16 @@ export default function MieiTaskView({ seed }: { seed: Seed }) {
               Tutti i task
             </button>
           </div>
+          <button
+            onClick={() => setMostraArchiviati(v => !v)}
+            className="text-sm px-3 py-2 rounded-xl border transition-all"
+            style={{
+              borderColor: mostraArchiviati ? '#9CA3AF' : '#E5E7EB',
+              background: mostraArchiviati ? '#F3F4F6' : 'white',
+              color: mostraArchiviati ? '#374151' : '#6B7280',
+            }}>
+            {mostraArchiviati ? 'Nascondi archiviati' : 'Archiviati'}
+          </button>
           <button onClick={() => { setTaskInModifica(null); setShowEditor(true) }}
             className="text-sm px-4 py-2 rounded-xl font-medium"
             style={{ background: '#1A1A2E', color: '#7DF5DF' }}>
@@ -200,10 +212,13 @@ export default function MieiTaskView({ seed }: { seed: Seed }) {
             const cliente = seed.clienti.find(c => c.id === task.cliente)
             const scaduto = task.deadline && task.deadline < oggi
             const pianStato = STATI_PIAN_LABEL[task.pianificazione_stato]
+            const isArchiviato = !!task.archived_at
+            const isCompletato = task.stato === 'completato'
 
             return (
               <div key={task.id}
                 className="flex items-start gap-4 px-4 py-3 hover:bg-gray-50 transition-colors cursor-pointer"
+                style={{ opacity: isArchiviato ? 0.55 : 1 }}
                 onClick={() => { setTaskInModifica(task); setShowEditor(true) }}>
 
                 {/* Priorità dot */}
@@ -280,20 +295,38 @@ export default function MieiTaskView({ seed }: { seed: Seed }) {
 
                 {/* Azioni rapide */}
                 <div className="flex gap-1 flex-shrink-0" onClick={e => e.stopPropagation()}>
-                  {task.stato !== 'completato' && (
+                  {isArchiviato ? (
                     <button
-                      onClick={e => { e.stopPropagation(); completaTaskAction(task.id, false) }}
-                      title="Completa"
-                      className="w-7 h-7 rounded-lg border border-gray-200 text-xs text-gray-400 hover:text-green-600 hover:border-green-300 flex items-center justify-center">
-                      ✓
+                      onClick={e => { e.stopPropagation(); desarchivaTaskAction(task.id) }}
+                      title="Ripristina da archivio"
+                      className="w-7 h-7 rounded-lg border border-gray-200 text-xs text-gray-400 hover:text-teal-600 hover:border-teal-300 flex items-center justify-center">
+                      ↩
                     </button>
+                  ) : (
+                    <>
+                      {isCompletato ? (
+                        <button
+                          onClick={e => { e.stopPropagation(); ripristinaTaskAction(task.id) }}
+                          title="Riapri (le pianificazioni liberate non vengono ripristinate)"
+                          className="w-7 h-7 rounded-lg border border-gray-200 text-xs text-gray-400 hover:text-amber-500 hover:border-amber-300 flex items-center justify-center">
+                          ↺
+                        </button>
+                      ) : (
+                        <button
+                          onClick={e => { e.stopPropagation(); completaTaskAction(task.id, false) }}
+                          title="Completa"
+                          className="w-7 h-7 rounded-lg border border-gray-200 text-xs text-gray-400 hover:text-green-600 hover:border-green-300 flex items-center justify-center">
+                          ✓
+                        </button>
+                      )}
+                      <button
+                        onClick={e => { e.stopPropagation(); archivaTaskAction(task.id) }}
+                        title="Archivia"
+                        className="w-7 h-7 rounded-lg border border-gray-200 text-xs text-gray-400 hover:text-red-400 hover:border-red-200 flex items-center justify-center">
+                        ⊘
+                      </button>
+                    </>
                   )}
-                  <button
-                    onClick={e => { e.stopPropagation(); archivaTaskAction(task.id) }}
-                    title="Archivia"
-                    className="w-7 h-7 rounded-lg border border-gray-200 text-xs text-gray-400 hover:text-red-400 hover:border-red-200 flex items-center justify-center">
-                    ⊘
-                  </button>
                 </div>
               </div>
             )
