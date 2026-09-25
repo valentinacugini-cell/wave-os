@@ -105,7 +105,7 @@ export async function fetchTaskConDati(opts: {
   includiCompletati?: boolean
   includiArchiviati?: boolean
 }): Promise<TaskConDati[]> {
-  let taskParams = 'select=*&archived_at=is.null'
+  let taskParams = opts.includiArchiviati ? 'select=*' : 'select=*&archived_at=is.null'
   if (!opts.includiCompletati) taskParams += '&stato=not.eq.completato&stato=not.eq.annullato'
   if (opts.clienteId) taskParams += `&cliente=eq.${opts.clienteId}`
 
@@ -327,6 +327,15 @@ export async function completaTask(
 
 export async function archivaTask(taskId: string): Promise<void> {
   await patch('tasks', taskId, { archived_at: new Date().toISOString() })
+}
+
+export async function ripristinaTask(taskId: string): Promise<void> {
+  // Ripristina a da_fare — le allocazioni liberate al completamento NON vengono ricreate
+  await patch('tasks', taskId, { stato: 'da_fare', completed_at: null })
+}
+
+export async function desarchivaTask(taskId: string): Promise<void> {
+  await patch('tasks', taskId, { archived_at: null })
 }
 
 export async function eliminaAllocazione(allocId: string): Promise<void> {
