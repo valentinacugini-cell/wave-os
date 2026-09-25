@@ -6,7 +6,7 @@
  */
 import React, { createContext, useContext, useState, useCallback, ReactNode } from 'react'
 import { TaskConDati, Assegnazione, Allocazione } from '../types'
-import { fetchTaskConDati, creaTaskAtomico, modificaTaskAtomico, completaTask, archivaTask, eliminaAllocazione, NuovoTaskInput, ModificaTaskInput } from '../lib/taskData'
+import { fetchTaskConDati, creaTaskAtomico, modificaTaskAtomico, completaTask, archivaTask, ripristinaTask, desarchivaTask, eliminaAllocazione, NuovoTaskInput, ModificaTaskInput } from '../lib/taskData'
 
 interface TaskDataState {
   tasks: TaskConDati[]
@@ -16,23 +16,30 @@ interface TaskDataState {
 
 interface TaskDataContextValue extends TaskDataState {
   // Caricamento
-  carica: (opts: { personaId?: string; clienteId?: string; includiCompletati?: boolean }) => Promise<void>
+  carica: (opts: { personaId?: string; clienteId?: string; includiCompletati?: boolean; includiArchiviati?: boolean }) => Promise<void>
   // Mutation
   creaTask: (input: NuovoTaskInput) => Promise<TaskConDati>
   modificaTask: (taskId: string, input: ModificaTaskInput) => Promise<TaskConDati>
   completaTaskAction: (taskId: string, liberaFuture: boolean) => Promise<void>
   archivaTaskAction: (taskId: string) => Promise<void>
   eliminaAllocazioneAction: (allocId: string, taskId: string) => Promise<void>
+  ripristinaTaskAction: (taskId: string) => Promise<void>
+  desarchivaTaskAction: (taskId: string) => Promise<void>
   // Ottieni task con dati per id
   getTaskConDati: (taskId: string) => TaskConDati | null
 }
 
 const TaskDataContext = createContext<TaskDataContextValue | null>(null)
 
-export function TaskDataProvider({ children }: { children: ReactNode }) {
+export function TaskDataProvider({ children, onTaskMutated }: { children: ReactNode; onTaskMutated?: () => void }) {
   const [state, setState] = useState<TaskDataState>({ tasks: [], loading: false, error: null })
 
-  const carica = useCallback(async (opts: { personaId?: string; clienteId?: string; includiCompletati?: boolean }) => {
+  // Notifica App di una mutation — App invalida il seed legacy
+  const notifyMutation = useCallback(() => {
+    if (onTaskMutated) onTaskMutated()
+  }, [onTaskMutated])
+
+  const carica = useCallback(async (opts: { personaId?: string; clienteId?: string; includiCompletati?: boolean; includiArchiviati?: boolean }) => {
     setState(s => ({ ...s, loading: true, error: null }))
     try {
       const tasks = await fetchTaskConDati(opts)
@@ -45,6 +52,7 @@ export function TaskDataProvider({ children }: { children: ReactNode }) {
   const creaTask = useCallback(async (input: NuovoTaskInput): Promise<TaskConDati> => {
     const task = await creaTaskAtomico(input)
     setState(s => ({ ...s, tasks: [task, ...s.tasks] }))
+    notifyMutation()
     return task
   }, [])
 
@@ -53,6 +61,7 @@ export function TaskDataProvider({ children }: { children: ReactNode }) {
     if (!existing) throw new Error(`Task ${taskId} non trovato in store`)
     const updated = await modificaTaskAtomico(taskId, input, existing.assegnazioni, existing.allocazioni)
     setState(s => ({ ...s, tasks: s.tasks.map(t => t.id === taskId ? updated : t) }))
+    notifyMutation()
     return updated
   }, [state.tasks])
 
@@ -69,11 +78,13 @@ export function TaskDataProvider({ children }: { children: ReactNode }) {
             allocazioni: liberaFuture ? t.allocazioni.filter(a => a.data_inizio <= oggi) : t.allocazioni }
         : t)
     }))
+    notifyMutation()
   }, [state.tasks])
 
   const archivaTaskAction = useCallback(async (taskId: string) => {
     await archivaTask(taskId)
     setState(s => ({ ...s, tasks: s.tasks.filter(t => t.id !== taskId) }))
+    notifyMutation()
   }, [])
 
   const eliminaAllocazioneAction = useCallback(async (allocId: string, taskId: string) => {
@@ -90,6 +101,24 @@ export function TaskDataProvider({ children }: { children: ReactNode }) {
     }))
   }, [])
 
+  const ripristinaTaskAction = useCallback(async (taskId: string) => {
+    await ripristinaTask(taskId)
+    setState(s => ({
+      ...s,
+      tasks: s.tasks.map(t => t.id === taskId
+        ? { ...t, stato: 'da_fare' as const, completed_at: undefined }
+        : t)
+    }))
+    notifyMutation()
+  }, [])
+
+  const desarchivaTaskAction = useCallback(async (taskId: string) => {
+    await desarchivaTask(taskId)
+    // Rimuovi dalla lista corrente (era tra gli archiviati)
+    setState(s => ({ ...s, tasks: s.tasks.filter(t => t.id !== taskId) }))
+    notifyMutation()
+  }, [])
+
   const getTaskConDati = useCallback((taskId: string) => {
     return state.tasks.find(t => t.id === taskId) ?? null
   }, [state.tasks])
@@ -97,7 +126,7 @@ export function TaskDataProvider({ children }: { children: ReactNode }) {
   return (
     <TaskDataContext.Provider value={{
       ...state, carica, creaTask, modificaTask, completaTaskAction,
-      archivaTaskAction, eliminaAllocazioneAction, getTaskConDati
+      archivaTaskAction, ripristinaTaskAction, desarchivaTaskAction, eliminaAllocazioneAction, getTaskConDati
     }}>
       {children}
     </TaskDataContext.Provider>
