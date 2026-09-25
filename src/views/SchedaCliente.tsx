@@ -4,9 +4,10 @@ import { Seed, Persona, Task, TaskStato, TaskPriorita, Contatto, Progetto } from
 import { formatDate, daysUntil, getAlertLevel, getProssimaScadenza } from '../utils'
 import { BadgeTipo, BadgeAlert, BadgeScadenzaTipo } from '../components/UI'
 import { useTaskContext } from '../context/TaskContext'
+import { useTaskData } from '../context/TaskDataContext'
 import { useClienteContext } from '../context/ClienteContext'
 import { sbPatch, sbPost, sbUpsert, sbDelete } from '../lib/supabase'
-import TaskModal from '../components/TaskModal'
+import TaskEditor from '../components/TaskEditor'
 import ImportTaskModal from '../components/ImportTaskModal'
 
 interface Props {
@@ -47,7 +48,7 @@ export default function SchedaCliente({ clienteId, seed, onBack }: Props) {
   const [filtroStato, setFiltroStato] = useState<'aperti' | 'tutti'>('aperti')
   const [filtroRisorsa, setFiltroRisorsa] = useState<string>('tutti')
   const [expandedTask, setExpandedTask] = useState<string | null>(null)
-  const [activeTaskModal, setActiveTaskModal] = useState<Task | null>(null)
+  const [activeTaskEditor, setActiveTaskEditor] = useState<string | null>(null) // ID del task in modifica
   const [notaEdit, setNotaEdit] = useState<string | null>(null)
   const [anagraficaEdit, setAnagraficaEdit] = useState(false)
   const [anagraficaFields, setAnagraficaFields] = useState<Record<string,any>>({})
@@ -69,10 +70,11 @@ export default function SchedaCliente({ clienteId, seed, onBack }: Props) {
     lead_obiettivo: '',
     lead_raccolte: '',
   })
-  const [taskImportati, setTaskImportati] = useState<any[]>([])
+  // taskImportati rimosso in Fase 2B.1 — i task si creano sempre tramite TaskDataContext
   const [selezione, setSelezione] = useState<Set<string>>(new Set())
 
   const { getTask, updateTask, eliminaTask, isEliminato, addTask } = useTaskContext()
+  const { creaTask, modificaTask, completaTaskAction, archivaTaskAction, ripristinaTaskAction, getTaskConDati } = useTaskData()
 
   async function handleSalvaContratto() {
     const updates: any = {}
@@ -119,7 +121,7 @@ export default function SchedaCliente({ clienteId, seed, onBack }: Props) {
   }, [progetti, progettoSelezionato])
 
   // Task filtrati per progetto
-  const tasksCliente = [...seed.tasks.filter(t => t.cliente === clienteId), ...taskImportati.filter(t => t.cliente === clienteId)].filter(t => !isEliminato(t.id))
+  const tasksCliente = seed.tasks.filter(t => t.cliente === clienteId).filter(t => !isEliminato(t.id))
   const tasks = progettoAttivo
     ? tasksCliente.filter(t => t.progetto_id === progettoAttivo.id)
     : tasksCliente
@@ -258,16 +260,43 @@ export default function SchedaCliente({ clienteId, seed, onBack }: Props) {
       )}
 
       {/* TaskModal */}
-      {activeTaskModal && (
-        <TaskModal
-          task={getTask(activeTaskModal)}
-          personaById={personaById}
-          clienteNome={cliente.nome}
-          progetti={progetti}
-          onClose={() => setActiveTaskModal(null)}
-          onSave={(id, updates) => { updateTask(id, updates); setActiveTaskModal(null) }}
-        />
-      )}
+      {activeTaskEditor && (() => {
+        const taskRaw = seed.tasks.find(t => t.id === activeTaskEditor)
+        if (!taskRaw) return null
+        const taskConDati = getTaskConDati(activeTaskEditor)
+        // Se non è nello store (task legacy), crea un wrapper compatibile
+        const taskDaAprire = taskConDati ?? { ...taskRaw, assegnazioni: [], allocazioni: [],
+          ore_assegnate_totali: 0, ore_pianificate_totali: 0,
+          ore_da_assegnare: taskRaw.ore_stimate, ore_da_pianificare: 0,
+          pianificazione_stato: 'da_assegnare' as const, prossima_data_pianificata: null }
+        return (
+          <TaskEditor
+            team={seed.team}
+            clienti={seed.clienti.map(c => ({ id: c.id, nome: c.nome }))}
+            progetti={seed.progetti}
+            scadenze={seed.scadenze}
+            taskEsistente={taskDaAprire}
+            defaultCliente={clienteId}
+            onSave={async (input) => {
+              await modificaTask(activeTaskEditor, input)
+              setActiveTaskEditor(null)
+            }}
+            onClose={() => setActiveTaskEditor(null)}
+            onCompleta={async (libera) => {
+              await completaTaskAction(activeTaskEditor, libera)
+              setActiveTaskEditor(null)
+            }}
+            onArchivia={async () => {
+              await archivaTaskAction(activeTaskEditor)
+              setActiveTaskEditor(null)
+            }}
+            onRipristina={taskDaAprire.stato === 'completato' ? async () => {
+              await ripristinaTaskAction(activeTaskEditor)
+              setActiveTaskEditor(null)
+            } : undefined}
+          />
+        )
+      })()}
 
       <button onClick={onBack}
         className="flex items-center gap-2 text-sm text-gray-500 hover:text-gray-800 mb-5 transition-colors">
@@ -591,13 +620,18 @@ export default function SchedaCliente({ clienteId, seed, onBack }: Props) {
             </div>
           </div>
           {showNuovoTask && (
-            <NuovoTaskForm
-              clienteId={clienteId}
-              progettoAttivoId={progettoAttivo?.id ?? null}
-              progetti={progetti}
-              personaById={personaById}
+            <TaskEditor
+              team={seed.team}
+              clienti={seed.clienti.map(c => ({ id: c.id, nome: c.nome }))}
+              progetti={seed.progetti}
+              scadenze={seed.scadenze}
+              defaultCliente={clienteId}
+              defaultProgetto={progettoAttivo?.id}
+              onSave={async (input) => {
+                await creaTask(input)
+                setShowNuovoTask(false)
+              }}
               onClose={() => setShowNuovoTask(false)}
-              onSaved={(t) => { setTaskImportati(prev => [...prev, t]); setShowNuovoTask(false) }}
             />
           )}
           {tasksFiltrati.length === 0 ? (
@@ -663,7 +697,7 @@ export default function SchedaCliente({ clienteId, seed, onBack }: Props) {
                         style={{ borderColor: '#E0E0E0', color: '#999', background: 'white' }}>
                         {isExp ? '▴' : '▾'}
                       </button>
-                      <button onClick={() => setActiveTaskModal(tasks.find(raw => raw.id === t.id) ?? null)}
+                      <button onClick={() => setActiveTaskEditor(t.id)}
                         className="text-xs px-2 py-0.5 rounded border flex-shrink-0"
                         style={{ borderColor: '#E0E0E0', color: '#999', background: 'white' }}>
                         Modifica
@@ -1566,171 +1600,7 @@ function NuovoContattoForm({ clienteId, onClose, onSaved }: {
 
 // ── Form nuovo task singolo ───────────────────────────────────────────────
 
-function NuovoTaskForm({ clienteId, progettoAttivoId, progetti, personaById, onClose, onSaved }: {
-  clienteId: string
-  progettoAttivoId: string | null
-  progetti: any[]
-  personaById: Record<string, any>
-  onClose: () => void
-  onSaved: (t: any) => void
-}) {
-  const [form, setForm] = useState({
-    titolo: '',
-    area: 'Web',
-    milestone: '',
-    priorita: 'media' as TaskPriorita,
-    stato: 'da_fare' as TaskStato,
-    ore_stimate: '',
-    data_inizio: '',
-    data_fine: '',
-    assegnatari: [] as string[],
-    progetto_id: progettoAttivoId ?? '',
-    ricorrente: false,
-    note: '',
-  })
-  const [saving, setSaving] = useState(false)
-  const [error, setError] = useState('')
-
-  const operativi = Object.values(personaById).filter((p: any) => p.tipo === 'operativo')
-
-  async function handleSalva() {
-    if (!form.titolo.trim()) { setError('Titolo obbligatorio'); return }
-    if (!form.data_fine) { setError('Data fine obbligatoria'); return }
-    setSaving(true)
-    const task = {
-      id: `task_${clienteId}_${Date.now()}`,
-      cliente: clienteId,
-      progetto_id: form.progetto_id || null,
-      area: form.area,
-      milestone: form.milestone || null,
-      titolo: form.titolo.trim(),
-      assegnatari: form.assegnatari,
-      ore_stimate: Number(form.ore_stimate) || 0,
-      data_inizio: form.data_inizio || form.data_fine,
-      data_fine: form.data_fine,
-      priorita: form.priorita,
-      stato: form.stato,
-      ricorrente: form.ricorrente,
-      note: form.note || null,
-    }
-    try {
-      await sbPost('tasks', task)
-    } catch(e) { console.error('Salva task:', e) }
-    setSaving(false)
-    onSaved(task)
-  }
-
-  return (
-    <div className="bg-white rounded-xl border border-gray-200 p-5 mb-4 space-y-4">
-      <p className="text-xs text-gray-500 font-semibold uppercase tracking-wide">Nuovo task</p>
-      {error && <p className="text-xs text-red-600 px-3 py-2 rounded-lg" style={{ background: '#FFEBEE' }}>{error}</p>}
-
-      <div>
-        <label className="text-xs text-gray-400 block mb-1">Titolo *</label>
-        <input value={form.titolo} onChange={e => setForm(f => ({ ...f, titolo: e.target.value }))}
-          placeholder="Descrizione del task"
-          className="w-full text-sm px-3 py-2 rounded-lg border border-gray-200 outline-none focus:border-teal-400" />
-      </div>
-
-      <div className="grid grid-cols-3 gap-3">
-        <div>
-          <label className="text-xs text-gray-400 block mb-1">Area</label>
-          <select value={form.area} onChange={e => setForm(f => ({ ...f, area: e.target.value }))}
-            className="w-full text-sm px-3 py-2 rounded-lg border border-gray-200 bg-white outline-none">
-            {['Web', 'ADV', 'Content', 'Strategia', 'Grafica', 'Gestione'].map(a => (
-              <option key={a} value={a}>{a}</option>
-            ))}
-          </select>
-        </div>
-        <div>
-          <label className="text-xs text-gray-400 block mb-1">Priorità</label>
-          <select value={form.priorita} onChange={e => setForm(f => ({ ...f, priorita: e.target.value as TaskPriorita }))}
-            className="w-full text-sm px-3 py-2 rounded-lg border border-gray-200 bg-white outline-none">
-            <option value="alta">Alta</option>
-            <option value="media">Media</option>
-            <option value="bassa">Bassa</option>
-          </select>
-        </div>
-        <div>
-          <label className="text-xs text-gray-400 block mb-1">Stato</label>
-          <select value={form.stato} onChange={e => setForm(f => ({ ...f, stato: e.target.value as TaskStato }))}
-            className="w-full text-sm px-3 py-2 rounded-lg border border-gray-200 bg-white outline-none">
-            <option value="da_fare">Da fare</option>
-            <option value="in_corso">In corso</option>
-            <option value="completato">Completato</option>
-            <option value="bloccato">Bloccato</option>
-            <option value="in_attesa_materiali">Attesa materiali</option>
-          </select>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-3 gap-3">
-        <div>
-          <label className="text-xs text-gray-400 block mb-1">Data inizio</label>
-          <input type="date" value={form.data_inizio} onChange={e => setForm(f => ({ ...f, data_inizio: e.target.value }))}
-            className="w-full text-sm px-3 py-2 rounded-lg border border-gray-200 outline-none" />
-        </div>
-        <div>
-          <label className="text-xs text-gray-400 block mb-1">Data fine *</label>
-          <input type="date" value={form.data_fine} onChange={e => setForm(f => ({ ...f, data_fine: e.target.value }))}
-            className="w-full text-sm px-3 py-2 rounded-lg border border-gray-200 outline-none focus:border-teal-400" />
-        </div>
-        <div>
-          <label className="text-xs text-gray-400 block mb-1">Ore stimate</label>
-          <input type="number" value={form.ore_stimate} onChange={e => setForm(f => ({ ...f, ore_stimate: e.target.value }))}
-            placeholder="es. 4"
-            className="w-full text-sm px-3 py-2 rounded-lg border border-gray-200 outline-none" />
-        </div>
-      </div>
-
-      <div className="grid grid-cols-2 gap-3">
-        <div>
-          <label className="text-xs text-gray-400 block mb-1">Assegnatari</label>
-          <div className="flex gap-2 flex-wrap">
-            {operativi.map((p: any) => (
-              <label key={p.id} className="flex items-center gap-1.5 cursor-pointer">
-                <input type="checkbox"
-                  checked={form.assegnatari.includes(p.id)}
-                  onChange={e => setForm(f => ({
-                    ...f,
-                    assegnatari: e.target.checked
-                      ? [...f.assegnatari, p.id]
-                      : f.assegnatari.filter(id => id !== p.id)
-                  }))}
-                  className="rounded accent-teal-500" />
-                <span className="text-xs text-gray-700">{p.nome.split(' ')[0]}</span>
-              </label>
-            ))}
-          </div>
-        </div>
-        {progetti.length > 0 && (
-          <div>
-            <label className="text-xs text-gray-400 block mb-1">Progetto</label>
-            <select value={form.progetto_id} onChange={e => setForm(f => ({ ...f, progetto_id: e.target.value }))}
-              className="w-full text-sm px-3 py-2 rounded-lg border border-gray-200 bg-white outline-none">
-              <option value="">Nessun progetto</option>
-              {progetti.map(p => <option key={p.id} value={p.id}>{p.nome}</option>)}
-            </select>
-          </div>
-        )}
-      </div>
-
-      <div className="flex items-center justify-end gap-2 pt-2 border-t border-gray-100">
-        <button onClick={onClose} className="text-sm px-4 py-2 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-100">
-          Annulla
-        </button>
-        <button onClick={handleSalva} disabled={saving}
-          className="text-sm px-4 py-2 rounded-lg font-medium disabled:opacity-50"
-          style={{ background: '#7DF5DF', color: '#1A1A2E' }}>
-          {saving ? 'Salvataggio...' : 'Crea task'}
-        </button>
-      </div>
-    </div>
-  )
-}
-
-
-// ── Form modifica progetto ────────────────────────────────────────────────
+// NuovoTaskForm rimosso in Fase 2B.1 — sostituito da TaskEditor
 
 function ModificaProgettoForm({ progetto, onClose, onSaved }: {
   progetto: any
