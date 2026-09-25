@@ -153,6 +153,18 @@ export default function App() {
       .catch(err => { console.error('Supabase:', err); setDbError(err.message); setLoading(false) })
   }, [auth.user, auth.loading])
 
+  // Callback per invalidare seed.tasks dopo mutation da TaskDataContext
+  // Passaggio intermedio: mantiene la coesistenza tra store nuovo e seed legacy
+  const refreshSeedTasks = React.useCallback(async () => {
+    if (!auth.user) return
+    try {
+      const data = await loadSeed()
+      setSeed((_s: any) => normalizeSeed({ ...data }))
+    } catch (e) {
+      console.warn('refreshSeedTasks failed:', e)
+    }
+  }, [auth.user])
+
   const [currentView, setCurrentView] = useState<View>('home')
   const [currentUserId, setCurrentUserId] = useState<string>('valentina')
   const [selectedCliente, setSelectedCliente] = useState<string | null>(null)
@@ -229,7 +241,7 @@ export default function App() {
 
   return (
     <ErrorBoundary>
-      <TaskDataProvider>
+      <TaskDataProvider onTaskMutated={refreshSeedTasks}>
       <ClienteProvider>
         <TaskProvider>
           <div className="flex min-h-screen" style={{ backgroundColor: '#F8F9FA' }}>
