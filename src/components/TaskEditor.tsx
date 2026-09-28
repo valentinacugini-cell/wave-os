@@ -1,3 +1,77 @@
+// Componente per la riga di allocazione esistente (editabile inline)
+function AllocazioneEsistenteRow({
+  alloc, persona, taskId, assegnazioneId, onAggiorna, onElimina, onError
+}: {
+  alloc: Allocazione
+  persona: import('../types').Persona | undefined
+  taskId: string
+  assegnazioneId: string
+  onAggiorna: (allocId: string, taskId: string, assegnazioneId: string, updates: { data?: string; ore?: number; note?: string | null }) => Promise<void>
+  onElimina: (allocId: string, taskId: string) => Promise<void>
+  onError: (msg: string | null) => void
+}) {
+  const [editData, setEditData] = React.useState(alloc.data_inizio)
+  const [editOre, setEditOre] = React.useState(String(alloc.ore))
+  const [saving, setSaving] = React.useState(false)
+  const [confirmDelete, setConfirmDelete] = React.useState(false)
+
+  const isDirty = editData !== alloc.data_inizio || editOre !== String(alloc.ore)
+
+  async function handleSave() {
+    const ore = parseFloat(editOre)
+    if (!editData || isNaN(ore) || ore <= 0) { onError('Data e ore devono essere valorizzate'); return }
+    setSaving(true)
+    try {
+      await onAggiorna(alloc.id, taskId, assegnazioneId, {
+        data: editData !== alloc.data_inizio ? editData : undefined,
+        ore: ore !== alloc.ore ? ore : undefined,
+      })
+      onError(null)
+    } catch (e: any) { onError(e.message) }
+    finally { setSaving(false) }
+  }
+
+  async function handleDelete() {
+    if (!confirmDelete) { setConfirmDelete(true); return }
+    setSaving(true)
+    try { await onElimina(alloc.id, taskId); onError(null) }
+    catch (e: any) { onError(e.message) }
+    finally { setSaving(false); setConfirmDelete(false) }
+  }
+
+  return (
+    <div className="flex items-center gap-2 text-xs bg-gray-50 rounded-lg px-3 py-2 border border-transparent hover:border-gray-200 transition-colors">
+      <span className="w-4 h-4 rounded-full inline-flex items-center justify-center text-white flex-shrink-0" style={{ background: persona?.colore ?? '#888', fontSize: 9 }}>{persona?.nome.charAt(0)}</span>
+      <span className="text-gray-600 w-14 flex-shrink-0">{persona?.nome.split(' ')[0]}</span>
+      <input type="date" value={editData} onChange={e => setEditData(e.target.value)}
+        className="text-xs px-2 py-1 rounded border border-gray-200 outline-none bg-white" />
+      <input type="number" value={editOre} min="0.5" step="0.5"
+        onChange={e => setEditOre(e.target.value)}
+        className="text-xs px-2 py-1 rounded border border-gray-200 outline-none bg-white w-16 text-right" />
+      <span className="text-gray-400 flex-shrink-0">h</span>
+      {isDirty && (
+        <button onClick={handleSave} disabled={saving}
+          className="text-xs px-2 py-0.5 rounded font-medium disabled:opacity-40"
+          style={{ background: '#1D9E75', color: 'white' }}>
+          {saving ? '...' : 'Salva'}
+        </button>
+      )}
+      {!isDirty && (
+        <button onClick={handleDelete} disabled={saving}
+          className="text-xs px-2 py-0.5 rounded border border-gray-200 text-gray-400 hover:text-red-500 hover:border-red-300 disabled:opacity-40 ml-auto"
+          title={confirmDelete ? 'Clicca ancora per confermare' : 'Elimina allocazione'}>
+          {confirmDelete ? '✓ Conferma' : '✕'}
+        </button>
+      )}
+      {confirmDelete && !saving && (
+        <button onClick={() => setConfirmDelete(false)} className="text-xs text-gray-400 hover:text-gray-600">
+          Annulla
+        </button>
+      )}
+    </div>
+  )
+}
+
 /**
  * TaskEditor — Fase 2B
  * Editor task progressivo con sezioni A (attività) B (assegnazioni) C (pianificazione) D (dettagli).
@@ -5,6 +79,7 @@
  */
 import React, { useState, useEffect, useMemo } from 'react'
 import { Task, Persona, Progetto, Scadenza, TaskStato, TaskPriorita, BloccTipo, Assegnazione, Allocazione, TaskConDati } from '../types'
+import { useTaskData } from '../context/TaskDataContext'
 import { NuovoTaskInput } from '../lib/taskData'
 
 const AREE = ['web', 'adv', 'seo', 'social', 'content', 'meeting', 'strategy', 'admin', 'altro']
@@ -62,6 +137,8 @@ export default function TaskEditor({
   const isModifica = !!taskEsistente
 
   // ── Sezione A ───────────────────────────────────────────────────
+  const { eliminaAllocazioneAction, aggiornaAllocazioneAction } = useTaskData()
+
   const [cliente, setCliente] = useState(taskEsistente?.cliente ?? defaultCliente ?? '')
   const [progetto, setProgetto] = useState(taskEsistente?.progetto_id ?? defaultProgetto ?? '')
   const [titolo, setTitolo] = useState(taskEsistente?.titolo ?? '')
@@ -477,20 +554,23 @@ export default function TaskEditor({
                 </div>
               </div>
 
-              {/* Allocazioni esistenti */}
+              {/* Allocazioni esistenti — editabili */}
               {taskEsistente && taskEsistente.allocazioni.length > 0 && (
                 <div className="space-y-1">
                   {taskEsistente.allocazioni.map(alloc => {
                     const asgn = taskEsistente.assegnazioni.find(a => a.id === alloc.assegnazione_id)
                     const persona = team.find(p => p.id === asgn?.persona_id)
                     return (
-                      <div key={alloc.id} className="flex items-center gap-3 text-xs bg-gray-50 rounded-lg px-3 py-2">
-                        <span className="w-4 h-4 rounded-full inline-flex items-center justify-center text-white flex-shrink-0" style={{ background: persona?.colore ?? '#888', fontSize: 9 }}>{persona?.nome.charAt(0)}</span>
-                        <span className="text-gray-600">{persona?.nome.split(' ')[0]}</span>
-                        <span className="text-gray-400">{alloc.data_inizio}</span>
-                        <span className="font-medium text-gray-700">{alloc.ore}h</span>
-                        {alloc.note && <span className="text-gray-400 flex-1 truncate">{alloc.note}</span>}
-                      </div>
+                      <AllocazioneEsistenteRow
+                        key={alloc.id}
+                        alloc={alloc}
+                        persona={persona}
+                        taskId={taskEsistente.id}
+                        assegnazioneId={asgn?.id ?? ''}
+                        onAggiorna={aggiornaAllocazioneAction}
+                        onElimina={eliminaAllocazioneAction}
+                        onError={setError}
+                      />
                     )
                   })}
                 </div>
