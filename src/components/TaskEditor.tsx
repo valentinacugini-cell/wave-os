@@ -129,6 +129,24 @@ export default function TaskEditor({
   }
 
   function rimuoviAssegnazione(idx: number) {
+    const asgn = assegnazioni[idx]
+    // Controlla se esistono allocazioni per questa persona (esistenti o nuove in sessione)
+    const haAllocazioniEsistenti = taskEsistente?.allocazioni?.some(a => {
+      const asgnId = taskEsistente.assegnazioni.find(as => as.persona_id === asgn.persona_id)?.id
+      return a.assegnazione_id === asgnId
+    }) ?? false
+    const haAllocazioniNuove = allocazioni.some(a => a.persona_id === asgn.persona_id)
+
+    if (haAllocazioniEsistenti || haAllocazioniNuove) {
+      // Avviso: rimuovere l'assegnazione rimuoverà anche le allocazioni
+      const persona = team.find(p => p.id === asgn.persona_id)
+      const confermato = window.confirm(
+        `Rimuovere ${persona?.nome ?? asgn.persona_id} dall'assegnazione eliminerà anche le pianificazioni già inserite per questa persona. Continuare?`
+      )
+      if (!confermato) return
+      // Rimuove anche le allocazioni nuove (in sessione) per questa persona
+      setAllocazioni(prev => prev.filter(a => a.persona_id !== asgn.persona_id))
+    }
     setAssegnazioni(prev => prev.filter((_, i) => i !== idx))
   }
 
@@ -143,8 +161,13 @@ export default function TaskEditor({
     })?.reduce((s, a) => s + a.ore, 0) ?? 0) +
     allocazioni.filter(a => a.persona_id === nuovaAlloc.persona_id).reduce((s, a) => s + (parseFloat(a.ore)||0), 0)
 
+    if (oreAsgn === 0) {
+      setError(`Inserisci prima le ore assegnate nella sezione B per ${team.find(p => p.id === nuovaAlloc.persona_id)?.nome ?? nuovaAlloc.persona_id}.`)
+      return
+    }
     if (giàAlloc + ore > oreAsgn) {
-      setError(`Sovra-pianificazione: ${team.find(p => p.id === nuovaAlloc.persona_id)?.nome} ha ${oreAsgn}h assegnate, già pianificate ${giàAlloc}h`)
+      const rimanenti = oreAsgn - giàAlloc
+      setError(`Sovra-pianificazione: ${team.find(p => p.id === nuovaAlloc.persona_id)?.nome} ha ${oreAsgn}h assegnate, già pianificate ${giàAlloc}h. Puoi aggiungere al massimo ${rimanenti}h.`)
       return
     }
     setAllocazioni(prev => [...prev, { ...nuovaAlloc }])
@@ -456,10 +479,12 @@ export default function TaskEditor({
                   <select value={nuovaAlloc.persona_id} onChange={e => setNuovaAlloc(a => ({...a, persona_id: e.target.value}))}
                     className="text-xs px-2 py-2 rounded-lg border border-gray-200 bg-white outline-none">
                     <option value="">—</option>
-                    {assegnazioni.map(a => {
-                      const p = team.find(x => x.id === a.persona_id)
-                      return <option key={a.persona_id} value={a.persona_id}>{p?.nome.split(' ')[0] ?? a.persona_id}</option>
-                    })}
+                     {assegnazioni
+                       .filter(a => parseFloat(a.ore_assegnate) > 0)
+                       .map(a => {
+                         const p = team.find(x => x.id === a.persona_id)
+                         return <option key={a.persona_id} value={a.persona_id}>{p?.nome.split(' ')[0] ?? a.persona_id}</option>
+                       })}
                   </select>
                 </div>
                 <div>
@@ -553,19 +578,28 @@ export default function TaskEditor({
         <div className="fixed inset-0 z-60 flex items-center justify-center" style={{ background: 'rgba(0,0,0,0.5)' }}>
           <div className="bg-white rounded-2xl p-6 max-w-sm w-full mx-4 shadow-xl">
             <p className="text-sm font-semibold text-gray-900 mb-2">Completa attività</p>
-            <p className="text-sm text-gray-600 mb-4">
-              Questo task ha ancora {allocazioniFuture.length} allocazione/i pianificate in date future.
-              Vuoi liberarle?
+            <p className="text-sm text-gray-600 mb-3">
+              Ci sono {allocazioniFuture.length} {allocazioniFuture.length === 1 ? 'pianificazione futura' : 'pianificazioni future'} ancora attive.
             </p>
-            <div className="flex gap-2">
+            <div className="flex flex-col gap-2">
               <button onClick={() => { onCompleta(true); setCompletaDialog(false); onClose() }}
-                className="flex-1 text-sm py-2 rounded-lg font-medium"
+                className="text-sm py-2.5 px-4 rounded-lg font-medium text-left"
                 style={{ background: '#1A1A2E', color: '#7DF5DF' }}>
-                Libera ore future
+                Libera le ore future
+                <span className="block text-xs mt-0.5 opacity-70 font-normal">
+                  Le pianificazioni future vengono rimosse. Le ore tornano disponibili.
+                </span>
               </button>
               <button onClick={() => { onCompleta(false); setCompletaDialog(false); onClose() }}
-                className="flex-1 text-sm py-2 rounded-lg border border-gray-200 text-gray-700">
-                Mantieni pianificazione
+                className="text-sm py-2.5 px-4 rounded-lg border border-gray-200 text-gray-700 text-left">
+                Mantieni le pianificazioni
+                <span className="block text-xs mt-0.5 text-gray-400 font-normal">
+                  Le pianificazioni rimangono per storico. Non liberano ore nel carico.
+                </span>
+              </button>
+              <button onClick={() => setCompletaDialog(false)}
+                className="text-xs text-gray-400 hover:text-gray-600 py-1">
+                Annulla
               </button>
             </div>
           </div>
