@@ -55,7 +55,7 @@ export default function MieiTaskView({ seed }: { seed: Seed }) {
   const { teamMember } = useAuth()
 
   const [mostraTutti, setMostraTutti] = useState(false)
-  const [mostraArchiviati, setMostraArchiviati] = useState(false)
+  const [modalitaLista, setModalitaLista] = useState<'aperti' | 'completati' | 'archiviati'>('aperti')
   const [ricerca, setRicerca] = useState('')
   const [filtroCliente, setFiltroCliente] = useState('')
   const [filtroArea, setFiltroArea] = useState('')
@@ -68,21 +68,29 @@ export default function MieiTaskView({ seed }: { seed: Seed }) {
   useEffect(() => {
     carica({
       personaId: mostraTutti ? undefined : teamMember?.id,
-      includiCompletati: mostraArchiviati,
-      includiArchiviati: mostraArchiviati,
+      includiCompletati: modalitaLista === 'completati',
+      includiArchiviati: modalitaLista === 'archiviati',
     })
-  }, [mostraTutti, mostraArchiviati, teamMember?.id])
+  }, [mostraTutti, modalitaLista, teamMember?.id])
 
   const taskFiltrati = useMemo(() => {
     let ts = tasks
-    if (ricerca) ts = ts.filter(t => t.titolo.toLowerCase().includes(ricerca.toLowerCase()))
+    // Filtro primario per modalità — ogni tab è esclusivo
+    if (modalitaLista === 'aperti')      ts = ts.filter(t => !t.archived_at && t.stato !== 'completato' && t.stato !== 'annullato')
+    if (modalitaLista === 'completati')  ts = ts.filter(t => !t.archived_at && t.stato === 'completato')
+    if (modalitaLista === 'archiviati')  ts = ts.filter(t => !!t.archived_at)
+    // Filtri aggiuntivi (disponibili in tutte le modalità)
+    if (ricerca)       ts = ts.filter(t => t.titolo.toLowerCase().includes(ricerca.toLowerCase()))
     if (filtroCliente) ts = ts.filter(t => t.cliente === filtroCliente)
-    if (filtroArea) ts = ts.filter(t => t.area === filtroArea)
-    if (filtroStato) ts = ts.filter(t => t.stato === filtroStato)
-    if (filtroPian) ts = ts.filter(t => t.pianificazione_stato === filtroPian)
-    if (filtroReview) ts = ts.filter(t => t.needs_assignment_review)
+    if (filtroArea)    ts = ts.filter(t => t.area === filtroArea)
+    // filtroStato e filtroPian: solo nella modalità aperti
+    if (modalitaLista === 'aperti') {
+      if (filtroStato) ts = ts.filter(t => t.stato === filtroStato)
+      if (filtroPian)  ts = ts.filter(t => t.pianificazione_stato === filtroPian)
+    }
+    if (filtroReview) ts = ts.filter(t => !!t.needs_assignment_review)
     return ordinaTask(ts)
-  }, [tasks, ricerca, filtroCliente, filtroArea, filtroStato, filtroPian, filtroReview])
+  }, [tasks, modalitaLista, ricerca, filtroCliente, filtroArea, filtroStato, filtroPian, filtroReview])
 
   const clientiPresenti = useMemo(() => {
     const ids = [...new Set(tasks.map(t => t.cliente))]
@@ -114,6 +122,7 @@ export default function MieiTaskView({ seed }: { seed: Seed }) {
           <p className="text-xs text-gray-400 mt-0.5">
             {loading ? 'Caricamento...' : `${taskFiltrati.length} attività`}
             {!mostraTutti && teamMember && ` · ${teamMember.nome.split(' ')[0]}`}
+            {modalitaLista !== 'aperti' && ` · ${modalitaLista}`}
           </p>
         </div>
         <div className="flex items-center gap-3">
@@ -130,16 +139,22 @@ export default function MieiTaskView({ seed }: { seed: Seed }) {
               Tutti i task
             </button>
           </div>
-          <button
-            onClick={() => setMostraArchiviati(v => !v)}
-            className="text-sm px-3 py-2 rounded-xl border transition-all"
-            style={{
-              borderColor: mostraArchiviati ? '#9CA3AF' : '#E5E7EB',
-              background: mostraArchiviati ? '#F3F4F6' : 'white',
-              color: mostraArchiviati ? '#374151' : '#6B7280',
-            }}>
-            {mostraArchiviati ? 'Nascondi archiviati' : 'Archiviati'}
-          </button>
+          <div className="flex bg-gray-100 rounded-xl p-1 gap-1">
+            {([
+              { id: 'aperti',     label: 'Aperti' },
+              { id: 'completati', label: 'Completati' },
+              { id: 'archiviati', label: 'Archiviati' },
+            ] as const).map(m => (
+              <button key={m.id} onClick={() => setModalitaLista(m.id)}
+                className="text-xs px-3 py-1.5 rounded-lg transition-all"
+                style={{
+                  background: modalitaLista === m.id ? '#1A1A2E' : 'transparent',
+                  color: modalitaLista === m.id ? '#7DF5DF' : '#666',
+                }}>
+                {m.label}
+              </button>
+            ))}
+          </div>
           <button onClick={() => { setTaskInModifica(null); setShowEditor(true) }}
             className="text-sm px-4 py-2 rounded-xl font-medium"
             style={{ background: '#1A1A2E', color: '#7DF5DF' }}>
@@ -163,23 +178,27 @@ export default function MieiTaskView({ seed }: { seed: Seed }) {
           <option value="">Tutte le aree</option>
           {areePresenti.map(a => <option key={a} value={a}>{a}</option>)}
         </select>
-        <select value={filtroStato} onChange={e => setFiltroStato(e.target.value)}
-          className="text-sm px-3 py-1.5 rounded-lg border border-gray-200 bg-white outline-none">
-          <option value="">Tutti gli stati</option>
-          <option value="da_fare">Da fare</option>
-          <option value="in_corso">In corso</option>
-          <option value="completato">Completato</option>
-          <option value="annullato">Annullato</option>
-        </select>
-        <select value={filtroPian} onChange={e => setFiltroPian(e.target.value)}
-          className="text-sm px-3 py-1.5 rounded-lg border border-gray-200 bg-white outline-none">
-          <option value="">Tutta la pianificazione</option>
-          <option value="da_stimare">Da stimare</option>
-          <option value="da_assegnare">Da assegnare</option>
-          <option value="da_pianificare">Da pianificare</option>
-          <option value="parziale">Parziale</option>
-          <option value="pianificato">Pianificato</option>
-        </select>
+        {modalitaLista === 'aperti' && (
+          <select value={filtroStato} onChange={e => setFiltroStato(e.target.value)}
+            className="text-sm px-3 py-1.5 rounded-lg border border-gray-200 bg-white outline-none">
+            <option value="">Tutti gli stati</option>
+            <option value="da_fare">Da fare</option>
+            <option value="in_corso">In corso</option>
+            <option value="annullato">Annullato</option>
+          </select>
+        )}
+        {modalitaLista === 'aperti' && (
+          <select value={filtroPian} onChange={e => setFiltroPian(e.target.value)}
+            className="text-sm px-3 py-1.5 rounded-lg border border-gray-200 bg-white outline-none">
+            <option value="">Tutta la pianificazione</option>
+            <option value="da_stimare">Da stimare</option>
+            <option value="da_assegnare">Da assegnare</option>
+            <option value="da_pianificare">Da pianificare</option>
+            <option value="parziale">Parziale</option>
+            <option value="pianificato">Pianificato</option>
+          </select>
+        )}
+
         <button onClick={() => setFiltroReview(v => !v)}
           className="text-xs px-3 py-1.5 rounded-lg border transition-all"
           style={{
@@ -201,7 +220,10 @@ export default function MieiTaskView({ seed }: { seed: Seed }) {
       {!loading && taskFiltrati.length === 0 && (
         <div className="bg-white rounded-xl border border-gray-200 p-12 text-center">
           <p className="text-sm text-gray-400">
-            {mostraTutti ? 'Nessun task trovato.' : 'Nessun task assegnato a te. Usa "Tutti i task" per vedere tutto.'}
+            {modalitaLista === 'archiviati' ? 'Nessun task archiviato.'
+              : modalitaLista === 'completati' ? 'Nessun task completato.'
+              : mostraTutti ? 'Nessun task trovato.'
+              : 'Nessun task assegnato a te. Usa "Tutti i task" per vedere tutto.'}
           </p>
         </div>
       )}
@@ -218,7 +240,11 @@ export default function MieiTaskView({ seed }: { seed: Seed }) {
             return (
               <div key={task.id}
                 className="flex items-start gap-4 px-4 py-3 hover:bg-gray-50 transition-colors cursor-pointer"
-                style={{ opacity: isArchiviato ? 0.55 : 1 }}
+                style={{
+                  opacity: isArchiviato ? 0.55 : 1,
+                  background: isCompletato && !isArchiviato ? '#F0FDF4' : undefined,
+                  borderLeft: isCompletato && !isArchiviato ? '3px solid #1D9E75' : undefined,
+                }}
                 onClick={() => { setTaskInModifica(task); setShowEditor(true) }}>
 
                 {/* Priorità dot */}
@@ -260,17 +286,22 @@ export default function MieiTaskView({ seed }: { seed: Seed }) {
                 </div>
 
                 {/* Indicatori ore */}
-                <div className="flex items-center gap-3 text-xs text-gray-400 flex-shrink-0">
+                <div className="flex items-center gap-2 text-xs flex-shrink-0 flex-col items-end">
                   {task.ore_stimate !== null ? (
                     <>
-                      <span title="Stimate">{task.ore_stimate}h</span>
-                      <span title="Assegnate" style={{ color: '#4F86C6' }}>{task.ore_assegnate_totali}h asgn</span>
+                      <span className="text-gray-500">{task.ore_stimate}h stimate</span>
+                      {task.ore_assegnate_totali > 0 && (
+                        <span style={{ color: '#4F86C6' }}>{task.ore_assegnate_totali}h assegnate</span>
+                      )}
                       {task.ore_pianificate_totali > 0 && (
-                        <span title="Pianificate" style={{ color: '#1D9E75' }}>{task.ore_pianificate_totali}h pian</span>
+                        <span style={{ color: '#1D9E75' }}>{task.ore_pianificate_totali}h pianificate</span>
+                      )}
+                      {task.ore_da_pianificare > 0 && (
+                        <span style={{ color: '#EF9F27' }}>{task.ore_da_pianificare}h da pianificare</span>
                       )}
                     </>
                   ) : (
-                    <span className="text-gray-300">— h</span>
+                    <span className="text-gray-300">ore non stimate</span>
                   )}
                 </div>
 
@@ -307,13 +338,25 @@ export default function MieiTaskView({ seed }: { seed: Seed }) {
                       {isCompletato ? (
                         <button
                           onClick={e => { e.stopPropagation(); ripristinaTaskAction(task.id) }}
-                          title="Riapri (le pianificazioni liberate non vengono ripristinate)"
+                          title="Riapri — le pianificazioni liberate al completamento non vengono ripristinate"
                           className="w-7 h-7 rounded-lg border border-gray-200 text-xs text-gray-400 hover:text-amber-500 hover:border-amber-300 flex items-center justify-center">
                           ↺
                         </button>
                       ) : (
                         <button
-                          onClick={e => { e.stopPropagation(); completaTaskAction(task.id, false) }}
+                          onClick={e => {
+                            e.stopPropagation()
+                            const oggi = new Date().toISOString().split('T')[0]
+                            const future = task.allocazioni.filter(a => a.data_inizio > oggi)
+                            if (future.length > 0) {
+                              const libera = window.confirm(
+                                `Ci sono ${future.length} ${future.length === 1 ? 'pianificazione futura' : 'pianificazioni future'}. Liberare le ore? (OK = libera, Annulla = mantieni)`
+                              )
+                              completaTaskAction(task.id, libera)
+                            } else {
+                              completaTaskAction(task.id, false)
+                            }
+                          }}
                           title="Completa"
                           className="w-7 h-7 rounded-lg border border-gray-200 text-xs text-gray-400 hover:text-green-600 hover:border-green-300 flex items-center justify-center">
                           ✓
