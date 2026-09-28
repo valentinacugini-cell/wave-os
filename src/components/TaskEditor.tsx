@@ -175,7 +175,7 @@ export default function TaskEditor({
       return
     }
     setAllocazioni(prev => [...prev, { ...nuovaAlloc }])
-    setNuovaAlloc({ persona_id: nuovaAlloc.persona_id, data: '', ore: '', note: '' })
+    setNuovaAlloc({ persona_id: '', data: '', ore: '', note: '' })
   }
 
   async function handleSave() {
