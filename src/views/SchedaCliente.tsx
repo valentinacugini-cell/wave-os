@@ -5,6 +5,7 @@ import { formatDate, daysUntil, getAlertLevel, getProssimaScadenza } from '../ut
 import { BadgeTipo, BadgeAlert, BadgeScadenzaTipo } from '../components/UI'
 import { useTaskContext } from '../context/TaskContext'
 import { useTaskData } from '../context/TaskDataContext'
+import type { TaskConDati } from '../types'
 import { useClienteContext } from '../context/ClienteContext'
 import { sbPatch, sbPost, sbUpsert, sbDelete } from '../lib/supabase'
 import TaskEditor from '../components/TaskEditor'
@@ -74,7 +75,15 @@ export default function SchedaCliente({ clienteId, seed, onBack }: Props) {
   const [selezione, setSelezione] = useState<Set<string>>(new Set())
 
   const { getTask, updateTask, eliminaTask, isEliminato, addTask } = useTaskContext()
-  const { creaTask, modificaTask, completaTaskAction, archivaTaskAction, ripristinaTaskAction, getTaskConDati } = useTaskData()
+  const { tasks: tdTasks, carica: caricaTd, creaTask, modificaTask,
+    completaTaskAction, archivaTaskAction, desarchivaTaskAction,
+    ripristinaTaskAction, getTaskConDati } = useTaskData()
+
+  // Carica task del cliente dal modello nuovo ogni volta che cambia il cliente
+  // Porta TUTTI i task del cliente (inclusi completati) — il filtro avviene nel memo
+  React.useEffect(() => {
+    caricaTd({ clienteId, includiCompletati: true })
+  }, [clienteId])
 
   async function handleSalvaContratto() {
     const updates: any = {}
@@ -121,19 +130,65 @@ export default function SchedaCliente({ clienteId, seed, onBack }: Props) {
   }, [progetti, progettoSelezionato])
 
   // Task filtrati per progetto
-  const tasksCliente = seed.tasks.filter(t => t.cliente === clienteId).filter(t => !isEliminato(t.id))
-  const tasks = progettoAttivo
+  // Sorgente task: TaskDataContext (modello nuovo) con fallback wrapper per task legacy
+  // Mantiene gerarchia Cliente → Progetto → Task tramite filtro progetto_id
+  const tasksCliente: TaskConDati[] = React.useMemo(() => {
+    // Preferisce i dati da TaskDataContext (hanno assegnazioni e allocazioni reali)
+    // Per task non ancora in store (non ancora caricati), usa seed come fallback
+    const idInStore = new Set(tdTasks.map(t => t.id))
+
+    const fromStore = tdTasks.filter(t =>
+      t.cliente === clienteId &&
+      !t.archived_at
+    )
+    // Task nel seed non ancora nello store (es. caricamento in corso)
+    const fromSeedFallback = seed.tasks
+      .filter(t => t.cliente === clienteId && !isEliminato(t.id) && !t.archived_at && !idInStore.has(t.id))
+      .map(t => ({
+        ...getTask(t),
+        assegnazioni: [], allocazioni: [],
+        ore_assegnate_totali: 0, ore_pianificate_totali: 0,
+        ore_da_assegnare: t.ore_stimate, ore_da_pianificare: 0,
+        pianificazione_stato: 'da_assegnare' as const,
+        prossima_data_pianificata: null,
+      } as TaskConDati))
+
+    return [...fromStore, ...fromSeedFallback]
+  }, [tdTasks, seed.tasks, clienteId, isEliminato])
+
+  // Task archiviati del cliente — vista separata
+  const tasksArchiviati: TaskConDati[] = React.useMemo(() => {
+    return seed.tasks
+      .filter(t => t.cliente === clienteId && !!t.archived_at)
+      .map(t => {
+        const enriched = getTaskConDati(t.id)
+        return enriched ?? ({ ...getTask(t), assegnazioni: [], allocazioni: [],
+          ore_assegnate_totali: 0, ore_pianificate_totali: 0,
+          ore_da_assegnare: t.ore_stimate, ore_da_pianificare: 0,
+          pianificazione_stato: 'da_assegnare' as const,
+          prossima_data_pianificata: null } as TaskConDati)
+      })
+  }, [seed.tasks, clienteId, getTaskConDati])
+
+  // Applica filtro progetto mantenendo la gerarchia
+  const tasks: TaskConDati[] = progettoAttivo
     ? tasksCliente.filter(t => t.progetto_id === progettoAttivo.id)
     : tasksCliente
 
-  const tasksConEdits = tasks.map(t => getTask(t))
+  const tasksConEdits = tasks
 
-  const tasksFiltrati = (() => {
+  const tasksFiltrati: TaskConDati[] = (() => {
     let ts = filtroStato === 'aperti'
-      ? tasksConEdits.filter(t => t.stato !== 'completato')
+      ? tasksConEdits.filter(t => t.stato !== 'completato' && t.stato !== 'annullato')
       : tasksConEdits
-    if (filtroRisorsa !== 'tutti')
-      ts = ts.filter(t => (t.assegnatari ?? []).includes(filtroRisorsa))
+    if (filtroRisorsa !== 'tutti') {
+      // Filtra per persona usando assegnazioni (modello nuovo) con fallback a assegnatari (legacy)
+      ts = ts.filter(t => {
+        const assegnatiNuovi = (t as TaskConDati).assegnazioni?.map(a => a.persona_id) ?? []
+        const assegnatiLegacy = (t as any).assegnatari ?? []
+        return assegnatiNuovi.includes(filtroRisorsa) || assegnatiLegacy.includes(filtroRisorsa)
+      })
+    }
     return ts
   })()
 
@@ -655,28 +710,78 @@ export default function SchedaCliente({ clienteId, seed, onBack }: Props) {
                         className="w-3.5 h-3.5 rounded flex-shrink-0 cursor-pointer accent-teal-500" />
                       <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ background: getPrio(t.priorita).dot }} />
                       <div className="flex-1 min-w-0">
-                        <span className="text-sm font-medium text-gray-900">{t.titolo}</span>
-                        <span className="text-xs text-gray-400 ml-2">{t.area}</span>
-                        <div className="flex gap-3 mt-0.5 text-xs text-gray-400 flex-wrap">
-                          {(t.ore_stimate ?? 0) > 0 && <span className="font-medium" style={{ color: '#1D9E75' }}>{(t.ore_stimate ?? 0)}h</span>}
-                          {t.data_fine && <span>→ {formatDate(t.data_fine)}</span>}
-                          {t.assegnatari?.map(rid => {
-                            const p = personaById[rid]
-                            return p ? <span key={rid} className="px-1.5 py-0.5 rounded" style={{ background: p.colore+'22', color: p.colore }}>{p.nome.split(' ')[0]}</span> : null
-                          })}
+                        {/* Titolo e badge stato */}
+                        <div className="flex items-baseline gap-2 flex-wrap">
+                          <span className="text-sm font-medium text-gray-900">{t.titolo}</span>
+                          {t.stato === 'completato' && (
+                            <span className="text-xs px-1.5 py-0.5 rounded" style={{ background: '#EAF3DE', color: '#27500A' }}>Completato</span>
+                          )}
+                          {t.needs_assignment_review && (
+                            <span className="text-xs px-1.5 py-0.5 rounded" style={{ background: '#FEF2F2', color: '#E24B4A' }}>Da revisionare</span>
+                          )}
+                          {t.blocco_tipo && t.blocco_tipo !== 'nessuno' && (
+                            <span className="text-xs px-1.5 py-0.5 rounded" style={{ background: '#FEF2F2', color: '#E24B4A' }}>Bloccato</span>
+                          )}
                         </div>
+                        {/* Riga secondaria: area, deadline, ore */}
+                        <div className="flex gap-3 mt-0.5 text-xs text-gray-400 flex-wrap items-center">
+                          <span>{t.area}</span>
+                          {t.deadline && (
+                            <span style={{ color: t.deadline < new Date().toISOString().split('T')[0] ? '#E24B4A' : '#888' }}>
+                              → {t.deadline}
+                            </span>
+                          )}
+                          {t.ore_stimate != null && (
+                            <span className="text-gray-500">{t.ore_stimate}h stimate</span>
+                          )}
+                          {(t as TaskConDati).ore_assegnate_totali > 0 && (
+                            <span style={{ color: '#4F86C6' }}>{(t as TaskConDati).ore_assegnate_totali}h assegnate</span>
+                          )}
+                          {(t as TaskConDati).ore_pianificate_totali > 0 && (
+                            <span style={{ color: '#1D9E75' }}>{(t as TaskConDati).ore_pianificate_totali}h pianificate</span>
+                          )}
+                          {(t as TaskConDati).ore_da_pianificare > 0 && (
+                            <span style={{ color: '#EF9F27' }}>{(t as TaskConDati).ore_da_pianificare}h da pianificare</span>
+                          )}
+                        </div>
+                        {/* Badge pianificazione */}
+                        {(() => {
+                          const ps = (t as TaskConDati).pianificazione_stato
+                          const label = { da_stimare: 'Da stimare', da_assegnare: 'Da assegnare',
+                            da_pianificare: 'Da pianificare', parziale: 'Parzialmente pianificato',
+                            pianificato: 'Pianificato', non_assegnato: 'Non assegnato' }[ps]
+                          const color = { da_stimare: '#888', da_assegnare: '#4F86C6',
+                            da_pianificare: '#EF9F27', parziale: '#E07B54',
+                            pianificato: '#1D9E75', non_assegnato: '#aaa' }[ps]
+                          return label ? (
+                            <span className="inline-block mt-1 text-xs px-1.5 py-0.5 rounded"
+                              style={{ background: color + '18', color }}>
+                              {label}
+                            </span>
+                          ) : null
+                        })()}
+                        {/* Dettaglio espanso */}
                         {isExp && (
-                          <div className="flex gap-3 mt-0.5 text-xs text-gray-400 flex-wrap">
+                          <div className="flex gap-3 mt-1 text-xs text-gray-400 flex-wrap">
                             {t.milestone && <span>· {t.milestone}</span>}
-                            <span>{formatDate(t.data_inizio)} → {formatDate(t.data_fine)}</span>
-                            {(t.ore_stimate ?? 0) > 0 && <span>{(t.ore_stimate ?? 0)}h</span>}
+                            {t.prossima_data_pianificata && (
+                              <span style={{ color: '#1D9E75' }}>Prossima: {t.prossima_data_pianificata}</span>
+                            )}
                             {t.ricorrente && <span style={{ color: '#185FA5' }}>↻ {t.frequenza}</span>}
+                            {t.link_operativo && (
+                              <a href={t.link_operativo} target="_blank" rel="noreferrer"
+                                className="text-blue-500 hover:underline">Link operativo</a>
+                            )}
                             {t.note && <span className="italic">{t.note}</span>}
                           </div>
                         )}
                       </div>
+                      {/* Avatar assegnatari — usa assegnazioni (modello nuovo) con fallback legacy */}
                       <div className="flex gap-0.5 flex-shrink-0">
-                        {t.assegnatari.map(pid => {
+                        {((t as TaskConDati).assegnazioni?.length > 0
+                          ? (t as TaskConDati).assegnazioni.map(a => a.persona_id)
+                          : ((t as any).assegnatari ?? [])
+                        ).map((pid: string) => {
                           const p = personaById[pid]
                           return p ? (
                             <span key={pid} className="w-5 h-5 rounded-full flex items-center justify-center text-white text-xs font-bold"
@@ -710,6 +815,43 @@ export default function SchedaCliente({ clienteId, seed, onBack }: Props) {
           )}
         </div>
       )}
+
+      {/* TASK ARCHIVIATI — sezione collassabile nel tab attività */}
+      {activeTab === 'attivita' && (() => {
+        const archProg = progettoAttivo
+          ? tasksArchiviati.filter(t => t.progetto_id === progettoAttivo.id)
+          : tasksArchiviati
+        if (archProg.length === 0) return null
+        return (
+          <div className="mt-4 mb-2">
+            <details className="group">
+              <summary className="flex items-center gap-2 text-xs text-gray-400 cursor-pointer select-none hover:text-gray-600 py-2">
+                <span className="group-open:hidden">▸</span>
+                <span className="hidden group-open:inline">▾</span>
+                {archProg.length} {archProg.length === 1 ? 'task archiviato' : 'task archiviati'}
+              </summary>
+              <div className="mt-2 bg-white rounded-xl border border-gray-200 divide-y divide-gray-100 opacity-60">
+                {archProg.map(t => (
+                  <div key={t.id} className="flex items-center gap-3 px-4 py-2.5">
+                    <span className="w-2 h-2 rounded-full flex-shrink-0 bg-gray-300" />
+                    <div className="flex-1 min-w-0">
+                      <span className="text-sm text-gray-400 line-through">{t.titolo}</span>
+                      <span className="text-xs text-gray-300 ml-2">{t.area}</span>
+                    </div>
+                    {t.ore_stimate != null && (
+                      <span className="text-xs text-gray-300">{t.ore_stimate}h</span>
+                    )}
+                    <button onClick={() => desarchivaTaskAction(t.id)}
+                      className="text-xs px-2 py-0.5 rounded border border-gray-200 text-gray-400 hover:text-teal-600 hover:border-teal-300 flex-shrink-0">
+                      ↩ Ripristina
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </details>
+          </div>
+        )
+      })()}
 
       {/* SCADENZE */}
       {activeTab === 'scadenze' && (
