@@ -6,7 +6,7 @@
  */
 import React, { createContext, useContext, useState, useCallback, ReactNode } from 'react'
 import { TaskConDati, Assegnazione, Allocazione } from '../types'
-import { fetchTaskConDati, creaTaskAtomico, modificaTaskAtomico, completaTask, archivaTask, ripristinaTask, desarchivaTask, eliminaAllocazione, NuovoTaskInput, ModificaTaskInput } from '../lib/taskData'
+import { fetchTaskConDati, creaTaskAtomico, modificaTaskAtomico, completaTask, archivaTask, ripristinaTask, desarchivaTask, eliminaAllocazione, updateAllocazione, NuovoTaskInput, ModificaTaskInput } from '../lib/taskData'
 
 interface TaskDataState {
   tasks: TaskConDati[]
@@ -23,6 +23,7 @@ interface TaskDataContextValue extends TaskDataState {
   completaTaskAction: (taskId: string, liberaFuture: boolean) => Promise<void>
   archivaTaskAction: (taskId: string) => Promise<void>
   eliminaAllocazioneAction: (allocId: string, taskId: string) => Promise<void>
+  aggiornaAllocazioneAction: (allocId: string, taskId: string, assegnazioneId: string, updates: { data?: string; ore?: number; note?: string | null }) => Promise<void>
   ripristinaTaskAction: (taskId: string) => Promise<void>
   desarchivaTaskAction: (taskId: string) => Promise<void>
   // Ottieni task con dati per id
@@ -119,6 +120,39 @@ export function TaskDataProvider({ children, onTaskMutated }: { children: ReactN
     notifyMutation()
   }, [])
 
+  const aggiornaAllocazioneAction = useCallback(async (
+    allocId: string, taskId: string, assegnazioneId: string,
+    updates: { data?: string; ore?: number; note?: string | null }
+  ) => {
+    const task = state.tasks.find(t => t.id === taskId)
+    if (!task) throw new Error(`Task ${taskId} non trovato`)
+    const asgn = task.assegnazioni.find(a => a.id === assegnazioneId)
+    if (!asgn) throw new Error(`Assegnazione ${assegnazioneId} non trovata`)
+    const altreOre = task.allocazioni
+      .filter(a => a.assegnazione_id === assegnazioneId && a.id !== allocId)
+      .reduce((s, a) => s + a.ore, 0)
+    await updateAllocazione(allocId, updates, asgn.ore_assegnate, altreOre)
+    setState(s => ({
+      ...s,
+      tasks: s.tasks.map(t => {
+        if (t.id !== taskId) return t
+        const nuoveAlloc = t.allocazioni.map(a => {
+          if (a.id !== allocId) return a
+          return {
+            ...a,
+            ...(updates.data ? { data_inizio: updates.data, data_fine: updates.data } : {}),
+            ...(updates.ore !== undefined ? { ore: updates.ore } : {}),
+            ...(updates.note !== undefined ? { note: updates.note } : {}),
+          }
+        })
+        const orePian = nuoveAlloc.reduce((sum, a) => sum + a.ore, 0)
+        return { ...t, allocazioni: nuoveAlloc, ore_pianificate_totali: orePian,
+          ore_da_pianificare: Math.max(0, t.ore_assegnate_totali - orePian) }
+      })
+    }))
+    notifyMutation()
+  }, [state.tasks])
+
   const getTaskConDati = useCallback((taskId: string) => {
     return state.tasks.find(t => t.id === taskId) ?? null
   }, [state.tasks])
@@ -126,7 +160,8 @@ export function TaskDataProvider({ children, onTaskMutated }: { children: ReactN
   return (
     <TaskDataContext.Provider value={{
       ...state, carica, creaTask, modificaTask, completaTaskAction,
-      archivaTaskAction, ripristinaTaskAction, desarchivaTaskAction, eliminaAllocazioneAction, getTaskConDati
+      archivaTaskAction, ripristinaTaskAction, desarchivaTaskAction,
+      eliminaAllocazioneAction, aggiornaAllocazioneAction, getTaskConDati
     }}>
       {children}
     </TaskDataContext.Provider>
