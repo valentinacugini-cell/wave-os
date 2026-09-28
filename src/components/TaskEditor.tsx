@@ -114,6 +114,10 @@ export default function TaskEditor({
 
   // Calcoli pianificazione
   const oreStimateNum = oreStimate ? parseFloat(oreStimate) : null
+
+  // Calcolo stato nuovaAlloc — usato sia nel render che in handleSave
+  const nuovaAllocHaCampi = !!(nuovaAlloc.persona_id || nuovaAlloc.data || nuovaAlloc.ore)
+  const nuovaAllocCompleta = !!(nuovaAlloc.persona_id && nuovaAlloc.data && nuovaAlloc.ore && parseFloat(nuovaAlloc.ore) > 0)
   const oreAssegnateTot = assegnazioni.reduce((s, a) => s + (parseFloat(a.ore_assegnate) || 0), 0)
   const oreAllocateTot = (taskEsistente?.ore_pianificate_totali ?? 0) + allocazioni.reduce((s, a) => s + (parseFloat(a.ore) || 0), 0)
   const oreDaAssegnare = oreStimateNum !== null ? Math.max(0, oreStimateNum - oreAssegnateTot) : null
@@ -192,7 +196,45 @@ export default function TaskEditor({
         .filter(a => a.persona_id && parseFloat(a.ore_assegnate) > 0)
         .map(a => ({ persona_id: a.persona_id, ore_assegnate: parseFloat(a.ore_assegnate) }))
 
-      const allocInput = allocazioni
+      // Logica pianificazione al salvataggio:
+      // 1. tutte le allocazioni già confermate con "+"
+      // 2. nuovaAlloc viene inclusa automaticamente se tutti i campi sono valorizzati
+      //    e non è già presente nella lista (anti-duplicazione per persona+data)
+      // 3. se nuovaAlloc è parzialmente compilata, blocca e chiede di completare o cancellare
+
+      // nuovaAllocCompleta e nuovaAllocHaCampi sono già calcolati nello scope del componente
+      const nuovaAllocParziale = nuovaAllocHaCampi && !nuovaAllocCompleta
+
+      if (nuovaAllocParziale) {
+        const campiMancanti = [
+          !nuovaAlloc.persona_id && 'persona',
+          !nuovaAlloc.data && 'data',
+          (!nuovaAlloc.ore || parseFloat(nuovaAlloc.ore) <= 0) && 'ore',
+        ].filter(Boolean).join(', ')
+        setError(`La pianificazione è parzialmente compilata (manca: ${campiMancanti}). Completala e premi "+" oppure cancella i campi prima di salvare.`)
+        setSaving(false)
+        return
+      }
+
+      // Costruisce la lista finale: allocazioni confermate + eventuale nuovaAlloc completa
+      let allocazioniFinali = [...allocazioni]
+      if (nuovaAllocCompleta) {
+        // Anti-duplicazione: esclude se esiste già un elemento con stessa persona e data
+        // Anti-duplicazione: controlla sia allocazioni in sessione che già nel DB
+        const giàInSessione = allocazioni.some(
+          a => a.persona_id === nuovaAlloc.persona_id && a.data === nuovaAlloc.data
+        )
+        const giàNelDB = taskEsistente?.allocazioni?.some(alloc => {
+          const asgn = taskEsistente.assegnazioni.find(as => as.id === alloc.assegnazione_id)
+          return asgn?.persona_id === nuovaAlloc.persona_id && alloc.data_inizio === nuovaAlloc.data
+        }) ?? false
+        const giàPresente = giàInSessione || giàNelDB
+        if (!giàPresente) {
+          allocazioniFinali = [...allocazioniFinali, nuovaAlloc]
+        }
+      }
+
+      const allocInput = allocazioniFinali
         .filter(a => a.persona_id && a.data && parseFloat(a.ore) > 0)
         .map(a => ({ assegnazione_persona_id: a.persona_id, data: a.data, ore: parseFloat(a.ore), note: a.note || undefined }))
 
@@ -473,7 +515,8 @@ export default function TaskEditor({
               )}
 
               {/* Form nuova allocazione */}
-              <div className="flex gap-2 items-end">
+              <div className="text-xs text-gray-500 font-medium mt-1 mb-1">Aggiungi pianificazione</div>
+              <div className="flex gap-2 items-end border-t border-dashed border-gray-200 pt-3 mt-1">
                 <div>
                   <label className="text-xs text-gray-400 block mb-1">Persona</label>
                   <select value={nuovaAlloc.persona_id} onChange={e => setNuovaAlloc(a => ({...a, persona_id: e.target.value}))}
@@ -507,7 +550,16 @@ export default function TaskEditor({
                   className="text-xs px-3 py-2 rounded-lg font-medium disabled:opacity-40"
                   style={{ background: '#7DF5DF', color: '#1A1A2E' }}>+</button>
               </div>
-              <p className="text-xs text-gray-400">La pianificazione è opzionale — puoi salvare il task senza indicare le date.</p>
+              {/* Indicazione dinamica in base allo stato dei campi */}
+              {nuovaAllocHaCampi ? (
+                <p className="text-xs" style={{ color: nuovaAllocCompleta ? '#1D9E75' : '#EF9F27' }}>
+                  {nuovaAllocCompleta
+                    ? "Pianificazione pronta. Premi \u201c+\u201d per aggiungerne un'altra, oppure salva direttamente."
+                    : 'Completa tutti i campi (persona, data, ore) oppure cancellali prima di salvare.'}
+                </p>
+              ) : (
+                <p className="text-xs text-gray-400">Inserisci persona, data e ore per pianificare. Puoi aggiungere più righe con "+".</p>
+              )}
             </div>
           )}
 
