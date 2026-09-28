@@ -252,23 +252,37 @@ export async function modificaTaskAtomico(
     let assegnazioniFinali = [...assegnazioniEsistenti]
     let allocazioniFinali = [...allocazioniEsistenti]
 
-    // 2. Se le assegnazioni cambiano, sostituisci
+    // 2. Aggiorna assegnazioni in modo chirurgico (senza DELETE CASCADE inutile)
     if (input.assegnazioni !== undefined) {
-      // Elimina assegnazioni esistenti (CASCADE su allocazioni)
-      for (const a of assegnazioniEsistenti) {
-        await del('assegnazioni', a.id)
-      }
-      assegnazioniFinali = []
-      allocazioniFinali = []
+      const inputPersoneIds = input.assegnazioni.map(a => a.persona_id)
+      const esistentiPersoneIds = assegnazioniEsistenti.map(a => a.persona_id)
 
-      // Ricrea assegnazioni
+      // Rimuove solo le persone che non sono più nell'input
+      for (const a of assegnazioniEsistenti) {
+        if (!inputPersoneIds.includes(a.persona_id)) {
+          await del('assegnazioni', a.id) // CASCADE elimina le relative allocazioni
+          allocazioniFinali = allocazioniFinali.filter(al => al.assegnazione_id !== a.id)
+        }
+      }
+
+      // Aggiorna o crea assegnazioni
       const nuoveAssegnazioni: Assegnazione[] = []
       for (const a of input.assegnazioni) {
-        const asgnId = `asgn_${taskId}_${a.persona_id}_${Date.now()}`
-        await post('assegnazioni', {
-          id: asgnId, task_id: taskId, persona_id: a.persona_id, ore_assegnate: a.ore_assegnate
-        }, 'return=minimal')
-        nuoveAssegnazioni.push({ id: asgnId, task_id: taskId, persona_id: a.persona_id, ore_assegnate: a.ore_assegnate })
+        const esistente = assegnazioniEsistenti.find(e => e.persona_id === a.persona_id)
+        if (esistente) {
+          // Persona già presente: aggiorna le ore se cambiate (senza toccare le allocazioni)
+          if (esistente.ore_assegnate !== a.ore_assegnate) {
+            await patch('assegnazioni', esistente.id, { ore_assegnate: a.ore_assegnate })
+          }
+          nuoveAssegnazioni.push({ ...esistente, ore_assegnate: a.ore_assegnate })
+        } else {
+          // Persona nuova: crea assegnazione
+          const asgnId = `asgn_${taskId}_${a.persona_id}_${Date.now()}`
+          await post('assegnazioni', {
+            id: asgnId, task_id: taskId, persona_id: a.persona_id, ore_assegnate: a.ore_assegnate
+          }, 'return=minimal')
+          nuoveAssegnazioni.push({ id: asgnId, task_id: taskId, persona_id: a.persona_id, ore_assegnate: a.ore_assegnate })
+        }
       }
       assegnazioniFinali = nuoveAssegnazioni
 
@@ -341,3 +355,26 @@ export async function desarchivaTask(taskId: string): Promise<void> {
 export async function eliminaAllocazione(allocId: string): Promise<void> {
   await del('allocazioni', allocId)
 }
+export async function updateAllocazione(
+  allocId: string,
+  updates: { data?: string; ore?: number; note?: string | null },
+  assegnazioneOreAssegnate: number,
+  altreOreAllocate: number  // somma ore delle ALTRE allocazioni della stessa assegnazione
+): Promise<void> {
+  if (updates.ore !== undefined) {
+    const totaleConNuove = altreOreAllocate + updates.ore
+    if (totaleConNuove > assegnazioneOreAssegnate) {
+      throw new Error(
+        `Sovra-pianificazione: ${updates.ore}h superano le ore disponibili. ` +
+        `Assegnate: ${assegnazioneOreAssegnate}h, già pianificate altrove: ${altreOreAllocate}h, ` +
+        `massimo aggiornabile: ${Math.max(0, assegnazioneOreAssegnate - altreOreAllocate)}h`
+      )
+    }
+  }
+  const payload: Record<string, unknown> = {}
+  if (updates.data !== undefined) { payload.data_inizio = updates.data; payload.data_fine = updates.data }
+  if (updates.ore !== undefined) payload.ore = updates.ore
+  if (updates.note !== undefined) payload.note = updates.note
+  await patch('allocazioni', allocId, payload)
+}
+
